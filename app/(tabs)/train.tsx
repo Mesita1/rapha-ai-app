@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import GlassCard from '../../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { mockTrainingHistory, mockComboProtocols, mockCurrentHRV } from '../../constants/mockData';
+import { getVerseOfTheDay, getVerseForState, scriptureVerses, ScriptureVerse } from '../../constants/scriptureData';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -149,6 +150,34 @@ function WaveAnimation() {
   );
 }
 
+type ScriptureCategory = 'today' | 'forMyState' | 'peace' | 'healing' | 'strength' | 'sleep' | 'gratitude' | 'jehovah-rapha';
+
+const SCRIPTURE_CATEGORIES: { key: ScriptureCategory; label: string; icon: string }[] = [
+  { key: 'today', label: "Today's Verse", icon: 'sunny-outline' },
+  { key: 'forMyState', label: 'For My State', icon: 'pulse-outline' },
+  { key: 'peace', label: 'Peace', icon: 'leaf-outline' },
+  { key: 'healing', label: 'Healing', icon: 'heart-outline' },
+  { key: 'strength', label: 'Strength', icon: 'fitness-outline' },
+  { key: 'sleep', label: 'Sleep', icon: 'moon-outline' },
+  { key: 'gratitude', label: 'Gratitude', icon: 'happy-outline' },
+  { key: 'jehovah-rapha', label: 'Jehovah Rapha', icon: 'medkit-outline' },
+];
+
+function getVersesForCategory(category: ScriptureCategory): ScriptureVerse[] {
+  if (category === 'today') return [getVerseOfTheDay()];
+  if (category === 'forMyState') return [getVerseForState(mockCurrentHRV.autonomicState)];
+  const tagMap: Record<string, string[]> = {
+    peace: ['peace', 'stillness', 'rest', 'calm'],
+    healing: ['healing', 'wounds', 'comfort'],
+    strength: ['strength', 'power', 'ability'],
+    sleep: ['sleep', 'rest', 'safety'],
+    gratitude: ['thankfulness', 'gratitude', 'joy'],
+    'jehovah-rapha': ['healing', 'jehovah-rapha', 'wholeness'],
+  };
+  const tags = tagMap[category] || [];
+  return scriptureVerses.filter(v => v.tags.some(t => tags.includes(t)));
+}
+
 export default function TrainScreen() {
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [selectedType, setSelectedType] = useState<SessionType | null>(null);
@@ -161,6 +190,19 @@ export default function TrainScreen() {
   const [bilateralSide, setBilateralSide] = useState<'left' | 'right'>('left');
   const [sessionRmssd, setSessionRmssd] = useState(mockCurrentHRV.rmssd);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Scripture meditation state
+  const [showScriptureMeditation, setShowScriptureMeditation] = useState(false);
+  const [scriptureCategory, setScriptureCategory] = useState<ScriptureCategory>('today');
+  const [selectedVerse, setSelectedVerse] = useState<ScriptureVerse>(getVerseOfTheDay());
+  const [scriptureDuration, setScriptureDuration] = useState(300);
+  const [scriptureSessionActive, setScriptureSessionActive] = useState(false);
+  const [scriptureElapsed, setScriptureElapsed] = useState(0);
+  const [scriptureRmssd, setScriptureRmssd] = useState(mockCurrentHRV.rmssd);
+  const [scriptureSessionComplete, setScriptureSessionComplete] = useState(false);
+  const [scriptureStartRmssd, setScriptureStartRmssd] = useState(mockCurrentHRV.rmssd);
+  const scriptureIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const breathAnimRef = useRef(new Animated.Value(0.7)).current;
 
   useEffect(() => {
     if (activeSession) {
@@ -184,6 +226,57 @@ export default function TrainScreen() {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [activeSession]);
+
+  // Scripture meditation session timer
+  useEffect(() => {
+    if (scriptureSessionActive) {
+      // Breathing animation loop
+      const breathLoop = () => {
+        Animated.sequence([
+          Animated.timing(breathAnimRef, { toValue: 1, duration: 4000, useNativeDriver: true }),
+          Animated.timing(breathAnimRef, { toValue: 0.7, duration: 4000, useNativeDriver: true }),
+        ]).start(() => { if (scriptureSessionActive) breathLoop(); });
+      };
+      breathLoop();
+
+      scriptureIntervalRef.current = setInterval(() => {
+        setScriptureElapsed((prev) => {
+          if (prev + 1 >= scriptureDuration) {
+            stopScriptureSession();
+            return prev;
+          }
+          return prev + 1;
+        });
+        setScriptureRmssd((prev) => prev + (Math.random() * 0.5 - 0.05));
+      }, 1000);
+    }
+    return () => {
+      if (scriptureIntervalRef.current) clearInterval(scriptureIntervalRef.current);
+    };
+  }, [scriptureSessionActive]);
+
+  const startScriptureSession = () => {
+    setScriptureStartRmssd(mockCurrentHRV.rmssd);
+    setScriptureRmssd(mockCurrentHRV.rmssd);
+    setScriptureElapsed(0);
+    setScriptureSessionActive(true);
+    setScriptureSessionComplete(false);
+  };
+
+  const stopScriptureSession = () => {
+    if (scriptureIntervalRef.current) clearInterval(scriptureIntervalRef.current);
+    setScriptureSessionActive(false);
+    setScriptureSessionComplete(true);
+  };
+
+  const resetScriptureMeditation = () => {
+    setShowScriptureMeditation(false);
+    setScriptureSessionActive(false);
+    setScriptureSessionComplete(false);
+    setScriptureElapsed(0);
+    setScriptureCategory('today');
+    setSelectedVerse(getVerseOfTheDay());
+  };
 
   const startSession = (type: SessionType, mode: string) => {
     setActiveSession({
@@ -349,6 +442,34 @@ export default function TrainScreen() {
           </GlassCard>
         )}
 
+        {/* Scripture Meditation Featured Card */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setShowScriptureMeditation(true)}
+          style={styles.scriptureFeaturedWrapper}
+        >
+          <LinearGradient
+            colors={['rgba(212,165,116,0.2)', 'rgba(212,165,116,0.05)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.scriptureFeaturedGradient}
+          >
+            <View style={styles.scriptureFeaturedHeader}>
+              <Ionicons name="book-outline" size={24} color="#d4a574" />
+              <View style={styles.scriptureFeaturedInfo}>
+                <Text style={styles.scriptureFeaturedTitle}>Scripture Meditation</Text>
+                <Text style={styles.scriptureFeaturedSubtitle}>Meditate on Scripture with real-time HRV tracking</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#d4a574" />
+            </View>
+            <View style={styles.scriptureFeaturedPreview}>
+              <Text style={styles.scriptureFeaturedVerse} numberOfLines={1}>
+                {getVerseOfTheDay().reference} — {getVerseOfTheDay().text.substring(0, 40)}...
+              </Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* Quick Start Grid */}
         <Text style={styles.sectionTitle}>Quick Start</Text>
         <View style={styles.quickStartGrid}>
@@ -452,6 +573,161 @@ export default function TrainScreen() {
 
       {/* Mode Selection Overlay */}
       {selectedType && selectedType !== 'binaural' && renderModeSelection()}
+
+      {/* Scripture Meditation Overlay */}
+      {showScriptureMeditation && (
+        <View style={styles.modeOverlay}>
+          <ScrollView contentContainerStyle={styles.scriptureOverlayScroll}>
+            <GlassCard style={styles.scriptureModal}>
+              {/* Header */}
+              <View style={styles.modeHeader}>
+                <Ionicons name="book-outline" size={20} color="#d4a574" />
+                <Text style={styles.modeTitle}>Scripture Meditation</Text>
+                <TouchableOpacity onPress={resetScriptureMeditation} style={styles.modeClose}>
+                  <Ionicons name="close" size={20} color={Colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              {!scriptureSessionActive && !scriptureSessionComplete && (
+                <>
+                  {/* Category Selection */}
+                  <Text style={styles.modeSubtitle}>Choose a Verse</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scriptureCategoryScroll}>
+                    <View style={styles.scriptureCategoryRow}>
+                      {SCRIPTURE_CATEGORIES.map((cat) => (
+                        <TouchableOpacity
+                          key={cat.key}
+                          style={[
+                            styles.scriptureCategoryPill,
+                            scriptureCategory === cat.key && styles.scriptureCategoryPillActive,
+                          ]}
+                          onPress={() => {
+                            setScriptureCategory(cat.key);
+                            const verses = getVersesForCategory(cat.key);
+                            if (verses.length > 0) setSelectedVerse(verses[0]);
+                          }}
+                        >
+                          <Ionicons name={cat.icon as any} size={12} color={scriptureCategory === cat.key ? '#d4a574' : Colors.textMuted} />
+                          <Text style={[styles.scriptureCategoryText, scriptureCategory === cat.key && styles.scriptureCategoryTextActive]}>{cat.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </ScrollView>
+
+                  {/* Verse List */}
+                  {getVersesForCategory(scriptureCategory).length > 1 && (
+                    <ScrollView style={styles.verseListScroll} nestedScrollEnabled>
+                      {getVersesForCategory(scriptureCategory).map((verse, i) => (
+                        <TouchableOpacity
+                          key={`${verse.reference}-${i}`}
+                          style={[styles.verseListItem, selectedVerse.reference === verse.reference && styles.verseListItemActive]}
+                          onPress={() => setSelectedVerse(verse)}
+                        >
+                          <Text style={styles.verseListRef}>{verse.reference}</Text>
+                          <Text style={styles.verseListText} numberOfLines={2}>{verse.text}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+
+                  {/* Selected Verse Display */}
+                  <View style={styles.selectedVerseContainer}>
+                    <Text style={styles.selectedVerseText}>"{selectedVerse.text}"</Text>
+                    <Text style={styles.selectedVerseRef}>{selectedVerse.reference} — {selectedVerse.translation}</Text>
+                  </View>
+
+                  {/* Duration */}
+                  <Text style={styles.durationLabel}>Duration</Text>
+                  <View style={styles.durationRow}>
+                    {[180, 300, 600].map((d) => (
+                      <TouchableOpacity
+                        key={d}
+                        style={[styles.durationPill, scriptureDuration === d && { backgroundColor: '#d4a574' }]}
+                        onPress={() => setScriptureDuration(d)}
+                      >
+                        <Text style={[styles.durationPillText, scriptureDuration === d && { color: Colors.white }]}>{d / 60}m</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* Start Button */}
+                  <TouchableOpacity style={styles.scriptureStartButton} onPress={startScriptureSession}>
+                    <Ionicons name="play" size={18} color={Colors.white} />
+                    <Text style={styles.startButtonText}>Begin Meditation</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {/* Active Scripture Session */}
+              {scriptureSessionActive && (
+                <View style={styles.scriptureActiveSession}>
+                  <Text style={styles.scriptureActiveVerse}>"{selectedVerse.text}"</Text>
+                  <Text style={styles.scriptureActiveRef}>{selectedVerse.reference}</Text>
+
+                  {/* Breathing Circle */}
+                  <View style={styles.scriptureBreathContainer}>
+                    <Animated.View style={[styles.scriptureBreathCircle, { transform: [{ scale: breathAnimRef }] }]}>
+                      <LinearGradient
+                        colors={['rgba(212,165,116,0.3)', 'rgba(212,165,116,0.08)']}
+                        style={styles.scriptureBreathGradient}
+                      >
+                        <Text style={styles.scriptureBreathText}>breathe</Text>
+                      </LinearGradient>
+                    </Animated.View>
+                  </View>
+
+                  {/* Stats */}
+                  <View style={styles.scriptureActiveStats}>
+                    <View style={styles.activeStat}>
+                      <Text style={styles.activeStatLabel}>Live RMSSD</Text>
+                      <Text style={styles.activeStatValue}>{scriptureRmssd.toFixed(1)} ms</Text>
+                    </View>
+                    <View style={styles.activeStat}>
+                      <Text style={styles.activeStatLabel}>Timer</Text>
+                      <Text style={styles.activeStatValue}>{formatTime(scriptureDuration - scriptureElapsed)}</Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity style={styles.stopButton} onPress={stopScriptureSession}>
+                    <Ionicons name="stop-circle" size={18} color="#ef4444" />
+                    <Text style={styles.stopButtonText}>Stop</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Post-Session Summary */}
+              {scriptureSessionComplete && (
+                <View style={styles.scripturePostSession}>
+                  <Ionicons name="checkmark-circle" size={48} color={Colors.accent} />
+                  <Text style={styles.scripturePostTitle}>Session Complete</Text>
+                  <Text style={styles.scripturePostVerse}>"{selectedVerse.reference}"</Text>
+
+                  <View style={styles.scripturePostStats}>
+                    <View style={styles.scripturePostStatItem}>
+                      <Text style={styles.scripturePostStatLabel}>HRV Change</Text>
+                      <Text style={[styles.scripturePostStatValue, { color: Colors.accent }]}>
+                        +{(scriptureRmssd - scriptureStartRmssd).toFixed(1)} ms
+                      </Text>
+                    </View>
+                    <View style={styles.scripturePostStatItem}>
+                      <Text style={styles.scripturePostStatLabel}>Duration</Text>
+                      <Text style={styles.scripturePostStatValue}>{formatTime(scriptureElapsed)}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.scripturePostInsight}>
+                    This verse produced a +{(scriptureRmssd - scriptureStartRmssd).toFixed(1)}ms shift in your HRV.
+                  </Text>
+
+                  <TouchableOpacity style={styles.scriptureStartButton} onPress={resetScriptureMeditation}>
+                    <Text style={styles.startButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </GlassCard>
+          </ScrollView>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -839,5 +1115,236 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
     fontSize: FontSize.md,
     color: Colors.white,
+  },
+  // Scripture Meditation Featured Card
+  scriptureFeaturedWrapper: {
+    marginBottom: Spacing.lg,
+  },
+  scriptureFeaturedGradient: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(212,165,116,0.3)',
+    padding: Spacing.md,
+  },
+  scriptureFeaturedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  scriptureFeaturedInfo: {
+    flex: 1,
+  },
+  scriptureFeaturedTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  scriptureFeaturedSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  scriptureFeaturedPreview: {
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(212,165,116,0.15)',
+  },
+  scriptureFeaturedVerse: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: '#d4a574',
+    fontStyle: 'italic',
+  },
+  // Scripture Meditation Overlay
+  scriptureOverlayScroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  scriptureModal: {
+    maxHeight: undefined,
+  },
+  scriptureCategoryScroll: {
+    marginBottom: Spacing.md,
+    marginHorizontal: -Spacing.md,
+  },
+  scriptureCategoryRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  scriptureCategoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
+  scriptureCategoryPillActive: {
+    borderColor: '#d4a574',
+    backgroundColor: 'rgba(212,165,116,0.12)',
+  },
+  scriptureCategoryText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  scriptureCategoryTextActive: {
+    color: '#d4a574',
+  },
+  verseListScroll: {
+    maxHeight: 140,
+    marginBottom: Spacing.md,
+  },
+  verseListItem: {
+    padding: Spacing.sm + 2,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    marginBottom: Spacing.xs,
+  },
+  verseListItemActive: {
+    borderColor: '#d4a574',
+    backgroundColor: 'rgba(212,165,116,0.08)',
+  },
+  verseListRef: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.xs,
+    color: '#d4a574',
+    marginBottom: 2,
+  },
+  verseListText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    lineHeight: 16,
+  },
+  selectedVerseContainer: {
+    backgroundColor: 'rgba(212,165,116,0.06)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: '#d4a574',
+    marginBottom: Spacing.md,
+  },
+  selectedVerseText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    fontStyle: 'italic',
+    lineHeight: 22,
+    marginBottom: Spacing.sm,
+  },
+  selectedVerseRef: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  scriptureStartButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: '#d4a574',
+  },
+  // Active Scripture Session
+  scriptureActiveSession: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+  },
+  scriptureActiveVerse: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.lg,
+    color: Colors.text,
+    fontStyle: 'italic',
+    lineHeight: 26,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  scriptureActiveRef: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: '#d4a574',
+    marginBottom: Spacing.lg,
+  },
+  scriptureBreathContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 130,
+    marginBottom: Spacing.md,
+  },
+  scriptureBreathCircle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    overflow: 'hidden',
+  },
+  scriptureBreathGradient: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 55,
+  },
+  scriptureBreathText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: '#d4a574',
+  },
+  scriptureActiveStats: {
+    flexDirection: 'row',
+    gap: Spacing.xl,
+    marginBottom: Spacing.lg,
+  },
+  // Post Session
+  scripturePostSession: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+  },
+  scripturePostTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.xl,
+    color: Colors.text,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  scripturePostVerse: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: '#d4a574',
+    marginBottom: Spacing.lg,
+  },
+  scripturePostStats: {
+    flexDirection: 'row',
+    gap: Spacing.xl,
+    marginBottom: Spacing.lg,
+  },
+  scripturePostStatItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  scripturePostStatLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  scripturePostStatValue: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.xl,
+    color: Colors.text,
+  },
+  scripturePostInsight: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: Spacing.lg,
   },
 });

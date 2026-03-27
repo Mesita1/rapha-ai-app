@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,6 +30,7 @@ import {
   mockAthleteInsights,
   mockHealthMetrics,
 } from '../../constants/mockData';
+import { getVerseOfTheDay } from '../../constants/scriptureData';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -46,6 +48,7 @@ const TREND_ARROW_MAP: Record<string, { symbol: string; color: string }> = {
 
 export default function DashboardScreen() {
   const [showRecommendation, setShowRecommendation] = useState(false);
+  const verseOfTheDay = getVerseOfTheDay();
 
   // Autonomic balance: count sympathetic vs parasympathetic hours for gauge position
   const symCount = autonomicTimeline.filter((s) => s.state === 'sympathetic').length;
@@ -96,6 +99,35 @@ export default function DashboardScreen() {
               <Text style={styles.reviewText}>{dayInReview}</Text>
             </View>
           </LinearGradient>
+        </View>
+
+        {/* Verse of the Day Card */}
+        <View style={styles.verseCard}>
+          <View style={styles.verseLeftBorder} />
+          <View style={styles.verseContent}>
+            <View style={styles.verseHeader}>
+              <Ionicons name="book-outline" size={14} color="#d4a574" />
+              <Text style={styles.verseLabel}>Verse of the Day</Text>
+            </View>
+            <Text style={styles.verseText}>"{verseOfTheDay.text}"</Text>
+            <Text style={styles.verseReference}>{verseOfTheDay.reference} — {verseOfTheDay.translation}</Text>
+            <View style={styles.verseActions}>
+              <TouchableOpacity
+                style={styles.verseMeditateButton}
+                activeOpacity={0.7}
+                onPress={() => router.push('/(tabs)/train')}
+              >
+                <Ionicons name="leaf-outline" size={14} color={Colors.accent} />
+                <Text style={styles.verseMeditateText}>Meditate</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => Linking.openURL(verseOfTheDay.youversionUrl)}
+              >
+                <Text style={styles.verseBibleLink}>Read in Bible App</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         {/* Readiness Card */}
@@ -568,6 +600,74 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.text,
     lineHeight: 22,
+  },
+  // Verse of the Day
+  verseCard: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    overflow: 'hidden',
+    marginBottom: Spacing.sm + 4,
+  },
+  verseLeftBorder: {
+    width: 3,
+    backgroundColor: '#d4a574',
+  },
+  verseContent: {
+    flex: 1,
+    padding: Spacing.md,
+  },
+  verseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: Spacing.sm,
+  },
+  verseLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: '#d4a574',
+  },
+  verseText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    fontStyle: 'italic',
+    lineHeight: 22,
+    marginBottom: Spacing.sm,
+  },
+  verseReference: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginBottom: Spacing.md,
+  },
+  verseActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  verseMeditateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.accentLight,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.full,
+  },
+  verseMeditateText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.xs,
+    color: Colors.accent,
+  },
+  verseBibleLink: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: '#d4a574',
+    textDecorationLine: 'underline',
   },
   // HRV Card
   hrvCard: {

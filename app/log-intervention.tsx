@@ -113,6 +113,10 @@ export default function LogInterventionScreen() {
                     selectedPrayerSub === sub && styles.subChipSelected,
                   ]}
                   onPress={() => {
+                    if (sub === 'Scripture Meditation') {
+                      router.push('/(tabs)/train');
+                      return;
+                    }
                     setSelectedPrayerSub(sub);
                     setText(sub);
                     try { Haptics?.selectionAsync(); } catch {}

@@ -141,6 +141,12 @@ export const mockChatMessages = [
     content: `Not at all! I'm tracking continuously. You'll see live changes on your dashboard right now. Go to Settings to customize exactly which check-in times you want.`,
     timestamp: '8:48 PM',
   },
+  {
+    id: '6',
+    role: 'assistant' as const,
+    content: 'I noticed your HRV jumped +22ms during your prayer session \u2014 that\'s your strongest shift today. "He heals the brokenhearted and binds up their wounds" (Psalm 147:3). Your body responds deeply to these moments. Scripture meditation is consistently your top parasympathetic activator, averaging +19ms across 14 sessions.',
+    timestamp: new Date(Date.now() - 0.5 * 60 * 60 * 1000).toISOString(),
+  },
 ];
 
 export const interventionCategories = [

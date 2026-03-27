@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path, Circle } from 'react-native-svg';
+import Svg, { Path, Circle, Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -17,17 +17,30 @@ const { width } = Dimensions.get('window');
 function HeartbeatLogo() {
   return (
     <View style={styles.logoContainer}>
-      <Svg width={120} height={120} viewBox="0 0 120 120">
+      <Svg width={140} height={140} viewBox="0 0 140 140">
+        {/* Background glow */}
+        <Defs>
+          <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor={Colors.accent} stopOpacity="0.15" />
+            <Stop offset="1" stopColor={Colors.accent} stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+        <Rect x="0" y="0" width="140" height="140" fill="url(#glow)" />
+
         {/* Neural dots */}
-        <Circle cx="20" cy="60" r="3" fill={Colors.accent} opacity={0.5} />
-        <Circle cx="35" cy="40" r="2.5" fill={Colors.accent} opacity={0.4} />
-        <Circle cx="85" cy="40" r="2.5" fill={Colors.accent} opacity={0.4} />
-        <Circle cx="100" cy="60" r="3" fill={Colors.accent} opacity={0.5} />
-        <Circle cx="35" cy="80" r="2" fill={Colors.accent} opacity={0.3} />
-        <Circle cx="85" cy="80" r="2" fill={Colors.accent} opacity={0.3} />
+        <Circle cx="20" cy="70" r="3" fill={Colors.accent} opacity={0.5} />
+        <Circle cx="35" cy="45" r="2.5" fill={Colors.accent} opacity={0.4} />
+        <Circle cx="50" cy="30" r="2" fill={Colors.purple} opacity={0.3} />
+        <Circle cx="90" cy="30" r="2" fill={Colors.purple} opacity={0.3} />
+        <Circle cx="105" cy="45" r="2.5" fill={Colors.accent} opacity={0.4} />
+        <Circle cx="120" cy="70" r="3" fill={Colors.accent} opacity={0.5} />
+        <Circle cx="35" cy="95" r="2" fill={Colors.accent} opacity={0.3} />
+        <Circle cx="105" cy="95" r="2" fill={Colors.accent} opacity={0.3} />
+        <Circle cx="70" cy="110" r="2.5" fill={Colors.purple} opacity={0.25} />
+
         {/* Heartbeat waveform */}
         <Path
-          d="M10 60 L30 60 L38 60 L42 45 L48 75 L54 30 L60 85 L66 45 L70 60 L78 60 L90 60 L110 60"
+          d="M10 70 L30 70 L38 70 L42 52 L48 88 L54 30 L60 100 L66 52 L70 70 L78 70 L90 70 L110 70 L130 70"
           stroke={Colors.accent}
           strokeWidth={3}
           fill="none"
@@ -58,7 +71,6 @@ export default function WelcomeScreen() {
       }),
     ]).start();
 
-    // Subtle pulse animation for the logo
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -155,7 +167,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
     paddingVertical: Spacing.md + 2,
     paddingHorizontal: Spacing.xxl,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     width: '100%',
     alignItems: 'center',
     shadowColor: Colors.accent,

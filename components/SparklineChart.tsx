@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import Svg, { Polyline, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
+import Svg, { Polyline, Defs, LinearGradient, Stop, Polygon } from 'react-native-svg';
 import { Colors } from '../constants/theme';
 
 interface SparklineChartProps {
@@ -8,6 +8,7 @@ interface SparklineChartProps {
   width?: number;
   height?: number;
   color?: string;
+  filled?: boolean;
 }
 
 export default function SparklineChart({
@@ -15,6 +16,7 @@ export default function SparklineChart({
   width = 300,
   height = 80,
   color = Colors.accent,
+  filled = true,
 }: SparklineChartProps) {
   if (data.length < 2) return null;
 
@@ -31,20 +33,28 @@ export default function SparklineChart({
     })
     .join(' ');
 
+  const fillPoints = `${padding},${height} ${points} ${width - padding},${height}`;
+
   return (
     <View style={[styles.container, { width, height }]}>
       <Svg width={width} height={height}>
         <Defs>
-          <LinearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={color} stopOpacity="0.3" />
+          <LinearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={color} stopOpacity="0.2" />
             <Stop offset="1" stopColor={color} stopOpacity="0" />
           </LinearGradient>
         </Defs>
+        {filled && (
+          <Polygon
+            points={fillPoints}
+            fill="url(#sparkFill)"
+          />
+        )}
         <Polyline
           points={points}
           fill="none"
           stroke={color}
-          strokeWidth={2.5}
+          strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
         />

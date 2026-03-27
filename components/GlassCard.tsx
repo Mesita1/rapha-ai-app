@@ -1,19 +1,17 @@
 import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { Colors, BorderRadius, Spacing } from '../constants/theme';
 
 interface GlassCardProps {
   children: React.ReactNode;
   style?: ViewStyle;
-  intensity?: number;
   noPadding?: boolean;
+  glowColor?: string;
 }
 
-export default function GlassCard({ children, style, intensity = 40, noPadding }: GlassCardProps) {
+export default function GlassCard({ children, style, noPadding, glowColor }: GlassCardProps) {
   return (
-    <View style={[styles.container, style]}>
-      <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />
+    <View style={[styles.container, glowColor && { borderColor: glowColor + '20' }, style]}>
       <View style={[styles.content, noPadding && { padding: 0 }]}>{children}</View>
     </View>
   );
@@ -21,7 +19,7 @@ export default function GlassCard({ children, style, intensity = 40, noPadding }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.cardGlass,
+    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.surfaceBorder,

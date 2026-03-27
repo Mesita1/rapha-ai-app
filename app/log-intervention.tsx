@@ -12,33 +12,30 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, Spacing, BorderRadius } from '../constants/theme';
-import { interventionCategories, mockCurrentHRV } from '../constants/mockData';
+import { interventionCategories, prayerSubcategories, mockCurrentHRV } from '../constants/mockData';
+
+let Haptics: any = null;
+try { Haptics = require('expo-haptics'); } catch {}
 
 export default function LogInterventionScreen() {
   const [text, setText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedPrayerSub, setSelectedPrayerSub] = useState<string | null>(null);
   const [isLogged, setIsLogged] = useState(false);
 
   const handleLog = () => {
     if (!text.trim()) return;
-
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try { Haptics?.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
     setIsLogged(true);
-
-    setTimeout(() => {
-      router.back();
-    }, 1500);
+    setTimeout(() => router.back(), 1500);
   };
 
   if (isLogged) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.successContainer}>
-          <View style={styles.successIcon}>
-            <Ionicons name="checkmark-circle" size={64} color={Colors.accent} />
-          </View>
+          <Ionicons name="checkmark-circle" size={64} color={Colors.accent} />
           <Text style={styles.successTitle}>Logged!</Text>
           <Text style={styles.successSubtitle}>
             Current RMSSD: {mockCurrentHRV.rmssd}ms — I'll track how your system responds.
@@ -57,14 +54,27 @@ export default function LogInterventionScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Log Intervention</Text>
+            <Text style={styles.title}>Quick Log</Text>
             <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.textMuted} />
             </TouchableOpacity>
           </View>
 
-          {/* Category Chips */}
-          <Text style={styles.label}>Category</Text>
+          {/* Text Input */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder='e.g., "Magnesium 400mg" or "Cold plunge 3 min"'
+              placeholderTextColor={Colors.textDim}
+              value={text}
+              onChangeText={setText}
+              multiline
+              autoFocus
+              maxLength={200}
+            />
+          </View>
+
+          {/* Category Pills */}
           <View style={styles.chipContainer}>
             {interventionCategories.map((cat) => (
               <TouchableOpacity
@@ -75,15 +85,11 @@ export default function LogInterventionScreen() {
                 ]}
                 onPress={() => {
                   setSelectedCategory(cat.key);
-                  Haptics.selectionAsync();
+                  setSelectedPrayerSub(null);
+                  try { Haptics?.selectionAsync(); } catch {}
                 }}
                 activeOpacity={0.7}
               >
-                <Ionicons
-                  name={cat.icon}
-                  size={16}
-                  color={selectedCategory === cat.key ? Colors.accent : Colors.textMuted}
-                />
                 <Text
                   style={[
                     styles.chipText,
@@ -96,31 +102,35 @@ export default function LogInterventionScreen() {
             ))}
           </View>
 
-          {/* Text Input */}
-          <Text style={styles.label}>What did you do?</Text>
-          <TextInput
-            style={styles.input}
-            placeholder='e.g., "Took 400mg magnesium glycinate" or "20 min walk"'
-            placeholderTextColor={Colors.textDim}
-            value={text}
-            onChangeText={setText}
-            multiline
-            autoFocus
-            maxLength={200}
-          />
-          <Text style={styles.helper}>
-            Rapha will parse the details and track HRV changes automatically.
-          </Text>
-
-          {/* Current HRV context */}
-          <View style={styles.hrvContext}>
-            <Ionicons name="pulse" size={16} color={Colors.accent} />
-            <Text style={styles.hrvContextText}>
-              Current RMSSD: <Text style={styles.hrvValue}>{mockCurrentHRV.rmssd}ms</Text>
-              {' · '}
-              <Text style={styles.hrvValue}>{mockCurrentHRV.heartRate}bpm</Text>
-            </Text>
-          </View>
+          {/* Prayer Subcategories */}
+          {selectedCategory === 'prayer' && (
+            <View style={styles.subChipContainer}>
+              {prayerSubcategories.map((sub) => (
+                <TouchableOpacity
+                  key={sub}
+                  style={[
+                    styles.subChip,
+                    selectedPrayerSub === sub && styles.subChipSelected,
+                  ]}
+                  onPress={() => {
+                    setSelectedPrayerSub(sub);
+                    setText(sub);
+                    try { Haptics?.selectionAsync(); } catch {}
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.subChipText,
+                      selectedPrayerSub === sub && styles.subChipTextSelected,
+                    ]}
+                  >
+                    {sub}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           {/* Log Button */}
           <TouchableOpacity
@@ -129,7 +139,6 @@ export default function LogInterventionScreen() {
             activeOpacity={0.8}
             disabled={!text.trim()}
           >
-            <Ionicons name="add-circle" size={22} color={text.trim() ? Colors.background : Colors.textDim} />
             <Text style={[styles.logButtonText, !text.trim() && styles.logButtonTextDisabled]}>
               Log Intervention
             </Text>
@@ -156,7 +165,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Inter_700Bold',
-    fontSize: FontSize.xxl,
+    fontSize: FontSize.xl,
     color: Colors.text,
   },
   closeButton: {
@@ -167,24 +176,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
+  inputContainer: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    marginBottom: Spacing.lg,
+    overflow: 'hidden',
+  },
+  input: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    minHeight: 60,
+    textAlignVertical: 'top',
   },
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs + 2,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm + 2,
     borderRadius: BorderRadius.full,
@@ -204,68 +219,49 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     color: Colors.accent,
   },
-  input: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.surfaceBorder,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    fontFamily: 'Inter_400Regular',
-    fontSize: FontSize.md,
-    color: Colors.text,
-    minHeight: 80,
-    textAlignVertical: 'top',
+  subChipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+    paddingLeft: Spacing.sm,
   },
-  helper: {
+  subChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 92, 231, 0.2)',
+    backgroundColor: 'rgba(108, 92, 231, 0.08)',
+  },
+  subChipSelected: {
+    borderColor: Colors.purple,
+    backgroundColor: Colors.purpleLight,
+  },
+  subChipText: {
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.xs,
-    color: Colors.textDim,
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  hrvContext: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.accentLight,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: BorderRadius.sm,
-    marginBottom: Spacing.xl,
-  },
-  hrvContextText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: FontSize.sm,
     color: Colors.textMuted,
   },
-  hrvValue: {
-    fontFamily: 'Inter_600SemiBold',
-    color: Colors.text,
+  subChipTextSelected: {
+    color: Colors.purple,
+    fontFamily: 'Inter_500Medium',
   },
   logButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.purple,
     paddingVertical: Spacing.md + 2,
-    borderRadius: BorderRadius.xl,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.sm,
   },
   logButtonDisabled: {
     backgroundColor: Colors.surface,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   logButtonText: {
     fontFamily: 'Inter_700Bold',
-    fontSize: FontSize.lg,
-    color: Colors.background,
+    fontSize: FontSize.md,
+    color: Colors.white,
   },
   logButtonTextDisabled: {
     color: Colors.textDim,
@@ -276,13 +272,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: Spacing.xl,
   },
-  successIcon: {
-    marginBottom: Spacing.lg,
-  },
   successTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: FontSize.xxl,
     color: Colors.accent,
+    marginTop: Spacing.md,
     marginBottom: Spacing.sm,
   },
   successSubtitle: {

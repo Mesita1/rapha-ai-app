@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
 } from 'react-native';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import GlassCard from '../../components/GlassCard';
@@ -16,23 +17,29 @@ import { mockUser } from '../../constants/mockData';
 interface SettingsRowProps {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  subtitle?: string;
   value?: string;
   onPress?: () => void;
   isToggle?: boolean;
   toggleValue?: boolean;
   onToggle?: (val: boolean) => void;
   iconColor?: string;
+  badge?: string;
+  badgeColor?: string;
 }
 
 function SettingsRow({
   icon,
   label,
+  subtitle,
   value,
   onPress,
   isToggle,
   toggleValue,
   onToggle,
   iconColor = Colors.textMuted,
+  badge,
+  badgeColor,
 }: SettingsRowProps) {
   return (
     <TouchableOpacity
@@ -41,20 +48,27 @@ function SettingsRow({
       activeOpacity={isToggle ? 1 : 0.7}
       disabled={isToggle}
     >
-      <View style={styles.rowLeft}>
+      <View style={[styles.rowIcon, { backgroundColor: iconColor + '18' }]}>
         <Ionicons name={icon} size={20} color={iconColor} />
+      </View>
+      <View style={styles.rowContent}>
         <Text style={styles.rowLabel}>{label}</Text>
+        {subtitle ? <Text style={styles.rowSubtitle}>{subtitle}</Text> : null}
       </View>
       {isToggle ? (
         <Switch
           value={toggleValue}
           onValueChange={onToggle}
-          trackColor={{ false: Colors.surfaceBorder, true: Colors.accent }}
+          trackColor={{ false: Colors.surfaceBorder, true: Colors.purple }}
           thumbColor={Colors.white}
         />
+      ) : badge ? (
+        <View style={[styles.badge, { backgroundColor: (badgeColor || Colors.purple) + '20', borderColor: (badgeColor || Colors.purple) + '40' }]}>
+          <Text style={[styles.badgeText, { color: badgeColor || Colors.purple }]}>{badge}</Text>
+        </View>
       ) : (
         <View style={styles.rowRight}>
-          {value && <Text style={styles.rowValue}>{value}</Text>}
+          {value ? <Text style={styles.rowValue}>{value}</Text> : null}
           <Ionicons name="chevron-forward" size={18} color={Colors.textDim} />
         </View>
       )}
@@ -65,6 +79,7 @@ function SettingsRow({
 export default function SettingsScreen() {
   const [darkMode, setDarkMode] = useState(true);
   const [notifications, setNotifications] = useState(true);
+  const [communityInsights, setCommunityInsights] = useState(false);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -72,41 +87,34 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.pageTitle}>Settings</Text>
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.pageTitle}>Settings</Text>
+          <View style={{ width: 40 }} />
+        </View>
 
-        {/* Profile Card */}
-        <TouchableOpacity activeOpacity={0.8}>
-          <GlassCard style={styles.profileCard}>
-            <View style={styles.profileAvatar}>
-              <Text style={styles.avatarText}>
-                {mockUser.firstName.charAt(0)}
-              </Text>
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{mockUser.name}</Text>
-              <Text style={styles.profileEmail}>{mockUser.email}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.textDim} />
-          </GlassCard>
-        </TouchableOpacity>
-
-        {/* Account */}
+        {/* ACCOUNT */}
         <Text style={styles.sectionLabel}>ACCOUNT</Text>
         <GlassCard style={styles.sectionCard}>
           <SettingsRow
             icon="person-outline"
             label="Profile"
-            value={mockUser.firstName}
+            subtitle={mockUser.email}
+            iconColor="#6C5CE7"
           />
           <View style={styles.separator} />
           <SettingsRow
             icon="watch-outline"
             label="My Devices"
-            value="1 connected"
+            subtitle="2 connected"
+            iconColor="#0ea87a"
           />
         </GlassCard>
 
-        {/* Preferences */}
+        {/* PREFERENCES */}
         <Text style={styles.sectionLabel}>PREFERENCES</Text>
         <GlassCard style={styles.sectionCard}>
           <SettingsRow
@@ -115,83 +123,90 @@ export default function SettingsScreen() {
             isToggle
             toggleValue={darkMode}
             onToggle={setDarkMode}
-            iconColor={Colors.accent}
+            iconColor="#6C5CE7"
           />
           <View style={styles.separator} />
           <SettingsRow
             icon="notifications-outline"
             label="Notifications"
-            isToggle
-            toggleValue={notifications}
-            onToggle={setNotifications}
+            iconColor="#ffd93d"
           />
           <View style={styles.separator} />
           <SettingsRow
             icon="time-outline"
             label="HRV Check Intervals"
-            value="5 min"
+            value="Custom"
+            iconColor="#8e8e93"
+          />
+          <View style={styles.separator} />
+          <SettingsRow
+            icon="people-outline"
+            label="Community Insights"
+            isToggle
+            toggleValue={communityInsights}
+            onToggle={setCommunityInsights}
+            iconColor="#0ea87a"
           />
         </GlassCard>
 
-        {/* Data */}
+        {/* DATA */}
         <Text style={styles.sectionLabel}>DATA</Text>
         <GlassCard style={styles.sectionCard}>
           <SettingsRow
             icon="download-outline"
-            label="Export Data"
-            value="CSV"
+            label="Export Data (CSV)"
+            iconColor="#0ea87a"
           />
           <View style={styles.separator} />
           <SettingsRow
             icon="share-outline"
             label="Share with Practitioner"
+            subtitle="Generate a read-only link"
+            iconColor="#6C5CE7"
           />
         </GlassCard>
 
-        {/* Subscription */}
+        {/* SUBSCRIPTION */}
         <Text style={styles.sectionLabel}>SUBSCRIPTION</Text>
         <GlassCard style={styles.sectionCard}>
-          <View style={styles.subscriptionBadge}>
-            <View style={styles.subBadgeInner}>
-              <Ionicons name="diamond-outline" size={16} color={Colors.accent} />
-              <Text style={styles.subPlan}>Premium</Text>
+          <TouchableOpacity style={styles.subRow}>
+            <View style={styles.subIcon}>
+              <Ionicons name="card-outline" size={20} color={Colors.purple} />
             </View>
-            <Text style={styles.subPrice}>$9.99/month</Text>
-          </View>
+            <View style={styles.subInfo}>
+              <Text style={styles.subLabel}>Current Plan</Text>
+              <Text style={styles.subPrice}>$9.99/month · Renews Apr 15</Text>
+            </View>
+            <View style={styles.premiumBadge}>
+              <Text style={styles.premiumBadgeText}>Premium</Text>
+            </View>
+          </TouchableOpacity>
           <View style={styles.separator} />
           <SettingsRow
-            icon="card-outline"
-            label="Manage Subscription"
+            icon="arrow-up-circle-outline"
+            label="Upgrade Plan"
+            iconColor={Colors.purple}
+            onPress={() => router.push('/upgrade' as any)}
           />
         </GlassCard>
 
-        {/* About */}
+        {/* ABOUT */}
         <Text style={styles.sectionLabel}>ABOUT</Text>
         <GlassCard style={styles.sectionCard}>
           <SettingsRow
-            icon="medical-outline"
-            label="Health Disclaimer"
-            iconColor={Colors.warning}
-          />
-          <View style={styles.separator} />
-          <SettingsRow
             icon="shield-checkmark-outline"
+            label="Health Disclaimer"
+            iconColor="#ffd93d"
+          />
+          <View style={styles.separator} />
+          <SettingsRow
+            icon="lock-closed-outline"
             label="Privacy Policy"
-          />
-          <View style={styles.separator} />
-          <SettingsRow
-            icon="document-text-outline"
-            label="Terms of Service"
-          />
-          <View style={styles.separator} />
-          <SettingsRow
-            icon="information-circle-outline"
-            label="Version"
-            value="1.0.0"
+            iconColor="#8e8e93"
           />
         </GlassCard>
 
-        {/* Disclaimer */}
+        {/* Footer */}
         <Text style={styles.disclaimer}>
           Rapha AI is not medical advice. Always consult your healthcare provider.
         </Text>
@@ -209,48 +224,25 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   content: {
-    padding: Spacing.lg,
-    paddingTop: Spacing.md,
+    padding: Spacing.md,
+    paddingTop: Spacing.sm,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.lg,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pageTitle: {
     fontFamily: 'Inter_700Bold',
-    fontSize: FontSize.xxl,
-    color: Colors.text,
-    marginBottom: Spacing.lg,
-  },
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  profileAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: Colors.accentLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  avatarText: {
-    fontFamily: 'Inter_700Bold',
     fontSize: FontSize.xl,
-    color: Colors.accent,
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileName: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: FontSize.lg,
     color: Colors.text,
-  },
-  profileEmail: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    marginTop: 2,
   },
   sectionLabel: {
     fontFamily: 'Inter_600SemiBold',
@@ -259,27 +251,40 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     marginBottom: Spacing.sm,
     marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
   },
   sectionCard: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     paddingVertical: Spacing.xs,
+    paddingHorizontal: 0,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: Spacing.md - 2,
     paddingHorizontal: Spacing.md,
-  },
-  rowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.md,
+  },
+  rowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowContent: {
+    flex: 1,
   },
   rowLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.md,
     color: Colors.text,
+  },
+  rowSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 1,
   },
   rowRight: {
     flexDirection: 'row',
@@ -291,32 +296,62 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textMuted,
   },
+  badge: {
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  badgeText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.xs - 1,
+  },
   separator: {
     height: 0.5,
     backgroundColor: Colors.surfaceBorder,
     marginHorizontal: Spacing.md,
   },
-  subscriptionBadge: {
+  subRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: Spacing.md - 2,
     paddingHorizontal: Spacing.md,
+    gap: Spacing.md,
   },
-  subBadgeInner: {
-    flexDirection: 'row',
+  subIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.purpleLight,
     alignItems: 'center',
-    gap: Spacing.sm,
+    justifyContent: 'center',
   },
-  subPlan: {
-    fontFamily: 'Inter_600SemiBold',
+  subInfo: {
+    flex: 1,
+  },
+  subLabel: {
+    fontFamily: 'Inter_500Medium',
     fontSize: FontSize.md,
-    color: Colors.accent,
+    color: Colors.text,
   },
   subPrice: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: FontSize.sm,
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
     color: Colors.textMuted,
+    marginTop: 1,
+  },
+  premiumBadge: {
+    backgroundColor: Colors.purpleLight,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 92, 231, 0.3)',
+  },
+  premiumBadgeText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.xs,
+    color: Colors.purple,
   },
   disclaimer: {
     fontFamily: 'Inter_400Regular',

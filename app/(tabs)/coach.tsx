@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,24 +22,20 @@ import {
 import { sendChatMessage } from '../../lib/gemini';
 import type { ChatMessage } from '../../lib/types';
 
-function formatTime(timestamp: string): string {
-  return new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-}
-
-function ChatBubble({ message }: { message: ChatMessage }) {
+function ChatBubble({ message }: { message: { role: string; content: string; timestamp: string } }) {
   const isUser = message.role === 'user';
 
   return (
     <View style={[styles.bubbleRow, isUser && styles.bubbleRowUser]}>
       {!isUser && (
-        <View style={styles.avatar}>
-          <Ionicons name="pulse" size={16} color={Colors.accent} />
+        <View style={styles.sparkleIcon}>
+          <Text style={styles.sparkleText}>✦</Text>
         </View>
       )}
       <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-        <Text style={[styles.bubbleText, isUser && styles.userBubbleText]}>{message.content}</Text>
+        <Text style={styles.bubbleText}>{message.content}</Text>
         <Text style={[styles.bubbleTime, isUser && styles.userBubbleTime]}>
-          {formatTime(message.timestamp)}
+          {message.timestamp}
         </Text>
       </View>
     </View>
@@ -48,7 +43,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
 }
 
 export default function CoachScreen() {
-  const [messages, setMessages] = useState<ChatMessage[]>(mockChatMessages);
+  const [messages, setMessages] = useState(mockChatMessages);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -60,11 +55,11 @@ export default function CoachScreen() {
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
 
-    const userMessage: ChatMessage = {
+    const userMessage = {
       id: Date.now().toString(),
-      role: 'user',
+      role: 'user' as const,
       content: inputText.trim(),
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -108,20 +103,20 @@ export default function CoachScreen() {
         })),
       });
 
-      const aiMessage: ChatMessage = {
+      const aiMessage = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
+        role: 'assistant' as const,
         content: response,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
       };
 
       setMessages((prev) => [...prev, aiMessage]);
     } catch {
-      const errorMessage: ChatMessage = {
+      const errorMessage = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
+        role: 'assistant' as const,
         content: "I'm having trouble connecting right now. Please try again in a moment.",
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -143,21 +138,6 @@ export default function CoachScreen() {
         </View>
       </View>
 
-      {/* HRV Status Bar */}
-      <View style={styles.hrvBar}>
-        <View style={styles.hrvBarItem}>
-          <View style={[styles.hrvBarDot, { backgroundColor: Colors.accent }]} />
-          <Text style={styles.hrvBarText}>RMSSD {mockCurrentHRV.rmssd}ms</Text>
-        </View>
-        <View style={styles.hrvBarDivider} />
-        <View style={styles.hrvBarItem}>
-          <Ionicons name="heart" size={12} color={Colors.alert} />
-          <Text style={styles.hrvBarText}>{mockCurrentHRV.heartRate} bpm</Text>
-        </View>
-        <View style={styles.hrvBarDivider} />
-        <Text style={[styles.hrvBarText, { color: Colors.accent }]}>Parasympathetic</Text>
-      </View>
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -175,8 +155,8 @@ export default function CoachScreen() {
           ))}
           {isLoading && (
             <View style={styles.bubbleRow}>
-              <View style={styles.avatar}>
-                <Ionicons name="pulse" size={16} color={Colors.accent} />
+              <View style={styles.sparkleIcon}>
+                <Text style={styles.sparkleText}>✦</Text>
               </View>
               <View style={[styles.bubble, styles.aiBubble]}>
                 <Text style={styles.typingDots}>Rapha is thinking...</Text>
@@ -187,6 +167,9 @@ export default function CoachScreen() {
 
         {/* Input Bar */}
         <View style={styles.inputBar}>
+          <TouchableOpacity style={styles.micButton}>
+            <Ionicons name="mic-outline" size={22} color={Colors.textMuted} />
+          </TouchableOpacity>
           <TextInput
             style={styles.input}
             placeholder="Log an intervention..."
@@ -198,17 +181,14 @@ export default function CoachScreen() {
             returnKeyType="send"
             onSubmitEditing={handleSend}
           />
-          <TouchableOpacity style={styles.micButton}>
-            <Ionicons name="mic-outline" size={22} color={Colors.textMuted} />
-          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.sendButton, inputText.trim() && styles.sendButtonActive]}
             onPress={handleSend}
             disabled={!inputText.trim() || isLoading}
           >
             <Ionicons
-              name="arrow-up"
-              size={20}
+              name="send"
+              size={18}
               color={inputText.trim() ? Colors.white : Colors.textDim}
             />
           </TouchableOpacity>
@@ -253,36 +233,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.accent,
   },
-  hrvBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.sm,
-    backgroundColor: 'rgba(14, 168, 122, 0.06)',
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.surfaceBorder,
-    gap: Spacing.sm,
-  },
-  hrvBarItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  hrvBarDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  hrvBarText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-  },
-  hrvBarDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: Colors.surfaceBorder,
-  },
   messagesContent: {
     padding: Spacing.md,
     paddingBottom: Spacing.md,
@@ -290,22 +240,24 @@ const styles = StyleSheet.create({
   },
   bubbleRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     gap: Spacing.sm,
-    maxWidth: '85%',
+    maxWidth: '88%',
   },
   bubbleRowUser: {
     alignSelf: 'flex-end',
     flexDirection: 'row-reverse',
   },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.accentLight,
+  sparkleIcon: {
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+    marginTop: 4,
+  },
+  sparkleText: {
+    fontSize: 16,
+    color: Colors.purple,
   },
   bubble: {
     padding: Spacing.md,
@@ -316,20 +268,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.surfaceBorder,
-    borderBottomLeftRadius: BorderRadius.sm,
+    borderTopLeftRadius: BorderRadius.sm,
   },
   userBubble: {
-    backgroundColor: Colors.userBubble,
-    borderBottomRightRadius: BorderRadius.sm,
+    backgroundColor: Colors.purple,
+    borderTopRightRadius: BorderRadius.sm,
   },
   bubbleText: {
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.md,
     color: Colors.text,
     lineHeight: 22,
-  },
-  userBubbleText: {
-    color: Colors.text,
   },
   bubbleTime: {
     fontFamily: 'Inter_400Regular',
@@ -339,6 +288,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   userBubbleTime: {
+    color: 'rgba(255,255,255,0.6)',
     alignSelf: 'flex-start',
   },
   typingDots: {
@@ -357,6 +307,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10, 10, 15, 0.95)',
     gap: Spacing.sm,
   },
+  micButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   input: {
     flex: 1,
     backgroundColor: Colors.surface,
@@ -370,13 +327,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     maxHeight: 100,
   },
-  micButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   sendButton: {
     width: 38,
     height: 38,
@@ -386,6 +336,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendButtonActive: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.purple,
   },
 });

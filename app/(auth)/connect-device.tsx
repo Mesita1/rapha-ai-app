@@ -9,16 +9,17 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import GlassCard from '../../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 
 const devices = [
-  { id: 'polar_h10', name: 'Polar H10', desc: 'Direct BLE', icon: 'bluetooth-outline' as const },
-  { id: 'apple_watch', name: 'Apple Watch', desc: 'HealthKit', icon: 'watch-outline' as const },
-  { id: 'garmin', name: 'Garmin', desc: 'HealthKit / Health Connect', icon: 'fitness-outline' as const },
-  { id: 'whoop', name: 'WHOOP', desc: 'HealthKit', icon: 'pulse-outline' as const },
-  { id: 'oura', name: 'Oura Ring', desc: 'HealthKit + API', icon: 'ellipse-outline' as const },
-  { id: 'muse', name: 'Muse', desc: 'BLE (Future)', icon: 'radio-outline' as const },
-  { id: 'other', name: 'Other Device', desc: 'Manual entry / CSV import', icon: 'add-circle-outline' as const },
+  { id: 'polar_h10', name: 'Polar H10', desc: 'Chest strap · Direct BLE', icon: 'bluetooth-outline' as const },
+  { id: 'apple_watch', name: 'Apple Watch', desc: 'Wrist · HealthKit', icon: 'watch-outline' as const },
+  { id: 'garmin', name: 'Garmin', desc: 'Wrist · HealthKit / Health Connect', icon: 'fitness-outline' as const },
+  { id: 'whoop', name: 'WHOOP', desc: 'Wrist · HealthKit', icon: 'pulse-outline' as const },
+  { id: 'oura', name: 'Oura Ring', desc: 'Ring · HealthKit + API', icon: 'ellipse-outline' as const },
+  { id: 'muse', name: 'Muse', desc: 'Headband · BLE (Coming Soon)', icon: 'radio-outline' as const },
+  { id: 'other', name: 'Other HRV Device', desc: 'Manual entry or CSV import', icon: 'add-circle-outline' as const },
 ];
 
 export default function ConnectDeviceScreen() {
@@ -31,52 +32,57 @@ export default function ConnectDeviceScreen() {
           <Ionicons name="chevron-back" size={24} color={Colors.text} />
         </TouchableOpacity>
 
-        <Text style={styles.title}>Connect Your Wearable</Text>
+        <Text style={styles.title}>Connect Your Device</Text>
         <Text style={styles.subtitle}>
-          Choose your device to start tracking HRV data in real-time.
+          Choose your wearable to start tracking HRV in real-time.
         </Text>
 
         <View style={styles.deviceList}>
           {devices.map((device) => (
             <TouchableOpacity
               key={device.id}
-              style={[
-                styles.deviceCard,
-                selectedDevice === device.id && styles.deviceCardSelected,
-              ]}
-              onPress={() => setSelectedDevice(device.id)}
               activeOpacity={0.7}
+              onPress={() => setSelectedDevice(device.id)}
             >
-              <View
+              <GlassCard
                 style={[
-                  styles.deviceIcon,
-                  selectedDevice === device.id && styles.deviceIconSelected,
+                  styles.deviceCard,
+                  selectedDevice === device.id && styles.deviceCardSelected,
                 ]}
               >
-                <Ionicons
-                  name={device.icon}
-                  size={22}
-                  color={selectedDevice === device.id ? Colors.accent : Colors.textMuted}
-                />
-              </View>
-              <View style={styles.deviceInfo}>
-                <Text style={styles.deviceName}>{device.name}</Text>
-                <Text style={styles.deviceDesc}>{device.desc}</Text>
-              </View>
-              {selectedDevice === device.id && (
-                <Ionicons name="checkmark-circle" size={22} color={Colors.accent} />
-              )}
+                <View style={styles.deviceRow}>
+                  <View
+                    style={[
+                      styles.deviceIcon,
+                      selectedDevice === device.id && styles.deviceIconSelected,
+                    ]}
+                  >
+                    <Ionicons
+                      name={device.icon}
+                      size={22}
+                      color={selectedDevice === device.id ? Colors.accent : Colors.textMuted}
+                    />
+                  </View>
+                  <View style={styles.deviceInfo}>
+                    <Text style={styles.deviceName}>{device.name}</Text>
+                    <Text style={styles.deviceDesc}>{device.desc}</Text>
+                  </View>
+                  {selectedDevice === device.id && (
+                    <Ionicons name="checkmark-circle" size={22} color={Colors.accent} />
+                  )}
+                </View>
+              </GlassCard>
             </TouchableOpacity>
           ))}
         </View>
 
         <TouchableOpacity
-          style={styles.healthKitButton}
+          style={styles.connectButton}
           onPress={() => router.push('/(auth)/profile-setup')}
           activeOpacity={0.8}
         >
           <Ionicons name="heart-circle-outline" size={22} color={Colors.background} />
-          <Text style={styles.healthKitText}>Connect via Apple HealthKit</Text>
+          <Text style={styles.connectText}>Connect via Apple HealthKit</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -125,18 +131,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   deviceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.surfaceBorder,
-    padding: Spacing.md,
-    gap: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   deviceCardSelected: {
     borderColor: Colors.accent,
-    backgroundColor: 'rgba(14, 168, 122, 0.08)',
+  },
+  deviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
   },
   deviceIcon: {
     width: 44,
@@ -163,13 +166,13 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: 2,
   },
-  healthKitButton: {
+  connectButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.accent,
     paddingVertical: Spacing.md + 2,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     gap: Spacing.sm,
     shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 4 },
@@ -177,7 +180,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  healthKitText: {
+  connectText: {
     fontFamily: 'Inter_700Bold',
     fontSize: FontSize.md,
     color: Colors.background,

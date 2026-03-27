@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import {
   useFonts,
   Inter_400Regular,
@@ -74,6 +74,20 @@ export default function RootLayout() {
               />
               <Stack.Screen
                 name="log-intervention"
+                options={{
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
+                }}
+              />
+              <Stack.Screen
+                name="upgrade"
+                options={{
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
+                }}
+              />
+              <Stack.Screen
+                name="practitioner"
                 options={{
                   presentation: 'modal',
                   animation: 'slide_from_bottom',

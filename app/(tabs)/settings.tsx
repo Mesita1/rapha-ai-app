@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import GlassCard from '../../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
-import { mockUser } from '../../constants/mockData';
+import { mockUser, achievements } from '../../constants/mockData';
 
 interface SettingsRowProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -111,6 +111,29 @@ export default function SettingsScreen() {
             label="My Devices"
             subtitle="2 connected"
             iconColor="#0ea87a"
+          />
+          <View style={styles.separator} />
+          <SettingsRow
+            icon="medkit-outline"
+            label="My Conditions"
+            value="POTS, MCAS"
+            iconColor="#f59e0b"
+          />
+          <View style={styles.separator} />
+          <SettingsRow
+            icon="warning-outline"
+            label="Flare History"
+            value="4 events"
+            iconColor="#ef4444"
+          />
+          <View style={styles.separator} />
+          <SettingsRow
+            icon="trophy-outline"
+            label="Achievements"
+            iconColor="#0ea87a"
+            badge={`${achievements.filter(a => a.unlocked).length}/${achievements.length}`}
+            badgeColor="#0ea87a"
+            onPress={() => router.push('/achievements' as any)}
           />
         </GlassCard>
 

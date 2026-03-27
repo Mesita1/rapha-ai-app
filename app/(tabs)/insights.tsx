@@ -15,6 +15,8 @@ import {
   mockTopInterventions,
   mockSleepData,
   mockWeeklyReport,
+  communityDiscoveries,
+  interventionStacks,
 } from '../../constants/mockData';
 
 function InterventionBar({
@@ -103,6 +105,7 @@ function SleepBarChart({ data, labels }: { data: number[]; labels: string[] }) {
 export default function InsightsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState('This Week');
   const maxDelta = Math.max(...mockTopInterventions.map((i) => Math.abs(i.avgDelta)));
+  const topStack = interventionStacks[0];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -136,6 +139,84 @@ export default function InsightsScreen() {
                 maxDelta={maxDelta}
               />
             ))}
+          </GlassCard>
+        </View>
+
+        {/* Discover Section */}
+        <View style={styles.discoverSection}>
+          <View style={styles.discoverHeaderRow}>
+            <Ionicons name="compass-outline" size={16} color={Colors.accent} />
+            <Text style={styles.discoverHeaderText}>Discover</Text>
+            <View style={styles.communityBadge}>
+              <Text style={styles.communityBadgeText}>Community</Text>
+            </View>
+          </View>
+
+          {/* Top for Your Conditions */}
+          <GlassCard style={styles.discoverCard}>
+            <Text style={styles.discoverCardTitle}>Top for Your Conditions</Text>
+            {communityDiscoveries.slice(0, 3).map((item, i) => (
+              <View key={i} style={styles.discoveryRow}>
+                <View style={styles.discoveryRank}>
+                  <Text style={styles.discoveryRankText}>{i + 1}</Text>
+                </View>
+                <View style={styles.discoveryInfo}>
+                  <Text style={styles.discoveryName}>{item.intervention}</Text>
+                  <Text style={styles.discoveryCondition}>{item.condition}</Text>
+                </View>
+                <View style={styles.discoveryDelta}>
+                  <Text style={styles.discoveryDeltaText}>+{item.avgImprovement}ms</Text>
+                  <Text style={styles.discoveryUsers}>{item.userCount} users</Text>
+                </View>
+                {item.trending && (
+                  <Ionicons name="trending-up" size={14} color={Colors.accent} style={{ marginLeft: 4 }} />
+                )}
+              </View>
+            ))}
+          </GlassCard>
+
+          {/* Intervention Stacking */}
+          <GlassCard style={styles.discoverCard}>
+            <View style={styles.stackHeader}>
+              <Ionicons name="layers-outline" size={16} color={Colors.purple} />
+              <Text style={styles.discoverCardTitle}>Intervention Stacking</Text>
+            </View>
+            <Text style={styles.stackCombo}>
+              {topStack.combo[0]} + {topStack.combo[1]} = +{topStack.combinedDelta}ms
+            </Text>
+            <Text style={styles.stackDetail}>
+              {topStack.synergyPercent}% better than either alone
+            </Text>
+            <View style={styles.stackBarRow}>
+              <View style={styles.stackBarTrack}>
+                <View
+                  style={[styles.stackBarFill, { width: `${(topStack.individualSum / topStack.combinedDelta) * 100}%`, backgroundColor: 'rgba(108,92,231,0.4)' }]}
+                />
+              </View>
+              <Text style={styles.stackBarLabel}>Individual: +{topStack.individualSum}ms</Text>
+            </View>
+            <View style={styles.stackBarRow}>
+              <View style={styles.stackBarTrack}>
+                <View
+                  style={[styles.stackBarFill, { width: '100%', backgroundColor: Colors.purple }]}
+                />
+              </View>
+              <Text style={styles.stackBarLabel}>Combined: +{topStack.combinedDelta}ms</Text>
+            </View>
+          </GlassCard>
+
+          {/* Trending */}
+          <GlassCard style={styles.discoverCard}>
+            <View style={styles.trendingHeader}>
+              <Ionicons name="flame-outline" size={16} color="#f59e0b" />
+              <Text style={styles.discoverCardTitle}>Trending</Text>
+            </View>
+            <Text style={styles.trendingText}>
+              23 POTS users: sodium loading +14ms avg
+            </Text>
+            <Text style={styles.trendingSub}>
+              47 MCAS users report quercetin improving HRV response by 23%
+            </Text>
           </GlassCard>
         </View>
 
@@ -173,7 +254,7 @@ export default function InsightsScreen() {
             <Text style={styles.reportNarrative}>{mockWeeklyReport.narrative}</Text>
             {mockWeeklyReport.topHelpers.map((item, i) => (
               <View key={i} style={styles.reportBullet}>
-                <Text style={styles.bulletDot}>•</Text>
+                <Text style={styles.bulletDot}>{'\u2022'}</Text>
                 <Text style={styles.reportBulletText}>{item}</Text>
               </View>
             ))}
@@ -193,20 +274,6 @@ export default function InsightsScreen() {
           <Text style={styles.deepMetricsDesc}>
             Poincare plot, frequency spectrum, and DFA trend analysis
           </Text>
-        </GlassCard>
-
-        {/* Community Insights */}
-        <GlassCard style={styles.communityCard}>
-          <View style={styles.communityRow}>
-            <Ionicons name="people-outline" size={18} color={Colors.accent} />
-            <Text style={styles.communityTitle}>Discover</Text>
-          </View>
-          <Text style={styles.communityDesc}>
-            See what interventions work best across the Rapha AI community. Opt-in in Settings.
-          </Text>
-          <TouchableOpacity style={styles.enableButton}>
-            <Text style={styles.enableText}>Enable Community Insights</Text>
-          </TouchableOpacity>
         </GlassCard>
 
         <View style={{ height: 120 }} />
@@ -309,6 +376,151 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textDim,
   },
+  // Discover Section
+  discoverSection: {
+    marginBottom: Spacing.md,
+  },
+  discoverHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+  },
+  discoverHeaderText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    flex: 1,
+  },
+  communityBadge: {
+    backgroundColor: Colors.accentLight,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+  },
+  communityBadgeText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.xs - 1,
+    color: Colors.accent,
+  },
+  discoverCard: {
+    marginBottom: Spacing.sm,
+  },
+  discoverCardTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
+  discoveryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.surfaceBorder,
+  },
+  discoveryRank: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.purpleLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  discoveryRankText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.xs,
+    color: Colors.purple,
+  },
+  discoveryInfo: {
+    flex: 1,
+  },
+  discoveryName: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  discoveryCondition: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 1,
+  },
+  discoveryDelta: {
+    alignItems: 'flex-end',
+  },
+  discoveryDeltaText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.sm,
+    color: Colors.accent,
+  },
+  discoveryUsers: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+  },
+  // Stacking
+  stackHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: Spacing.sm,
+  },
+  stackCombo: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.lg,
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  stackDetail: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.accent,
+    marginBottom: Spacing.md,
+  },
+  stackBarRow: {
+    marginBottom: Spacing.sm,
+  },
+  stackBarTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  stackBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  stackBarLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  // Trending
+  trendingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: Spacing.sm,
+  },
+  trendingText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    marginBottom: 6,
+  },
+  trendingSub: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    lineHeight: 20,
+  },
+  // Sleep
   sleepSection: {
     marginBottom: Spacing.md,
   },
@@ -385,6 +597,7 @@ const styles = StyleSheet.create({
     color: Colors.textDim,
     textAlign: 'center',
   },
+  // Report
   reportSection: {
     marginBottom: Spacing.md,
   },
@@ -427,6 +640,7 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     marginTop: Spacing.md,
   },
+  // Deep Metrics
   deepMetrics: {
     marginBottom: Spacing.md,
   },
@@ -459,40 +673,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.sm,
     color: Colors.textMuted,
-  },
-  communityCard: {
-    marginBottom: Spacing.md,
-  },
-  communityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: 6,
-  },
-  communityTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: FontSize.md,
-    color: Colors.text,
-  },
-  communityDesc: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    lineHeight: 20,
-    marginBottom: Spacing.md,
-  },
-  enableButton: {
-    backgroundColor: Colors.accentLight,
-    paddingVertical: Spacing.sm + 2,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: Colors.accent,
-    alignSelf: 'flex-start',
-  },
-  enableText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: FontSize.sm,
-    color: Colors.accent,
   },
 });

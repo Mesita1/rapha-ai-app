@@ -13,6 +13,7 @@ export default function AuthLayout() {
     >
       <Stack.Screen name="welcome" />
       <Stack.Screen name="connect-device" />
+      <Stack.Screen name="reason" />
       <Stack.Screen name="profile-setup" />
     </Stack>
   );

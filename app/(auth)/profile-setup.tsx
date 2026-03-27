@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
+import { conditionsList } from '../../constants/mockData';
 
 const healthGoalOptions = [
   'Stress Reduction',
@@ -26,11 +27,17 @@ export default function ProfileSetupScreen() {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
-  const [conditions, setConditions] = useState('');
+  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
 
   const toggleGoal = (goal: string) => {
     setSelectedGoals((prev) =>
       prev.includes(goal) ? prev.filter((g) => g !== goal) : [...prev, goal]
+    );
+  };
+
+  const toggleCondition = (condition: string) => {
+    setSelectedConditions((prev) =>
+      prev.includes(condition) ? prev.filter((c) => c !== condition) : [...prev, condition]
     );
   };
 
@@ -106,18 +113,32 @@ export default function ProfileSetupScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Known Conditions</Text>
-            <TextInput
-              style={[styles.input, styles.multilineInput]}
-              placeholder="e.g., POTS, MCAS, EDS"
-              placeholderTextColor={Colors.textDim}
-              value={conditions}
-              onChangeText={setConditions}
-              multiline
-            />
+            <Text style={styles.label}>Conditions</Text>
             <Text style={styles.helper}>
-              Optional — helps Rapha better interpret your HRV patterns
+              Select all that apply — helps Rapha better interpret your HRV patterns
             </Text>
+            <View style={styles.chipContainer}>
+              {conditionsList.map((condition) => (
+                <TouchableOpacity
+                  key={condition}
+                  style={[
+                    styles.chip,
+                    selectedConditions.includes(condition) && styles.conditionChipSelected,
+                  ]}
+                  onPress={() => toggleCondition(condition)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selectedConditions.includes(condition) && styles.conditionChipTextSelected,
+                    ]}
+                  >
+                    {condition}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           <TouchableOpacity
@@ -185,15 +206,11 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.text,
   },
-  multilineInput: {
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
   helper: {
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.xs,
     color: Colors.textDim,
-    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   chipContainer: {
     flexDirection: 'row',
@@ -219,6 +236,13 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: {
     color: Colors.accent,
+  },
+  conditionChipSelected: {
+    borderColor: Colors.purple,
+    backgroundColor: Colors.purpleLight,
+  },
+  conditionChipTextSelected: {
+    color: Colors.purple,
   },
   startButton: {
     flexDirection: 'row',

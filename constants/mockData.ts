@@ -230,3 +230,116 @@ export const mockPatients = [
   { id: '4', name: 'David Kim', status: 'attention' as const, avgRmssd: 31.4, stressScore: 74, lastActive: '15 min ago' },
   { id: '5', name: 'Lisa Thompson', status: 'good' as const, avgRmssd: 48.9, stressScore: 35, lastActive: '4 hours ago' },
 ];
+
+// --- V2 ADDITIONS ---
+
+export const dayInReview = "Strong recovery day. HRV peaked after prayer (+22ms). Coffee was your only dip. Sleep score: 82.";
+
+export const autonomicTimeline: { hour: number; state: 'sympathetic' | 'parasympathetic' | 'dorsal' }[] = [
+  { hour: 0, state: 'parasympathetic' },
+  { hour: 1, state: 'parasympathetic' },
+  { hour: 2, state: 'parasympathetic' },
+  { hour: 3, state: 'parasympathetic' },
+  { hour: 4, state: 'parasympathetic' },
+  { hour: 5, state: 'dorsal' },
+  { hour: 6, state: 'sympathetic' },
+  { hour: 7, state: 'sympathetic' },
+  { hour: 8, state: 'sympathetic' },
+  { hour: 9, state: 'parasympathetic' },
+  { hour: 10, state: 'sympathetic' },
+  { hour: 11, state: 'sympathetic' },
+  { hour: 12, state: 'sympathetic' },
+  { hour: 13, state: 'parasympathetic' },
+  { hour: 14, state: 'parasympathetic' },
+  { hour: 15, state: 'sympathetic' },
+  { hour: 16, state: 'sympathetic' },
+  { hour: 17, state: 'parasympathetic' },
+  { hour: 18, state: 'parasympathetic' },
+  { hour: 19, state: 'parasympathetic' },
+  { hour: 20, state: 'sympathetic' },
+  { hour: 21, state: 'parasympathetic' },
+  { hour: 22, state: 'parasympathetic' },
+  { hour: 23, state: 'parasympathetic' },
+];
+
+export const bodyBattery: { hour: number; value: number }[] = [
+  { hour: 6, value: 95 },
+  { hour: 7, value: 92 },
+  { hour: 8, value: 88 },
+  { hour: 9, value: 85 },
+  { hour: 10, value: 82 },
+  { hour: 11, value: 78 },
+  { hour: 12, value: 74 },
+  { hour: 13, value: 76 },
+  { hour: 14, value: 73 },
+  { hour: 15, value: 70 },
+  { hour: 16, value: 72 },
+  { hour: 17, value: 69 },
+  { hour: 18, value: 67 },
+];
+
+export const flareHistory = [
+  { id: '1', date: '2026-03-22', duration: '47 min', lowestHrv: 22, trigger: 'Heat exposure', resolved: 'Box breathing + cold water', severity: 'moderate' as const },
+  { id: '2', date: '2026-03-18', duration: '1h 12min', lowestHrv: 18, trigger: 'Food reaction (histamine)', resolved: 'Quercetin + rest', severity: 'severe' as const },
+  { id: '3', date: '2026-03-12', duration: '25 min', lowestHrv: 31, trigger: 'Stress/argument', resolved: 'Prayer + L-Theanine', severity: 'mild' as const },
+  { id: '4', date: '2026-03-05', duration: '38 min', lowestHrv: 26, trigger: 'Standing too long', resolved: 'Electrolytes + legs elevated', severity: 'moderate' as const },
+];
+
+export const communityDiscoveries = [
+  { condition: 'POTS', intervention: 'Sodium loading', avgImprovement: 14, userCount: 23, trending: true },
+  { condition: 'MCAS', intervention: 'Quercetin', avgImprovement: 11, userCount: 47, trending: true },
+  { condition: 'PTSD', intervention: 'Prayer/Meditation', avgImprovement: 18, userCount: 31, trending: false },
+  { condition: 'CFS/ME', intervention: 'Pacing + HRV monitoring', avgImprovement: 9, userCount: 19, trending: true },
+  { condition: 'Long COVID', intervention: 'Cold exposure (gradual)', avgImprovement: 12, userCount: 15, trending: false },
+];
+
+export const interventionStacks = [
+  { combo: ['Magnesium', 'Prayer'], combinedDelta: 31, individualSum: 17, synergyPercent: 78 },
+  { combo: ['Cold Plunge', 'Box Breathing'], combinedDelta: 24, individualSum: 18, synergyPercent: 33 },
+  { combo: ['L-Theanine', 'Worship Music'], combinedDelta: 19, individualSum: 14, synergyPercent: 36 },
+];
+
+export const achievements = [
+  { name: '7-Day Streak', icon: 'flame-outline' as const, unlocked: true, description: 'Logged interventions 7 days in a row' },
+  { name: 'First Prayer', icon: 'heart-outline' as const, unlocked: true, description: 'Tracked your first prayer session' },
+  { name: '100 Interventions', icon: 'medal-outline' as const, unlocked: false, description: 'Log 100 total interventions' },
+  { name: 'Sleep Champion', icon: 'moon-outline' as const, unlocked: true, description: 'Sleep score above 80 for 5 consecutive nights' },
+  { name: 'Para Dominant', icon: 'leaf-outline' as const, unlocked: false, description: 'Parasympathetic dominant for 6+ hours in a day' },
+  { name: 'Discovery Pioneer', icon: 'compass-outline' as const, unlocked: false, description: 'Discovered your #1 intervention' },
+  { name: 'Community Hero', icon: 'people-outline' as const, unlocked: true, description: 'Shared your first Testimony Card' },
+  { name: 'Early Adopter', icon: 'rocket-outline' as const, unlocked: true, description: 'Joined Rapha AI in the first month' },
+];
+
+export const trendArrows: Record<string, 'up' | 'down' | 'stable'> = {
+  Stress: 'down',
+  Recovery: 'up',
+  Breathing: 'stable',
+  'LF/HF': 'down',
+  Coherence: 'up',
+};
+
+export const conditionsList = [
+  'POTS',
+  'MCAS',
+  'Dysautonomia',
+  'Fibromyalgia',
+  'CFS/ME',
+  'Long COVID',
+  'Anxiety',
+  'PTSD',
+  'Autoimmune',
+  'EDS',
+  'TBI',
+  'Insomnia',
+  'Athletic',
+  'General Wellness',
+];
+
+export const reasonOptions = [
+  { key: 'chronic', label: 'Chronic Condition', icon: 'medkit-outline' as const },
+  { key: 'athletic', label: 'Athletic Recovery', icon: 'fitness-outline' as const },
+  { key: 'stress', label: 'Stress / Anxiety', icon: 'thunderstorm-outline' as const },
+  { key: 'spiritual', label: 'Spiritual Journey', icon: 'heart-outline' as const },
+  { key: 'practitioner', label: 'Practitioner Recommended', icon: 'person-outline' as const },
+  { key: 'wellness', label: 'General Wellness', icon: 'leaf-outline' as const },
+];

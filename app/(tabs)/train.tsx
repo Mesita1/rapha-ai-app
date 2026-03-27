@@ -1,0 +1,843 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions,
+  Animated,
+} from 'react-native';
+import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import GlassCard from '../../components/GlassCard';
+import { Colors, FontSize, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { mockTrainingHistory, mockComboProtocols, mockCurrentHRV } from '../../constants/mockData';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+type SessionType = 'breathing' | 'bilateral' | 'humming' | 'binaural';
+type BreathingMode = 'box' | 'resonance' | '478' | 'custom';
+type BilateralMode = 'butterfly' | 'tapping' | 'emdr';
+type HummingMode = 'om' | 'bhramari' | 'gargling' | 'bowl';
+
+interface ActiveSession {
+  type: SessionType;
+  mode: string;
+  startTime: number;
+  durationSeconds: number;
+  currentRmssd: number;
+}
+
+const SESSION_TYPES = [
+  {
+    key: 'breathing' as SessionType,
+    title: 'Adaptive Breathing',
+    subtitle: 'AI-guided breathing that adapts to your HRV in real time',
+    icon: 'leaf-outline' as const,
+    gradientColors: ['rgba(14,168,122,0.3)', 'rgba(14,168,122,0.05)'] as [string, string],
+    borderColor: '#0ea87a',
+  },
+  {
+    key: 'bilateral' as SessionType,
+    title: 'Bilateral Stimulation',
+    subtitle: 'Alternating left-right activation for nervous system regulation',
+    icon: 'hand-left-outline' as const,
+    gradientColors: ['rgba(108,92,231,0.3)', 'rgba(108,92,231,0.05)'] as [string, string],
+    borderColor: '#6C5CE7',
+  },
+  {
+    key: 'humming' as SessionType,
+    title: 'Humming / Vagal Toning',
+    subtitle: 'Stimulate the vagus nerve through vocalization',
+    icon: 'musical-note-outline' as const,
+    gradientColors: ['rgba(245,158,11,0.3)', 'rgba(245,158,11,0.05)'] as [string, string],
+    borderColor: '#f59e0b',
+  },
+  {
+    key: 'binaural' as SessionType,
+    title: 'Binaural Beats',
+    subtitle: 'Calm, Focus, Sleep Prep, Recovery',
+    icon: 'headset-outline' as const,
+    gradientColors: ['rgba(59,130,246,0.3)', 'rgba(59,130,246,0.05)'] as [string, string],
+    borderColor: '#3b82f6',
+  },
+];
+
+const BREATHING_MODES = [
+  { key: 'box' as BreathingMode, label: 'Box Breathing', desc: '4-4-4-4', pattern: [4, 4, 4, 4] },
+  { key: 'resonance' as BreathingMode, label: 'Resonance', desc: '5.5s in/out', pattern: [5.5, 5.5] },
+  { key: '478' as BreathingMode, label: '4-7-8 Sleep', desc: '4-7-8', pattern: [4, 7, 8] },
+  { key: 'custom' as BreathingMode, label: 'Custom', desc: 'Set your own', pattern: [4, 4, 4, 4] },
+];
+
+const BILATERAL_MODES = [
+  { key: 'butterfly' as BilateralMode, label: 'Butterfly Hug', desc: 'Alternating arm cross-tap' },
+  { key: 'tapping' as BilateralMode, label: 'Bilateral Tapping', desc: 'Left/right tap with haptic' },
+  { key: 'emdr' as BilateralMode, label: 'Eye Movement', desc: 'EMDR-style dot tracking' },
+];
+
+const HUMMING_MODES = [
+  { key: 'om' as HummingMode, label: 'Om / Humming', desc: 'Sustained tone guide' },
+  { key: 'bhramari' as HummingMode, label: 'Bee Breath', desc: 'Bhramari pranayama' },
+  { key: 'gargling' as HummingMode, label: 'Gargling', desc: 'Vagal nerve activation' },
+  { key: 'bowl' as HummingMode, label: 'Singing Bowl', desc: 'Play tone, hum along' },
+];
+
+function BreathingCircle({ phase, progress }: { phase: string; progress: number }) {
+  const scaleAnim = useRef(new Animated.Value(0.6)).current;
+
+  useEffect(() => {
+    const targetScale = phase === 'inhale' ? 1 : phase === 'exhale' ? 0.6 : 0.8;
+    Animated.timing(scaleAnim, {
+      toValue: targetScale,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
+  }, [phase]);
+
+  return (
+    <View style={sessionStyles.breathCircleContainer}>
+      <Animated.View
+        style={[
+          sessionStyles.breathCircle,
+          { transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        <LinearGradient
+          colors={['rgba(14,168,122,0.4)', 'rgba(14,168,122,0.1)']}
+          style={sessionStyles.breathCircleGradient}
+        >
+          <Text style={sessionStyles.breathPhaseText}>{phase}</Text>
+        </LinearGradient>
+      </Animated.View>
+    </View>
+  );
+}
+
+function BilateralDot({ side }: { side: 'left' | 'right' }) {
+  return (
+    <View style={sessionStyles.bilateralContainer}>
+      <View style={[sessionStyles.bilateralSide, side === 'left' && sessionStyles.bilateralActive]}>
+        <View style={[sessionStyles.bilateralDot, side === 'left' && sessionStyles.bilateralDotActive]} />
+        <Text style={sessionStyles.bilateralLabel}>L</Text>
+      </View>
+      <View style={sessionStyles.bilateralDivider} />
+      <View style={[sessionStyles.bilateralSide, side === 'right' && sessionStyles.bilateralActive]}>
+        <View style={[sessionStyles.bilateralDot, side === 'right' && sessionStyles.bilateralDotActive]} />
+        <Text style={sessionStyles.bilateralLabel}>R</Text>
+      </View>
+    </View>
+  );
+}
+
+function WaveAnimation() {
+  return (
+    <View style={sessionStyles.waveContainer}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <View
+          key={i}
+          style={[
+            sessionStyles.waveBar,
+            { height: 20 + Math.sin(Date.now() / 300 + i) * 15, backgroundColor: `rgba(245,158,11,${0.3 + i * 0.15})` },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+export default function TrainScreen() {
+  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
+  const [selectedType, setSelectedType] = useState<SessionType | null>(null);
+  const [selectedBreathingMode, setSelectedBreathingMode] = useState<BreathingMode>('box');
+  const [selectedBilateralMode, setSelectedBilateralMode] = useState<BilateralMode>('butterfly');
+  const [selectedHummingMode, setSelectedHummingMode] = useState<HummingMode>('om');
+  const [sessionDuration, setSessionDuration] = useState(300); // 5 min default
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [breathPhase, setBreathPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
+  const [bilateralSide, setBilateralSide] = useState<'left' | 'right'>('left');
+  const [sessionRmssd, setSessionRmssd] = useState(mockCurrentHRV.rmssd);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (activeSession) {
+      intervalRef.current = setInterval(() => {
+        setElapsedSeconds((prev) => {
+          if (prev + 1 >= activeSession.durationSeconds) {
+            stopSession();
+            return prev;
+          }
+          return prev + 1;
+        });
+        // Simulate HRV improvement
+        setSessionRmssd((prev) => prev + (Math.random() * 0.4 - 0.1));
+        // Cycle breath phases
+        setBreathPhase((prev) => prev === 'inhale' ? 'hold' : prev === 'hold' ? 'exhale' : 'inhale');
+        // Alternate bilateral sides
+        setBilateralSide((prev) => prev === 'left' ? 'right' : 'left');
+      }, 1000);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [activeSession]);
+
+  const startSession = (type: SessionType, mode: string) => {
+    setActiveSession({
+      type,
+      mode,
+      startTime: Date.now(),
+      durationSeconds: sessionDuration,
+      currentRmssd: mockCurrentHRV.rmssd,
+    });
+    setElapsedSeconds(0);
+    setSessionRmssd(mockCurrentHRV.rmssd);
+    setSelectedType(null);
+  };
+
+  const stopSession = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setActiveSession(null);
+    setElapsedSeconds(0);
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const remainingSeconds = activeSession ? activeSession.durationSeconds - elapsedSeconds : 0;
+
+  const getModeLabel = (session: ActiveSession) => {
+    if (session.type === 'breathing') return BREATHING_MODES.find((m) => m.key === session.mode)?.label || session.mode;
+    if (session.type === 'bilateral') return BILATERAL_MODES.find((m) => m.key === session.mode)?.label || session.mode;
+    if (session.type === 'humming') return HUMMING_MODES.find((m) => m.key === session.mode)?.label || session.mode;
+    return 'Binaural Beats';
+  };
+
+  // Mode selection modal content
+  const renderModeSelection = () => {
+    if (!selectedType) return null;
+
+    if (selectedType === 'binaural') {
+      router.push('/session');
+      setSelectedType(null);
+      return null;
+    }
+
+    const modes = selectedType === 'breathing' ? BREATHING_MODES
+      : selectedType === 'bilateral' ? BILATERAL_MODES
+      : HUMMING_MODES;
+
+    const selectedMode = selectedType === 'breathing' ? selectedBreathingMode
+      : selectedType === 'bilateral' ? selectedBilateralMode
+      : selectedHummingMode;
+
+    const typeInfo = SESSION_TYPES.find((t) => t.key === selectedType)!;
+
+    return (
+      <View style={styles.modeOverlay}>
+        <GlassCard style={styles.modeCard}>
+          <View style={styles.modeHeader}>
+            <Ionicons name={typeInfo.icon} size={20} color={typeInfo.borderColor} />
+            <Text style={styles.modeTitle}>{typeInfo.title}</Text>
+            <TouchableOpacity onPress={() => setSelectedType(null)} style={styles.modeClose}>
+              <Ionicons name="close" size={20} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.modeSubtitle}>Select Mode</Text>
+          {modes.map((mode) => (
+            <TouchableOpacity
+              key={mode.key}
+              style={[
+                styles.modeOption,
+                selectedMode === mode.key && { borderColor: typeInfo.borderColor, backgroundColor: `${typeInfo.borderColor}10` },
+              ]}
+              onPress={() => {
+                if (selectedType === 'breathing') setSelectedBreathingMode(mode.key as BreathingMode);
+                else if (selectedType === 'bilateral') setSelectedBilateralMode(mode.key as BilateralMode);
+                else setSelectedHummingMode(mode.key as HummingMode);
+              }}
+            >
+              <Text style={styles.modeOptionLabel}>{mode.label}</Text>
+              <Text style={styles.modeOptionDesc}>{mode.desc}</Text>
+            </TouchableOpacity>
+          ))}
+
+          <Text style={styles.durationLabel}>Duration</Text>
+          <View style={styles.durationRow}>
+            {[180, 300, 600, 900].map((d) => (
+              <TouchableOpacity
+                key={d}
+                style={[styles.durationPill, sessionDuration === d && { backgroundColor: typeInfo.borderColor }]}
+                onPress={() => setSessionDuration(d)}
+              >
+                <Text style={[styles.durationPillText, sessionDuration === d && { color: Colors.white }]}>
+                  {d / 60}m
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.startButton, { backgroundColor: typeInfo.borderColor }]}
+            onPress={() => startSession(selectedType, selectedMode)}
+          >
+            <Ionicons name="play" size={18} color={Colors.white} />
+            <Text style={styles.startButtonText}>Start Session</Text>
+          </TouchableOpacity>
+        </GlassCard>
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.pageTitle}>Train</Text>
+          <Text style={styles.pageSubtitle}>Adaptive Nervous System Training</Text>
+        </View>
+
+        {/* Active Session Banner */}
+        {activeSession && (
+          <GlassCard style={styles.activeBanner} glowColor={SESSION_TYPES.find((t) => t.key === activeSession.type)?.borderColor}>
+            <View style={styles.activeBannerHeader}>
+              <View style={styles.activePulse} />
+              <Text style={styles.activeBannerTitle}>
+                {getModeLabel(activeSession)} — {formatTime(remainingSeconds)} remaining
+              </Text>
+            </View>
+
+            {/* Session Visualization */}
+            {activeSession.type === 'breathing' && (
+              <BreathingCircle phase={breathPhase} progress={elapsedSeconds / activeSession.durationSeconds} />
+            )}
+            {activeSession.type === 'bilateral' && (
+              <BilateralDot side={bilateralSide} />
+            )}
+            {activeSession.type === 'humming' && (
+              <WaveAnimation />
+            )}
+
+            <View style={styles.activeBannerStats}>
+              <View style={styles.activeStat}>
+                <Text style={styles.activeStatLabel}>Live RMSSD</Text>
+                <Text style={styles.activeStatValue}>{sessionRmssd.toFixed(1)} ms</Text>
+              </View>
+              <View style={styles.activeStat}>
+                <Text style={styles.activeStatLabel}>Change</Text>
+                <Text style={[styles.activeStatValue, { color: Colors.accent }]}>
+                  +{(sessionRmssd - mockCurrentHRV.rmssd).toFixed(1)} ms
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.stopButton} onPress={stopSession}>
+              <Ionicons name="stop-circle" size={18} color="#ef4444" />
+              <Text style={styles.stopButtonText}>Stop</Text>
+            </TouchableOpacity>
+          </GlassCard>
+        )}
+
+        {/* Quick Start Grid */}
+        <Text style={styles.sectionTitle}>Quick Start</Text>
+        <View style={styles.quickStartGrid}>
+          {SESSION_TYPES.map((type) => (
+            <TouchableOpacity
+              key={type.key}
+              style={styles.sessionTypeCard}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (type.key === 'binaural') {
+                  router.push('/session');
+                } else {
+                  setSelectedType(type.key);
+                }
+              }}
+            >
+              <LinearGradient
+                colors={type.gradientColors}
+                style={[styles.sessionTypeGradient, { borderColor: type.borderColor + '40' }]}
+              >
+                <Ionicons name={type.icon} size={28} color={type.borderColor} />
+                <Text style={styles.sessionTypeTitle}>{type.title}</Text>
+                <Text style={styles.sessionTypeSubtitle} numberOfLines={2}>{type.subtitle}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Combo Sessions */}
+        <View style={styles.comboSection}>
+          <View style={styles.comboHeaderRow}>
+            <Text style={styles.sectionTitle}>Combo Protocols</Text>
+            <TouchableOpacity>
+              <Ionicons name="information-circle-outline" size={18} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          {mockComboProtocols.map((combo) => (
+            <TouchableOpacity key={combo.name} activeOpacity={0.7}>
+              <GlassCard style={styles.comboCard}>
+                <View style={styles.comboTop}>
+                  <View style={styles.comboInfo}>
+                    <Text style={styles.comboName}>{combo.name}</Text>
+                    <Text style={styles.comboDuration}>{combo.duration}</Text>
+                  </View>
+                  <Ionicons name="play-circle" size={32} color={Colors.accent} />
+                </View>
+
+                <View style={styles.comboIconsRow}>
+                  {combo.icons.map((icon, i) => (
+                    <View key={i} style={styles.comboIconPill}>
+                      <Ionicons name={icon as any} size={12} color={Colors.textMuted} />
+                    </View>
+                  ))}
+                </View>
+
+                <View style={styles.comboStepsRow}>
+                  {combo.steps.map((step, i) => (
+                    <Text key={i} style={styles.comboStep}>
+                      {i + 1}. {step}
+                    </Text>
+                  ))}
+                </View>
+
+                <Text style={styles.comboCommunity}>
+                  {combo.users} users, avg +{combo.avgImprovement}ms
+                </Text>
+              </GlassCard>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Training History */}
+        <View style={styles.historySection}>
+          <Text style={styles.sectionTitle}>Training History</Text>
+          <GlassCard>
+            <View style={styles.historyGrid}>
+              <View style={styles.historyItem}>
+                <Text style={styles.historyLabel}>This Week</Text>
+                <Text style={styles.historyValue}>{mockTrainingHistory.thisWeek.sessions} sessions</Text>
+                <Text style={styles.historyMeta}>{mockTrainingHistory.thisWeek.minutes} min, avg +{mockTrainingHistory.thisWeek.avgImprovement}ms</Text>
+              </View>
+              <View style={styles.historyItem}>
+                <Text style={styles.historyLabel}>Streak</Text>
+                <View style={styles.streakRow}>
+                  <Ionicons name="flame" size={18} color="#f59e0b" />
+                  <Text style={styles.streakValue}>{mockTrainingHistory.streak} days</Text>
+                </View>
+              </View>
+              <View style={styles.historyItem}>
+                <Text style={styles.historyLabel}>Best Session</Text>
+                <Text style={styles.historyValue}>{mockTrainingHistory.bestSession.name}</Text>
+                <Text style={styles.historyMeta}>{mockTrainingHistory.bestSession.day}, +{mockTrainingHistory.bestSession.improvement}ms</Text>
+              </View>
+            </View>
+          </GlassCard>
+        </View>
+
+        <View style={{ height: 120 }} />
+      </ScrollView>
+
+      {/* Mode Selection Overlay */}
+      {selectedType && selectedType !== 'binaural' && renderModeSelection()}
+    </SafeAreaView>
+  );
+}
+
+const sessionStyles = StyleSheet.create({
+  breathCircleContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 140,
+    marginVertical: Spacing.md,
+  },
+  breathCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    overflow: 'hidden',
+  },
+  breathCircleGradient: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 60,
+  },
+  breathPhaseText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.lg,
+    color: Colors.accent,
+    textTransform: 'capitalize',
+  },
+  bilateralContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 100,
+    marginVertical: Spacing.md,
+    gap: Spacing.xl,
+  },
+  bilateralSide: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    opacity: 0.3,
+  },
+  bilateralActive: {
+    opacity: 1,
+  },
+  bilateralDot: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(108,92,231,0.2)',
+    borderWidth: 2,
+    borderColor: 'rgba(108,92,231,0.3)',
+  },
+  bilateralDotActive: {
+    backgroundColor: 'rgba(108,92,231,0.6)',
+    borderColor: '#6C5CE7',
+  },
+  bilateralDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: Colors.surfaceBorder,
+  },
+  bilateralLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+  },
+  waveContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 80,
+    marginVertical: Spacing.md,
+    gap: 6,
+  },
+  waveBar: {
+    width: 8,
+    borderRadius: 4,
+  },
+});
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  content: {
+    padding: Spacing.md,
+    paddingTop: Spacing.md,
+  },
+  header: {
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.xs,
+  },
+  pageTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.xxl,
+    color: Colors.text,
+  },
+  pageSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    marginTop: 4,
+  },
+  sectionTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    marginBottom: Spacing.md,
+  },
+  // Active Session Banner
+  activeBanner: {
+    marginBottom: Spacing.md,
+  },
+  activeBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  activePulse: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.accent,
+  },
+  activeBannerTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    flex: 1,
+  },
+  activeBannerStats: {
+    flexDirection: 'row',
+    gap: Spacing.xl,
+    marginBottom: Spacing.md,
+  },
+  activeStat: {
+    gap: 2,
+  },
+  activeStatLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  activeStatValue: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.lg,
+    color: Colors.text,
+  },
+  stopButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  stopButtonText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: '#ef4444',
+  },
+  // Quick Start Grid
+  quickStartGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  sessionTypeCard: {
+    width: (SCREEN_WIDTH - Spacing.md * 2 - Spacing.sm) / 2,
+  },
+  sessionTypeGradient: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    padding: Spacing.md,
+    minHeight: 140,
+    justifyContent: 'flex-start',
+    gap: Spacing.sm,
+  },
+  sessionTypeTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  sessionTypeSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    lineHeight: 16,
+  },
+  // Combo Section
+  comboSection: {
+    marginBottom: Spacing.lg,
+  },
+  comboHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  comboCard: {
+    marginBottom: Spacing.sm,
+  },
+  comboTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  comboInfo: {
+    flex: 1,
+  },
+  comboName: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  comboDuration: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  comboIconsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: Spacing.sm,
+  },
+  comboIconPill: {
+    backgroundColor: Colors.surfaceLight,
+    borderRadius: BorderRadius.full,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
+  comboStepsRow: {
+    marginBottom: Spacing.sm,
+  },
+  comboStep: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+    lineHeight: 18,
+  },
+  comboCommunity: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.accent,
+  },
+  // Training History
+  historySection: {
+    marginBottom: Spacing.md,
+  },
+  historyGrid: {
+    gap: Spacing.md,
+  },
+  historyItem: {
+    gap: 2,
+  },
+  historyLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  historyValue: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  historyMeta: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.accent,
+  },
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  streakValue: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.xl,
+    color: '#f59e0b',
+  },
+  // Mode Selection Overlay
+  modeOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  modeCard: {
+    maxHeight: '80%',
+  },
+  modeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  modeTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.lg,
+    color: Colors.text,
+    flex: 1,
+  },
+  modeClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeSubtitle: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
+  },
+  modeOption: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    marginBottom: Spacing.sm,
+  },
+  modeOptionLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  modeOptionDesc: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  durationLabel: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  durationPill: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    alignItems: 'center',
+  },
+  durationPillText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+  },
+  startButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+  },
+  startButtonText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.md,
+    color: Colors.white,
+  },
+});

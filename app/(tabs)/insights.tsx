@@ -19,6 +19,7 @@ import {
   interventionStacks,
   mockPopularSupplements,
   mockAthleteInsights,
+  mockExerciseData,
 } from '../../constants/mockData';
 
 function InterventionBar({
@@ -208,6 +209,115 @@ export default function InsightsScreen() {
                 maxDelta={maxDelta}
               />
             ))}
+          </GlassCard>
+        </View>
+
+        {/* Exercise Impact Section */}
+        <View style={styles.exerciseSection}>
+          <View style={styles.topHeaderRow}>
+            <Ionicons name="barbell-outline" size={16} color="#f59e0b" />
+            <Text style={styles.exerciseHeaderText}>Exercise Impact</Text>
+          </View>
+
+          {mockExerciseData.recentWorkouts.map((workout, i) => {
+            const hrvDrop = workout.hrvAfter - workout.hrvBefore;
+            const recoveryHours = workout.recovery === 'Immediate' ? 0 : parseFloat(workout.recovery);
+            const statusColor = workout.recovery === 'Immediate' ? Colors.accent
+              : recoveryHours <= 6 ? Colors.accent
+              : recoveryHours <= 12 ? '#f59e0b'
+              : Colors.negative;
+            const isPositive = hrvDrop >= 0;
+
+            return (
+              <GlassCard key={i} style={styles.exerciseCard}>
+                <View style={styles.exerciseTop}>
+                  <View style={styles.exerciseTypeRow}>
+                    <Text style={styles.exerciseType}>{workout.type}</Text>
+                    {'subtype' in workout && workout.subtype && (
+                      <Text style={styles.exerciseSubtype}>{workout.subtype}</Text>
+                    )}
+                  </View>
+                  <View style={[styles.exerciseStatusDot, { backgroundColor: statusColor }]} />
+                </View>
+
+                <View style={styles.exerciseMetrics}>
+                  <View style={styles.exerciseMetric}>
+                    <Text style={styles.exerciseMetricLabel}>HRV</Text>
+                    <View style={styles.exerciseHrvFlow}>
+                      <Text style={styles.exerciseHrvValue}>{workout.hrvBefore}</Text>
+                      <Text style={[styles.exerciseHrvArrow, { color: isPositive ? Colors.accent : Colors.negative }]}>
+                        {isPositive ? '\u2192' : '\u2192'}
+                      </Text>
+                      <Text style={[styles.exerciseHrvValue, { color: isPositive ? Colors.accent : Colors.negative }]}>
+                        {workout.hrvAfter}
+                      </Text>
+                      <Text style={[styles.exerciseHrvDelta, { color: isPositive ? Colors.accent : Colors.negative }]}>
+                        ({isPositive ? '+' : ''}{hrvDrop}ms)
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.exerciseMetric}>
+                    <Text style={styles.exerciseMetricLabel}>Recovery</Text>
+                    <Text style={[styles.exerciseRecovery, { color: statusColor }]}>{workout.recovery}</Text>
+                  </View>
+                </View>
+
+                {'distance' in workout && workout.distance && (
+                  <View style={styles.exerciseDetailRow}>
+                    <Text style={styles.exerciseDetail}>{workout.distance}</Text>
+                    <Text style={styles.exerciseDetailSep}>{'\u00B7'}</Text>
+                    <Text style={styles.exerciseDetail}>{workout.duration}</Text>
+                    <Text style={styles.exerciseDetailSep}>{'\u00B7'}</Text>
+                    <Text style={styles.exerciseDetail}>Avg {workout.avgHR} bpm</Text>
+                  </View>
+                )}
+                {'sets' in workout && (
+                  <View style={styles.exerciseDetailRow}>
+                    <Text style={styles.exerciseDetail}>{workout.sets} sets</Text>
+                    <Text style={styles.exerciseDetailSep}>{'\u00B7'}</Text>
+                    <Text style={styles.exerciseDetail}>{workout.volume}</Text>
+                    <Text style={styles.exerciseDetailSep}>{'\u00B7'}</Text>
+                    <Text style={styles.exerciseDetail}>{workout.duration}</Text>
+                  </View>
+                )}
+              </GlassCard>
+            );
+          })}
+
+          {/* Weekly Exercise Summary */}
+          <GlassCard style={styles.exerciseSummaryCard}>
+            <View style={styles.exerciseSummaryHeader}>
+              <Ionicons name="sparkles-outline" size={14} color={Colors.accent} />
+              <Text style={styles.exerciseSummaryTitle}>Weekly Summary</Text>
+            </View>
+            <View style={styles.exerciseSummaryGrid}>
+              <View style={styles.exerciseSummaryItem}>
+                <Text style={styles.exerciseSummaryValue}>{mockExerciseData.weeklyExerciseSummary.totalSessions}</Text>
+                <Text style={styles.exerciseSummaryLabel}>Sessions</Text>
+              </View>
+              <View style={styles.exerciseSummaryItem}>
+                <Text style={styles.exerciseSummaryValue}>{mockExerciseData.weeklyExerciseSummary.totalMinutes}</Text>
+                <Text style={styles.exerciseSummaryLabel}>Minutes</Text>
+              </View>
+              <View style={styles.exerciseSummaryItem}>
+                <Text style={styles.exerciseSummaryValue}>{mockExerciseData.weeklyExerciseSummary.avgRecoveryTime}</Text>
+                <Text style={styles.exerciseSummaryLabel}>Avg Recovery</Text>
+              </View>
+            </View>
+            <View style={styles.exerciseBestWorst}>
+              <View style={styles.exerciseBWItem}>
+                <Ionicons name="arrow-up-circle" size={14} color={Colors.accent} />
+                <Text style={styles.exerciseBWText}>{mockExerciseData.weeklyExerciseSummary.bestType}</Text>
+              </View>
+              <View style={styles.exerciseBWItem}>
+                <Ionicons name="arrow-down-circle" size={14} color={Colors.negative} />
+                <Text style={styles.exerciseBWText}>{mockExerciseData.weeklyExerciseSummary.worstType}</Text>
+              </View>
+            </View>
+            <View style={styles.exerciseAIRec}>
+              <Ionicons name="bulb-outline" size={14} color={Colors.accent} />
+              <Text style={styles.exerciseAIRecText}>{mockExerciseData.weeklyExerciseSummary.recommendation}</Text>
+            </View>
           </GlassCard>
         </View>
 
@@ -506,6 +616,159 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.xs,
     color: Colors.textDim,
+  },
+  // Exercise Impact
+  exerciseSection: {
+    marginBottom: Spacing.md,
+  },
+  exerciseHeaderText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+  },
+  exerciseCard: {
+    marginBottom: Spacing.sm,
+  },
+  exerciseTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  exerciseTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  exerciseType: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  exerciseSubtype: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  exerciseStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  exerciseMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  exerciseMetric: {
+    gap: 2,
+  },
+  exerciseMetricLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+  },
+  exerciseHrvFlow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  exerciseHrvValue: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  exerciseHrvArrow: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+  },
+  exerciseHrvDelta: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.xs,
+  },
+  exerciseRecovery: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+  },
+  exerciseDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  exerciseDetail: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+  },
+  exerciseDetailSep: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+  },
+  exerciseSummaryCard: {
+    marginTop: Spacing.sm,
+  },
+  exerciseSummaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: Spacing.md,
+  },
+  exerciseSummaryTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.accent,
+  },
+  exerciseSummaryGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  exerciseSummaryItem: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  exerciseSummaryValue: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.xl,
+    color: Colors.text,
+  },
+  exerciseSummaryLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  exerciseBestWorst: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.surfaceBorder,
+  },
+  exerciseBWItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  exerciseBWText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.text,
+  },
+  exerciseAIRec: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(14, 168, 122, 0.08)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm + 2,
+  },
+  exerciseAIRecText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    lineHeight: 20,
+    flex: 1,
   },
   // Discover Section
   discoverSection: {

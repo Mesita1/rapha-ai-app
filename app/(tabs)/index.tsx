@@ -27,6 +27,7 @@ import {
   bodyBattery,
   trendArrows,
   mockAthleteInsights,
+  mockHealthMetrics,
 } from '../../constants/mockData';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -238,6 +239,109 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             );
           })}
+        </ScrollView>
+
+        {/* Health Metrics */}
+        <View style={styles.healthMetricsSection}>
+          <View style={styles.healthMetricsHeader}>
+            <Ionicons name="heart-half-outline" size={16} color={Colors.accent} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.healthMetricsTitle}>Health Metrics</Text>
+              <Text style={styles.healthMetricsSubtitle}>From connected devices</Text>
+            </View>
+          </View>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.healthMetricsRow}
+          style={styles.healthMetricsScroll}
+        >
+          {/* SpO2 */}
+          <TouchableOpacity activeOpacity={0.7}>
+            <GlassCard style={styles.healthMetricCard}>
+              <View style={styles.healthMetricTop}>
+                <View style={[styles.healthMetricDot, { backgroundColor: Colors.accent }]} />
+                <Text style={styles.healthMetricTag}>SpO2</Text>
+              </View>
+              <Text style={styles.healthMetricValue}>
+                {mockHealthMetrics.bloodOxygen.current}<Text style={styles.healthMetricUnit}>{mockHealthMetrics.bloodOxygen.unit}</Text>
+              </Text>
+              <Text style={styles.healthMetricLabel}>Blood Oxygen</Text>
+              <Text style={styles.healthMetricSource}>{mockHealthMetrics.bloodOxygen.source}</Text>
+            </GlassCard>
+          </TouchableOpacity>
+
+          {/* Glucose */}
+          <TouchableOpacity activeOpacity={0.7}>
+            <GlassCard style={styles.healthMetricCard}>
+              <View style={styles.healthMetricTop}>
+                <Text style={[styles.healthMetricArrow, { color: '#f59e0b' }]}>{'\u2191'}</Text>
+                <Text style={styles.healthMetricTag}>CGM</Text>
+              </View>
+              <Text style={styles.healthMetricValue}>
+                {mockHealthMetrics.glucose.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.glucose.unit}</Text>
+              </Text>
+              <Text style={styles.healthMetricLabel}>Glucose</Text>
+              <Text style={styles.healthMetricSource}>{mockHealthMetrics.glucose.source}</Text>
+            </GlassCard>
+          </TouchableOpacity>
+
+          {/* Resting HR */}
+          <TouchableOpacity activeOpacity={0.7}>
+            <GlassCard style={styles.healthMetricCard}>
+              <View style={styles.healthMetricTop}>
+                <Text style={[styles.healthMetricArrow, { color: Colors.accent }]}>{'\u2193'}</Text>
+              </View>
+              <Text style={styles.healthMetricValue}>
+                {mockHealthMetrics.restingHR.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.restingHR.unit}</Text>
+              </Text>
+              <Text style={styles.healthMetricLabel}>Resting HR</Text>
+              <Text style={styles.healthMetricSource}>{mockHealthMetrics.restingHR.source}</Text>
+            </GlassCard>
+          </TouchableOpacity>
+
+          {/* Body Temp */}
+          <TouchableOpacity activeOpacity={0.7}>
+            <GlassCard style={styles.healthMetricCard}>
+              <View style={styles.healthMetricTop}>
+                <Text style={[styles.healthMetricArrow, { color: Colors.textMuted }]}>{'\u2192'}</Text>
+              </View>
+              <Text style={styles.healthMetricValue}>
+                {mockHealthMetrics.bodyTemp.current}<Text style={styles.healthMetricUnit}>{mockHealthMetrics.bodyTemp.unit}</Text>
+              </Text>
+              <Text style={styles.healthMetricLabel}>Temp</Text>
+              <Text style={styles.healthMetricSource}>{mockHealthMetrics.bodyTemp.source}</Text>
+            </GlassCard>
+          </TouchableOpacity>
+
+          {/* Respiratory Rate */}
+          <TouchableOpacity activeOpacity={0.7}>
+            <GlassCard style={styles.healthMetricCard}>
+              <View style={styles.healthMetricTop}>
+                <Text style={[styles.healthMetricArrow, { color: Colors.textMuted }]}>{'\u2192'}</Text>
+              </View>
+              <Text style={styles.healthMetricValue}>
+                {mockHealthMetrics.respiratoryRate.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.respiratoryRate.unit}</Text>
+              </Text>
+              <Text style={styles.healthMetricLabel}>Resp Rate</Text>
+              <Text style={styles.healthMetricSource}>{mockHealthMetrics.respiratoryRate.source}</Text>
+            </GlassCard>
+          </TouchableOpacity>
+
+          {/* Steps */}
+          <TouchableOpacity activeOpacity={0.7}>
+            <GlassCard style={styles.healthMetricCard}>
+              <View style={styles.healthMetricTop}>
+                <Text style={[styles.healthMetricArrow, { color: Colors.accent }]}>{'\u2191'}</Text>
+              </View>
+              <Text style={styles.healthMetricValue}>
+                {mockHealthMetrics.steps.current.toLocaleString()}<Text style={styles.healthMetricUnit}> / {(mockHealthMetrics.steps.goal / 1000)}K</Text>
+              </Text>
+              <Text style={styles.healthMetricLabel}>Steps</Text>
+              <Text style={styles.healthMetricSource}>{mockHealthMetrics.steps.source}</Text>
+            </GlassCard>
+          </TouchableOpacity>
         </ScrollView>
 
         {/* Autonomic Balance Gauge */}
@@ -648,6 +752,90 @@ const styles = StyleSheet.create({
   trendArrow: {
     fontFamily: 'Inter_700Bold',
     fontSize: FontSize.md,
+  },
+  // Health Metrics
+  healthMetricsSection: {
+    marginBottom: Spacing.sm,
+  },
+  healthMetricsHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+  },
+  healthMetricsTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  healthMetricsSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  healthMetricsScroll: {
+    marginHorizontal: -Spacing.md,
+    marginBottom: Spacing.sm + 4,
+  },
+  healthMetricsRow: {
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+  },
+  healthMetricCard: {
+    width: 110,
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    gap: 2,
+  },
+  healthMetricTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  healthMetricDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  healthMetricTag: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.xs - 2,
+    color: Colors.textMuted,
+    backgroundColor: Colors.surfaceLight,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  healthMetricArrow: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.sm,
+  },
+  healthMetricValue: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.lg,
+    color: Colors.text,
+  },
+  healthMetricUnit: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  healthMetricLabel: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  healthMetricSource: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs - 2,
+    color: Colors.textDim,
+    marginTop: 2,
   },
   // Gauge
   gaugeCard: {

@@ -344,6 +344,52 @@ export const reasonOptions = [
   { key: 'wellness', label: 'General Wellness', icon: 'leaf-outline' as const },
 ];
 
+// --- EXERCISE TRACKING DATA ---
+
+export const mockExerciseData = {
+  recentWorkouts: [
+    { type: 'Running', distance: '5.2 mi', duration: '42:18', avgHR: 156, maxHR: 178, hrvBefore: 54, hrvAfter: 38, recovery: '3.5 hours', zones: { z1: 5, z2: 18, z3: 12, z4: 7, z5: 0 }, insight: 'Moderate impact. HRV recovered to baseline within 3.5 hours. Sweet spot for cardio benefit without overtraining.' },
+    { type: 'Running', distance: '7.1 mi', duration: '58:42', avgHR: 162, maxHR: 184, hrvBefore: 52, hrvAfter: 31, recovery: '6.2 hours', zones: { z1: 3, z2: 15, z3: 20, z4: 15, z5: 5 }, insight: 'Heavy load. HRV dropped 40%. Recovery took 6+ hours. Next-day sleep score dropped 11%. Consider 5mi for similar cardio benefit with faster recovery.' },
+    { type: 'Strength Training', subtype: 'Upper Body', duration: '55:00', avgHR: 132, maxHR: 165, hrvBefore: 56, hrvAfter: 41, recovery: '4.8 hours', sets: 24, volume: '12,400 lbs', insight: 'Moderate sympathetic activation. Good volume. HRV recovered by evening.' },
+    { type: 'Strength Training', subtype: 'Legs', duration: '48:00', avgHR: 145, maxHR: 172, hrvBefore: 51, hrvAfter: 29, recovery: '8.1 hours', sets: 20, volume: '18,200 lbs', insight: 'Heavy leg day hits HRV hardest. 8+ hour recovery. Schedule early in the day when possible.' },
+    { type: 'Zone 2 Walk', distance: '2.8 mi', duration: '38:00', avgHR: 108, maxHR: 118, hrvBefore: 48, hrvAfter: 55, recovery: 'Immediate', zones: { z1: 30, z2: 8, z3: 0, z4: 0, z5: 0 }, insight: 'Parasympathetic boost. HRV actually increased during walk. Best daily recovery exercise.' },
+  ],
+  weeklyExerciseSummary: {
+    totalSessions: 5,
+    totalMinutes: 242,
+    avgRecoveryTime: '4.5 hours',
+    bestType: 'Zone 2 Walk (+7ms avg)',
+    worstType: 'Leg Day (-22ms acute)',
+    recommendation: 'Your 7mi runs are costing 2x the recovery of 5mi runs for only 15% more cardio benefit. Consider capping runs at 5mi and adding a second Zone 2 walk instead.',
+  },
+};
+
+// --- EXTENDED HEALTH METRICS ---
+
+export const mockHealthMetrics = {
+  bloodOxygen: { current: 98, trend: 'stable' as const, unit: '%', min24h: 94, avg24h: 97, insight: 'Normal range. Dipped to 94% during sleep — typical.', source: 'Apple Watch' },
+  glucose: { current: 102, trend: 'rising' as const, unit: 'mg/dL', min24h: 78, max24h: 145, avg24h: 99, insight: 'Post-meal spike to 145 at 12:30pm. Returned to baseline in 2.1 hours — normal response. Morning fasting glucose trending 3% lower this week.', source: 'Dexcom G7' },
+  restingHR: { current: 58, trend: 'down' as const, unit: 'bpm', weekAvg: 61, monthAvg: 63, insight: 'Improving. Down 5bpm from 30-day average — fitness adaptation working.', source: 'Apple Watch' },
+  bodyTemp: { current: 97.8, trend: 'stable' as const, unit: '°F', deviation: -0.2, insight: 'Slightly below baseline. Could indicate early recovery phase.', source: 'Apple Watch' },
+  respiratoryRate: { current: 14.2, trend: 'stable' as const, unit: 'brpm', sleepAvg: 12.8, insight: 'Normal. Sleep respiratory rate stable at 12.8 — no concerns.', source: 'Apple Watch' },
+  steps: { current: 8420, goal: 10000, trend: 'up' as const, insight: 'On pace for 10K by evening. Zone 2 walk would close the gap and boost HRV.', source: 'Apple Watch' },
+};
+
+// --- TRAINING DATA ---
+
+export const mockTrainingHistory = {
+  thisWeek: { sessions: 4, minutes: 38, avgImprovement: 12 },
+  streak: 5,
+  bestSession: { name: 'Deep Calm', day: 'Tuesday', improvement: 18 },
+};
+
+export const mockComboProtocols = [
+  { name: 'Vagal Reset', duration: '5 min', steps: ['Humming 1min', 'Bilateral tapping 2min', 'Resonance breathing 2min'], icons: ['musical-note-outline', 'hand-left-outline', 'leaf-outline'], users: 142, avgImprovement: 11 },
+  { name: 'Deep Calm', duration: '10 min', steps: ['Binaural beats (theta) + Resonance breathing', 'Bilateral eye movement 3min'], icons: ['headset-outline', 'leaf-outline', 'eye-outline'], users: 98, avgImprovement: 16 },
+  { name: 'Pre-Sleep Wind Down', duration: '15 min', steps: ['4-7-8 breathing 5min', 'Humming 3min', 'Binaural sleep prep 7min'], icons: ['leaf-outline', 'musical-note-outline', 'headset-outline'], users: 215, avgImprovement: 14 },
+  { name: 'Crisis Calm', duration: '3 min', steps: ['Butterfly hug 1min', 'Box breathing 2min'], icons: ['hand-left-outline', 'leaf-outline'], users: 312, avgImprovement: 8 },
+];
+
 // --- ATHLETE & BIOHACKER EXPANSION ---
 
 export const mockPopularSupplements = [

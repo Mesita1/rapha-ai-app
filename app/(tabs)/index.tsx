@@ -110,7 +110,9 @@ export default function DashboardScreen() {
               <Text style={styles.verseLabel}>Verse of the Day</Text>
             </View>
             <Text style={styles.verseText}>"{verseOfTheDay.text}"</Text>
-            <Text style={styles.verseReference}>{verseOfTheDay.reference} — {verseOfTheDay.translation}</Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL(verseOfTheDay.youversionUrl)}>
+              <Text style={[styles.verseReference, { textDecorationLine: 'underline' }]}>{verseOfTheDay.reference} — {verseOfTheDay.translation}</Text>
+            </TouchableOpacity>
             <View style={styles.verseActions}>
               <TouchableOpacity
                 style={styles.verseMeditateButton}

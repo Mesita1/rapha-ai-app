@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  Linking,
+  TextInput,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,9 +21,9 @@ import { getVerseOfTheDay, getVerseForState, scriptureVerses, ScriptureVerse } f
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-type SessionType = 'breathing' | 'bilateral' | 'humming' | 'binaural';
+type SessionType = 'breathing' | 'bilateral' | 'humming' | 'binaural' | 'custom';
 type BreathingMode = 'box' | 'resonance' | '478' | 'custom';
-type BilateralMode = 'butterfly' | 'tapping' | 'emdr';
+type BilateralMode = 'butterfly' | 'tapping' | 'visual-tracking';
 type HummingMode = 'om' | 'bhramari' | 'gargling' | 'bowl';
 
 interface ActiveSession {
@@ -65,26 +67,34 @@ const SESSION_TYPES = [
     gradientColors: ['rgba(59,130,246,0.3)', 'rgba(59,130,246,0.05)'] as [string, string],
     borderColor: '#3b82f6',
   },
+  {
+    key: 'custom' as SessionType,
+    title: 'Custom / Other Device',
+    subtitle: 'Track any device or therapy with HRV',
+    icon: 'build-outline' as const,
+    gradientColors: ['rgba(142,142,147,0.3)', 'rgba(142,142,147,0.05)'] as [string, string],
+    borderColor: '#8e8e93',
+  },
 ];
 
 const BREATHING_MODES = [
-  { key: 'box' as BreathingMode, label: 'Box Breathing', desc: '4-4-4-4', pattern: [4, 4, 4, 4] },
-  { key: 'resonance' as BreathingMode, label: 'Resonance', desc: '5.5s in/out', pattern: [5.5, 5.5] },
-  { key: '478' as BreathingMode, label: '4-7-8 Sleep', desc: '4-7-8', pattern: [4, 7, 8] },
-  { key: 'custom' as BreathingMode, label: 'Custom', desc: 'Set your own', pattern: [4, 4, 4, 4] },
+  { key: 'box' as BreathingMode, label: 'Box Breathing', desc: '4-4-4-4', pattern: [4, 4, 4, 4], howItWorks: 'Inhale 4 seconds, hold 4, exhale 4, hold 4. Follow the expanding circle. Activates parasympathetic nervous system.' },
+  { key: 'resonance' as BreathingMode, label: 'Resonance', desc: '5.5s in/out', pattern: [5.5, 5.5], howItWorks: 'Slow, even breathing at 5.5 seconds in, 5.5 out. This frequency maximizes heart-lung synchronization (coherence).' },
+  { key: '478' as BreathingMode, label: '4-7-8 Sleep', desc: '4-7-8', pattern: [4, 7, 8], howItWorks: 'Inhale 4 seconds, hold 7, exhale 8. Developed by Dr. Andrew Weil. Powerful for falling asleep.' },
+  { key: 'custom' as BreathingMode, label: 'Custom', desc: 'Set your own', pattern: [4, 4, 4, 4], howItWorks: 'Set your own inhale, hold, exhale timing.' },
 ];
 
 const BILATERAL_MODES = [
-  { key: 'butterfly' as BilateralMode, label: 'Butterfly Hug', desc: 'Alternating arm cross-tap' },
-  { key: 'tapping' as BilateralMode, label: 'Bilateral Tapping', desc: 'Left/right tap with haptic' },
-  { key: 'emdr' as BilateralMode, label: 'Eye Movement', desc: 'EMDR-style dot tracking' },
+  { key: 'butterfly' as BilateralMode, label: 'Butterfly Hug', desc: 'Alternating arm cross-tap', howItWorks: 'Cross arms over chest, alternately tap left and right shoulders. Used in PTSD therapy. Calms the amygdala by engaging both brain hemispheres.' },
+  { key: 'tapping' as BilateralMode, label: 'Bilateral Tapping', desc: 'Left/right tap with haptic', howItWorks: 'Alternate tapping left and right knees, hands, or surfaces. Follow the visual indicator. Rhythmic bilateral input calms the nervous system.' },
+  { key: 'visual-tracking' as BilateralMode, label: 'Visual Tracking', desc: 'Bilateral visual dot tracking', howItWorks: 'Follow the dot as it moves left to right across the screen. This bilateral visual stimulation helps process stress and calm the nervous system. Speed adapts based on your HRV response.' },
 ];
 
 const HUMMING_MODES = [
-  { key: 'om' as HummingMode, label: 'Om / Humming', desc: 'Sustained tone guide' },
-  { key: 'bhramari' as HummingMode, label: 'Bee Breath', desc: 'Bhramari pranayama' },
-  { key: 'gargling' as HummingMode, label: 'Gargling', desc: 'Vagal nerve activation' },
-  { key: 'bowl' as HummingMode, label: 'Singing Bowl', desc: 'Play tone, hum along' },
+  { key: 'om' as HummingMode, label: 'Om / Humming', desc: 'Sustained tone guide', howItWorks: 'Produce a steady humming sound. The vibration stimulates the vagus nerve directly through the throat. Hum for the full exhale, then inhale and repeat.' },
+  { key: 'bhramari' as HummingMode, label: 'Bee Breath (Bhramari)', desc: 'Bhramari pranayama', howItWorks: 'Cover ears with thumbs, close eyes. Inhale deeply, then exhale while making a buzzing/humming sound like a bee. The vibration + ear coverage amplifies vagal stimulation.' },
+  { key: 'gargling' as HummingMode, label: 'Gargling', desc: 'Vagal nerve activation', howItWorks: 'Gargle water vigorously for 30-60 seconds. This activates the muscles at the back of the throat connected to the vagus nerve. Simple but effective.' },
+  { key: 'bowl' as HummingMode, label: 'Singing Bowl', desc: 'Play tone, hum along', howItWorks: 'Listen to the tone and hum along at the same pitch. Matching the frequency creates resonance in your chest cavity that stimulates vagal tone.' },
 ];
 
 function BreathingCircle({ phase, progress }: { phase: string; progress: number }) {
@@ -202,6 +212,21 @@ export default function TrainScreen() {
   const [scriptureSessionComplete, setScriptureSessionComplete] = useState(false);
   const [scriptureStartRmssd, setScriptureStartRmssd] = useState(mockCurrentHRV.rmssd);
   const scriptureIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Custom device state
+  const [showCustomSetup, setShowCustomSetup] = useState(false);
+  const [customDeviceName, setCustomDeviceName] = useState('');
+  const [customCategory, setCustomCategory] = useState('Other');
+  const [customNotes, setCustomNotes] = useState('');
+  const [customTags, setCustomTags] = useState('');
+  const [customDuration, setCustomDuration] = useState(600);
+  const [customSessionActive, setCustomSessionActive] = useState(false);
+  const [customElapsed, setCustomElapsed] = useState(0);
+  const [customRmssd, setCustomRmssd] = useState(mockCurrentHRV.rmssd);
+  const [customStartRmssd, setCustomStartRmssd] = useState(mockCurrentHRV.rmssd);
+  const [customSessionComplete, setCustomSessionComplete] = useState(false);
+  const [customMarkedEvents, setCustomMarkedEvents] = useState<{ time: number; note: string }[]>([]);
+  const customIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const breathAnimRef = useRef(new Animated.Value(0.7)).current;
 
   useEffect(() => {
@@ -277,6 +302,59 @@ export default function TrainScreen() {
     setScriptureCategory('today');
     setSelectedVerse(getVerseOfTheDay());
   };
+
+  // Custom device session timer
+  useEffect(() => {
+    if (customSessionActive) {
+      customIntervalRef.current = setInterval(() => {
+        setCustomElapsed((prev) => {
+          if (prev + 1 >= customDuration) {
+            stopCustomSession();
+            return prev;
+          }
+          return prev + 1;
+        });
+        setCustomRmssd((prev) => prev + (Math.random() * 0.4 - 0.1));
+      }, 1000);
+    }
+    return () => {
+      if (customIntervalRef.current) clearInterval(customIntervalRef.current);
+    };
+  }, [customSessionActive]);
+
+  const startCustomSession = () => {
+    setCustomStartRmssd(mockCurrentHRV.rmssd);
+    setCustomRmssd(mockCurrentHRV.rmssd);
+    setCustomElapsed(0);
+    setCustomMarkedEvents([]);
+    setCustomSessionActive(true);
+    setCustomSessionComplete(false);
+  };
+
+  const stopCustomSession = () => {
+    if (customIntervalRef.current) clearInterval(customIntervalRef.current);
+    setCustomSessionActive(false);
+    setCustomSessionComplete(true);
+  };
+
+  const resetCustomSession = () => {
+    setShowCustomSetup(false);
+    setCustomSessionActive(false);
+    setCustomSessionComplete(false);
+    setCustomElapsed(0);
+    setCustomDeviceName('');
+    setCustomCategory('Other');
+    setCustomNotes('');
+    setCustomTags('');
+    setCustomMarkedEvents([]);
+  };
+
+  const markCustomEvent = () => {
+    const note = `Event at ${formatTime(customElapsed)}`;
+    setCustomMarkedEvents((prev) => [...prev, { time: customElapsed, note }]);
+  };
+
+  const CUSTOM_CATEGORIES = ['Frequency Device', 'Neurostimulator', 'Light Therapy', 'Sound Therapy', 'Neurofeedback', 'PEMF', 'Other'];
 
   const startSession = (type: SessionType, mode: string) => {
     setActiveSession({
@@ -359,6 +437,9 @@ export default function TrainScreen() {
             >
               <Text style={styles.modeOptionLabel}>{mode.label}</Text>
               <Text style={styles.modeOptionDesc}>{mode.desc}</Text>
+              {selectedMode === mode.key && 'howItWorks' in mode && (
+                <Text style={styles.modeHowItWorks}>{(mode as any).howItWorks}</Text>
+              )}
             </TouchableOpacity>
           ))}
 
@@ -462,11 +543,18 @@ export default function TrainScreen() {
               </View>
               <Ionicons name="chevron-forward" size={20} color="#d4a574" />
             </View>
-            <View style={styles.scriptureFeaturedPreview}>
-              <Text style={styles.scriptureFeaturedVerse} numberOfLines={1}>
-                {getVerseOfTheDay().reference} — {getVerseOfTheDay().text.substring(0, 40)}...
-              </Text>
-            </View>
+            <TouchableOpacity
+              style={styles.scriptureFeaturedPreview}
+              onPress={(e) => { e.stopPropagation(); Linking.openURL(getVerseOfTheDay().youversionUrl); }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.verseListRefRow}>
+                <Text style={styles.scriptureFeaturedVerse} numberOfLines={1}>
+                  {getVerseOfTheDay().reference} — {getVerseOfTheDay().text.substring(0, 40)}...
+                </Text>
+                <Ionicons name="book-outline" size={12} color="#d4a574" />
+              </View>
+            </TouchableOpacity>
           </LinearGradient>
         </TouchableOpacity>
 
@@ -481,6 +569,8 @@ export default function TrainScreen() {
               onPress={() => {
                 if (type.key === 'binaural') {
                   router.push('/session');
+                } else if (type.key === 'custom') {
+                  setShowCustomSetup(true);
                 } else {
                   setSelectedType(type.key);
                 }
@@ -574,6 +664,244 @@ export default function TrainScreen() {
       {/* Mode Selection Overlay */}
       {selectedType && selectedType !== 'binaural' && renderModeSelection()}
 
+      {/* Custom Device Overlay */}
+      {showCustomSetup && (
+        <View style={styles.modeOverlay}>
+          <ScrollView contentContainerStyle={styles.scriptureOverlayScroll}>
+            <GlassCard style={styles.scriptureModal}>
+              {/* Header */}
+              <View style={styles.modeHeader}>
+                <Ionicons name="build-outline" size={20} color="#8e8e93" />
+                <Text style={styles.modeTitle}>Custom / Other Device</Text>
+                <TouchableOpacity onPress={resetCustomSession} style={styles.modeClose}>
+                  <Ionicons name="close" size={20} color={Colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              {!customSessionActive && !customSessionComplete && (
+                <>
+                  <Text style={styles.modeHowItWorks}>
+                    Use this to test and track any modality — frequency generators, neurofeedback, PEMF, vagus nerve stimulators, or anything else.
+                  </Text>
+
+                  {/* Device Name */}
+                  <Text style={[styles.durationLabel, { marginTop: Spacing.md }]}>Device / Modality Name</Text>
+                  <View style={styles.customInputContainer}>
+                    <TextInput
+                      style={styles.customInput}
+                      placeholder="e.g., GB4000, Pulsetto, Apollo, FSM, rTMS..."
+                      placeholderTextColor={Colors.textDim}
+                      value={customDeviceName}
+                      onChangeText={setCustomDeviceName}
+                      maxLength={100}
+                    />
+                  </View>
+
+                  {/* Category */}
+                  <Text style={styles.durationLabel}>Category</Text>
+                  <View style={styles.customCategoryRow}>
+                    {CUSTOM_CATEGORIES.map((cat) => (
+                      <TouchableOpacity
+                        key={cat}
+                        style={[styles.customCategoryPill, customCategory === cat && styles.customCategoryPillActive]}
+                        onPress={() => setCustomCategory(cat)}
+                      >
+                        <Text style={[styles.customCategoryText, customCategory === cat && styles.customCategoryTextActive]}>{cat}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* Notes */}
+                  <Text style={styles.durationLabel}>Notes (optional)</Text>
+                  <View style={styles.customInputContainer}>
+                    <TextInput
+                      style={[styles.customInput, { minHeight: 50 }]}
+                      placeholder="e.g., 528 Hz, channel 3, 20 min protocol"
+                      placeholderTextColor={Colors.textDim}
+                      value={customNotes}
+                      onChangeText={setCustomNotes}
+                      multiline
+                      maxLength={300}
+                    />
+                  </View>
+
+                  {/* Tags */}
+                  <Text style={styles.durationLabel}>Tags (optional)</Text>
+                  <View style={styles.customInputContainer}>
+                    <TextInput
+                      style={styles.customInput}
+                      placeholder="e.g., frequency, vagus, recovery"
+                      placeholderTextColor={Colors.textDim}
+                      value={customTags}
+                      onChangeText={setCustomTags}
+                      maxLength={200}
+                    />
+                  </View>
+
+                  {/* Duration */}
+                  <Text style={styles.durationLabel}>Duration</Text>
+                  <View style={styles.durationRow}>
+                    {[300, 600, 900, 1200, 1800, 3600].map((d) => (
+                      <TouchableOpacity
+                        key={d}
+                        style={[styles.durationPill, customDuration === d && { backgroundColor: '#8e8e93' }]}
+                        onPress={() => setCustomDuration(d)}
+                      >
+                        <Text style={[styles.durationPillText, customDuration === d && { color: Colors.white }]}>
+                          {d / 60}m
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* Start Button */}
+                  <TouchableOpacity
+                    style={[styles.startButton, { backgroundColor: Colors.accent }, !customDeviceName.trim() && { opacity: 0.5 }]}
+                    onPress={startCustomSession}
+                    disabled={!customDeviceName.trim()}
+                  >
+                    <Ionicons name="play" size={18} color={Colors.white} />
+                    <Text style={styles.startButtonText}>Start Tracking</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {/* Active Custom Session */}
+              {customSessionActive && (
+                <View style={styles.scriptureActiveSession}>
+                  <Text style={styles.customDeviceTitle}>{customDeviceName}</Text>
+                  <Text style={styles.customDeviceCategory}>{customCategory}</Text>
+
+                  {/* Large RMSSD */}
+                  <View style={styles.customRmssdContainer}>
+                    <Text style={styles.customRmssdValue}>{customRmssd.toFixed(1)}</Text>
+                    <Text style={styles.customRmssdUnit}>ms RMSSD</Text>
+                  </View>
+
+                  {/* Timer */}
+                  <Text style={styles.customTimerText}>{formatTime(customDuration - customElapsed)} remaining</Text>
+
+                  {/* Editable Notes */}
+                  <View style={[styles.customInputContainer, { marginTop: Spacing.md }]}>
+                    <TextInput
+                      style={[styles.customInput, { minHeight: 40 }]}
+                      placeholder="Jot observations..."
+                      placeholderTextColor={Colors.textDim}
+                      value={customNotes}
+                      onChangeText={setCustomNotes}
+                      multiline
+                    />
+                  </View>
+
+                  {/* Mark Event */}
+                  <TouchableOpacity style={styles.customMarkEventButton} onPress={markCustomEvent}>
+                    <Ionicons name="flag-outline" size={16} color={Colors.accent} />
+                    <Text style={styles.customMarkEventText}>Mark Event</Text>
+                  </TouchableOpacity>
+
+                  {/* Marked Events */}
+                  {customMarkedEvents.length > 0 && (
+                    <View style={styles.customEventsContainer}>
+                      {customMarkedEvents.map((evt, i) => (
+                        <View key={i} style={styles.customEventItem}>
+                          <View style={styles.customEventDot} />
+                          <Text style={styles.customEventText}>{evt.note}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Stats */}
+                  <View style={[styles.scriptureActiveStats, { marginTop: Spacing.md }]}>
+                    <View style={styles.activeStat}>
+                      <Text style={styles.activeStatLabel}>Change</Text>
+                      <Text style={[styles.activeStatValue, { color: Colors.accent }]}>
+                        {(customRmssd - customStartRmssd) >= 0 ? '+' : ''}{(customRmssd - customStartRmssd).toFixed(1)} ms
+                      </Text>
+                    </View>
+                    <View style={styles.activeStat}>
+                      <Text style={styles.activeStatLabel}>Elapsed</Text>
+                      <Text style={styles.activeStatValue}>{formatTime(customElapsed)}</Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity style={styles.stopButton} onPress={stopCustomSession}>
+                    <Ionicons name="stop-circle" size={18} color="#ef4444" />
+                    <Text style={styles.stopButtonText}>Stop</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Post-Session Summary */}
+              {customSessionComplete && (
+                <View style={styles.scripturePostSession}>
+                  <Ionicons name="checkmark-circle" size={48} color={Colors.accent} />
+                  <Text style={styles.scripturePostTitle}>Session Complete</Text>
+                  <Text style={styles.customDeviceTitle}>{customDeviceName}</Text>
+                  <Text style={styles.customDeviceCategory}>{customCategory}</Text>
+
+                  <View style={styles.scripturePostStats}>
+                    <View style={styles.scripturePostStatItem}>
+                      <Text style={styles.scripturePostStatLabel}>Before</Text>
+                      <Text style={styles.scripturePostStatValue}>{customStartRmssd.toFixed(1)} ms</Text>
+                    </View>
+                    <View style={styles.scripturePostStatItem}>
+                      <Text style={styles.scripturePostStatLabel}>After</Text>
+                      <Text style={styles.scripturePostStatValue}>{customRmssd.toFixed(1)} ms</Text>
+                    </View>
+                    <View style={styles.scripturePostStatItem}>
+                      <Text style={styles.scripturePostStatLabel}>Delta</Text>
+                      <Text style={[styles.scripturePostStatValue, { color: Colors.accent }]}>
+                        {(customRmssd - customStartRmssd) >= 0 ? '+' : ''}{(customRmssd - customStartRmssd).toFixed(1)} ms
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.scripturePostStats}>
+                    <View style={styles.scripturePostStatItem}>
+                      <Text style={styles.scripturePostStatLabel}>Duration</Text>
+                      <Text style={styles.scripturePostStatValue}>{formatTime(customElapsed)}</Text>
+                    </View>
+                    <View style={styles.scripturePostStatItem}>
+                      <Text style={styles.scripturePostStatLabel}>Events</Text>
+                      <Text style={styles.scripturePostStatValue}>{customMarkedEvents.length}</Text>
+                    </View>
+                  </View>
+
+                  {/* Mini Timeline of Events */}
+                  {customMarkedEvents.length > 0 && (
+                    <View style={styles.customEventsContainer}>
+                      <Text style={[styles.durationLabel, { marginTop: 0 }]}>Marked Events</Text>
+                      {customMarkedEvents.map((evt, i) => (
+                        <View key={i} style={styles.customEventItem}>
+                          <View style={styles.customEventDot} />
+                          <Text style={styles.customEventText}>{evt.note}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  <TouchableOpacity
+                    style={[styles.startButton, { backgroundColor: Colors.accent, marginTop: Spacing.md }]}
+                    onPress={resetCustomSession}
+                  >
+                    <Ionicons name="save-outline" size={18} color={Colors.white} />
+                    <Text style={styles.startButtonText}>Save to Interventions</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.stopButton, { marginTop: Spacing.sm }]}
+                    onPress={resetCustomSession}
+                  >
+                    <Text style={styles.stopButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </GlassCard>
+          </ScrollView>
+        </View>
+      )}
+
       {/* Scripture Meditation Overlay */}
       {showScriptureMeditation && (
         <View style={styles.modeOverlay}>
@@ -590,8 +918,13 @@ export default function TrainScreen() {
 
               {!scriptureSessionActive && !scriptureSessionComplete && (
                 <>
+                  {/* How it works description */}
+                  <Text style={styles.modeHowItWorks}>
+                    Select a verse, read it slowly, and sit with it. Focus on the words and let them settle. The app tracks your HRV response — many users find Scripture meditation produces their strongest parasympathetic shifts.
+                  </Text>
+
                   {/* Category Selection */}
-                  <Text style={styles.modeSubtitle}>Choose a Verse</Text>
+                  <Text style={[styles.modeSubtitle, { marginTop: Spacing.md }]}>Choose a Verse</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scriptureCategoryScroll}>
                     <View style={styles.scriptureCategoryRow}>
                       {SCRIPTURE_CATEGORIES.map((cat) => (
@@ -623,7 +956,12 @@ export default function TrainScreen() {
                           style={[styles.verseListItem, selectedVerse.reference === verse.reference && styles.verseListItemActive]}
                           onPress={() => setSelectedVerse(verse)}
                         >
-                          <Text style={styles.verseListRef}>{verse.reference}</Text>
+                          <View style={styles.verseListRefRow}>
+                            <Text style={styles.verseListRef}>{verse.reference}</Text>
+                            <TouchableOpacity onPress={() => Linking.openURL(verse.youversionUrl)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                              <Ionicons name="book-outline" size={14} color="#d4a574" />
+                            </TouchableOpacity>
+                          </View>
                           <Text style={styles.verseListText} numberOfLines={2}>{verse.text}</Text>
                         </TouchableOpacity>
                       ))}
@@ -633,7 +971,14 @@ export default function TrainScreen() {
                   {/* Selected Verse Display */}
                   <View style={styles.selectedVerseContainer}>
                     <Text style={styles.selectedVerseText}>"{selectedVerse.text}"</Text>
-                    <Text style={styles.selectedVerseRef}>{selectedVerse.reference} — {selectedVerse.translation}</Text>
+                    <View style={styles.verseListRefRow}>
+                      <TouchableOpacity onPress={() => Linking.openURL(selectedVerse.youversionUrl)}>
+                        <Text style={[styles.selectedVerseRef, { textDecorationLine: 'underline' }]}>{selectedVerse.reference} — {selectedVerse.translation}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => Linking.openURL(selectedVerse.youversionUrl)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Ionicons name="book-outline" size={14} color="#d4a574" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   {/* Duration */}
@@ -662,7 +1007,9 @@ export default function TrainScreen() {
               {scriptureSessionActive && (
                 <View style={styles.scriptureActiveSession}>
                   <Text style={styles.scriptureActiveVerse}>"{selectedVerse.text}"</Text>
-                  <Text style={styles.scriptureActiveRef}>{selectedVerse.reference}</Text>
+                  <TouchableOpacity onPress={() => Linking.openURL(selectedVerse.youversionUrl)}>
+                    <Text style={[styles.scriptureActiveRef, { textDecorationLine: 'underline' }]}>{selectedVerse.reference}</Text>
+                  </TouchableOpacity>
 
                   {/* Breathing Circle */}
                   <View style={styles.scriptureBreathContainer}>
@@ -1078,6 +1425,14 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: 2,
   },
+  modeHowItWorks: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+    marginTop: 6,
+    lineHeight: 16,
+    fontStyle: 'italic',
+  },
   durationLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.sm,
@@ -1212,11 +1567,16 @@ const styles = StyleSheet.create({
     borderColor: '#d4a574',
     backgroundColor: 'rgba(212,165,116,0.08)',
   },
+  verseListRefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
   verseListRef: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.xs,
     color: '#d4a574',
-    marginBottom: 2,
   },
   verseListText: {
     fontFamily: 'Inter_400Regular',
@@ -1242,6 +1602,123 @@ const styles = StyleSheet.create({
   },
   selectedVerseRef: {
     fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  // Custom Device Styles
+  customInputContainer: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    marginBottom: Spacing.sm,
+  },
+  customInput: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    textAlignVertical: 'top',
+  },
+  customCategoryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  customCategoryPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
+  customCategoryPillActive: {
+    borderColor: '#8e8e93',
+    backgroundColor: 'rgba(142,142,147,0.15)',
+  },
+  customCategoryText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  customCategoryTextActive: {
+    color: Colors.text,
+  },
+  customDeviceTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.lg,
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  customDeviceCategory: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  customRmssdContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  customRmssdValue: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 48,
+    color: Colors.text,
+    letterSpacing: -2,
+  },
+  customRmssdUnit: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+  },
+  customTimerText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.md,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  customMarkEventButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(14,168,122,0.12)',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(14,168,122,0.3)',
+    marginTop: Spacing.sm,
+  },
+  customMarkEventText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.xs,
+    color: Colors.accent,
+  },
+  customEventsContainer: {
+    marginTop: Spacing.sm,
+    width: '100%',
+  },
+  customEventItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: 4,
+  },
+  customEventDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.accent,
+  },
+  customEventText: {
+    fontFamily: 'Inter_400Regular',
     fontSize: FontSize.xs,
     color: Colors.textMuted,
   },

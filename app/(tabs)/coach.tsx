@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,70 @@ import {
 } from '../../constants/mockData';
 import { sendChatMessage } from '../../lib/gemini';
 import type { ChatMessage } from '../../lib/types';
+import { scriptureVerses } from '../../constants/scriptureData';
+
+const SCRIPTURE_REF_PATTERN = /(\d?\s?(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|Samuel|Kings|Chronicles|Ezra|Nehemiah|Esther|Job|Psalm|Psalms|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|Corinthians|Galatians|Ephesians|Philippians|Colossians|Thessalonians|Timothy|Titus|Philemon|Hebrews|James|Peter|Jude|Revelation)\s+\d+:\d+(?:-\d+)?)/g;
+
+function getYouversionUrl(ref: string): string {
+  const found = scriptureVerses.find(v => v.reference === ref);
+  if (found) return found.youversionUrl;
+  // Fallback: construct URL from reference
+  const bookMap: Record<string, string> = {
+    'Genesis': 'GEN', 'Exodus': 'EXO', 'Leviticus': 'LEV', 'Numbers': 'NUM', 'Deuteronomy': 'DEU',
+    'Joshua': 'JOS', 'Judges': 'JDG', 'Ruth': 'RUT', '1 Samuel': '1SA', '2 Samuel': '2SA',
+    '1 Kings': '1KI', '2 Kings': '2KI', '1 Chronicles': '1CH', '2 Chronicles': '2CH',
+    'Ezra': 'EZR', 'Nehemiah': 'NEH', 'Esther': 'EST', 'Job': 'JOB',
+    'Psalm': 'PSA', 'Psalms': 'PSA', 'Proverbs': 'PRO', 'Ecclesiastes': 'ECC',
+    'Isaiah': 'ISA', 'Jeremiah': 'JER', 'Lamentations': 'LAM', 'Ezekiel': 'EZK', 'Daniel': 'DAN',
+    'Hosea': 'HOS', 'Joel': 'JOL', 'Amos': 'AMO', 'Obadiah': 'OBA', 'Jonah': 'JON',
+    'Micah': 'MIC', 'Nahum': 'NAM', 'Habakkuk': 'HAB', 'Zephaniah': 'ZEP', 'Haggai': 'HAG',
+    'Zechariah': 'ZEC', 'Malachi': 'MAL', 'Matthew': 'MAT', 'Mark': 'MRK', 'Luke': 'LUK',
+    'John': 'JHN', 'Acts': 'ACT', 'Romans': 'ROM', '1 Corinthians': '1CO', '2 Corinthians': '2CO',
+    'Galatians': 'GAL', 'Ephesians': 'EPH', 'Philippians': 'PHP', 'Colossians': 'COL',
+    '1 Thessalonians': '1TH', '2 Thessalonians': '2TH', '1 Timothy': '1TI', '2 Timothy': '2TI',
+    'Titus': 'TIT', 'Philemon': 'PHM', 'Hebrews': 'HEB', 'James': 'JAS',
+    '1 Peter': '1PE', '2 Peter': '2PE', '1 John': '1JN', '2 John': '2JN', '3 John': '3JN',
+    'Jude': 'JUD', 'Revelation': 'REV',
+  };
+  const match = ref.match(/^(\d?\s?\w+)\s+(\d+):(\d+)/);
+  if (match) {
+    const bookName = match[1].trim();
+    const code = bookMap[bookName] || bookName.substring(0, 3).toUpperCase();
+    return `https://bible.com/bible/111/${code}.${match[2]}.${match[3]}`;
+  }
+  return 'https://bible.com';
+}
+
+function renderTextWithVerseLinks(text: string) {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  const regex = new RegExp(SCRIPTURE_REF_PATTERN.source, 'g');
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(<Text key={`t-${lastIndex}`}>{text.slice(lastIndex, match.index)}</Text>);
+    }
+    const ref = match[1];
+    const url = getYouversionUrl(ref);
+    parts.push(
+      <Text
+        key={`v-${match.index}`}
+        style={{ color: '#d4a574', textDecorationLine: 'underline' }}
+        onPress={() => Linking.openURL(url)}
+      >
+        {ref}
+      </Text>
+    );
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(<Text key={`t-${lastIndex}`}>{text.slice(lastIndex)}</Text>);
+  }
+
+  return parts.length > 0 ? parts : text;
+}
 
 function ChatBubble({ message }: { message: { role: string; content: string; timestamp: string } }) {
   const isUser = message.role === 'user';
@@ -33,7 +98,9 @@ function ChatBubble({ message }: { message: { role: string; content: string; tim
         </View>
       )}
       <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-        <Text style={styles.bubbleText}>{message.content}</Text>
+        <Text style={styles.bubbleText}>
+          {isUser ? message.content : renderTextWithVerseLinks(message.content)}
+        </Text>
         <Text style={[styles.bubbleTime, isUser && styles.userBubbleTime]}>
           {message.timestamp}
         </Text>

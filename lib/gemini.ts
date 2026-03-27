@@ -172,7 +172,7 @@ export function parseIntervention(aiResponse: string, rawText: string): {
   const categories: Record<string, string[]> = {
     supplement: ['mg', 'vitamin', 'magnesium', 'copper', 'zinc', 'b12', 'ashwagandha', 'supplement', 'took'],
     therapy: ['neurofeedback', 'isf', 'massage', 'sauna', 'cold plunge', 'cold shower', 'pemf', 'biofeedback'],
-    activity: ['walk', 'run', 'exercise', 'workout', 'yoga', 'stretch', 'swim'],
+    activity: ['walk', 'run', 'exercise', 'workout', 'stretch', 'swim', 'ruck'],
     food: ['coffee', 'tea', 'ate', 'drink', 'alcohol', 'wine', 'beer', 'food', 'meal'],
     breathwork: ['breathing', 'breath', 'breathwork', 'wim hof'],
     prayer: ['prayer', 'prayed', 'meditation', 'meditat', 'worship'],

@@ -25,7 +25,7 @@ type SessionType = 'breathing' | 'bilateral' | 'humming' | 'binaural' | 'custom'
 type BreathingMode = 'box' | 'resonance' | '478' | 'custom';
 type BilateralMode = 'butterfly' | 'tapping' | 'visual-tracking';
 type HummingMode = 'om' | 'bhramari' | 'gargling' | 'bowl';
-type ExerciseMode = 'zone2-walk' | 'yoga' | 'tai-chi' | 'cold-exposure' | 'mobility' | 'interval-walking';
+type ExerciseMode = 'zone2-walk' | 'cold-exposure' | 'rucking' | 'mobility' | 'interval-walking' | 'swimming';
 
 interface ActiveSession {
   type: SessionType;
@@ -108,11 +108,11 @@ const HUMMING_MODES = [
 
 const EXERCISE_MODES: { key: ExerciseMode; label: string; desc: string; icon: string; howItWorks: string; durations: number[]; hrTarget?: string }[] = [
   { key: 'zone2-walk', label: 'Zone 2 Walk', desc: 'Low-intensity aerobic walk', icon: 'leaf-outline', howItWorks: 'Walk at a comfortable pace where you can hold a conversation. Keep HR under 65% of max. The #1 exercise for HRV improvement — parasympathetic boost during and after.', durations: [900, 1200, 1800, 2700, 3600], hrTarget: 'Keep HR under 120 bpm' },
-  { key: 'yoga', label: 'Yoga / Gentle Flow', desc: 'Breath-coordinated movement', icon: 'body-outline', howItWorks: 'Slow, deliberate movement with breath coordination. Proven to increase vagal tone by 22% over 8 weeks in clinical studies. Focus on forward folds and inversions.', durations: [600, 900, 1200, 1800] },
-  { key: 'tai-chi', label: 'Tai Chi / Qigong', desc: 'Flowing movement + deep breath', icon: 'hand-left-outline', howItWorks: 'Slow, flowing movements with deep breathing. Meta-analysis of 26 studies showed significant HRV improvement. Especially effective for autonomic balance.', durations: [600, 900, 1200, 1800] },
   { key: 'cold-exposure', label: 'Cold Exposure', desc: 'Dive reflex vagal activation', icon: 'snow-outline', howItWorks: 'Cold shower, plunge, or face immersion. Activates the dive reflex — one of the most powerful acute vagal stimulators. Start with 30 seconds, build to 2-3 minutes.', durations: [60, 120, 180, 300], hrTarget: 'Any pace' },
+  { key: 'rucking', label: 'Rucking / Weighted Walk', desc: 'Weighted vest or backpack walk', icon: 'barbell-outline', howItWorks: 'Walk with a weighted vest or backpack (10-20% body weight). Increases cardiovascular load while staying in Zone 2. Studies show improved HRV and metabolic health. Start with 10-15 lbs.', durations: [900, 1200, 1800, 2700] },
   { key: 'mobility', label: 'Mobility / Stretching', desc: 'Reduce sympathetic tension', icon: 'resize-outline', howItWorks: 'Gentle stretching and foam rolling. Reduces muscle tension signaling to the brain, lowering sympathetic tone. Focus on hip flexors, thoracic spine, and neck.', durations: [300, 600, 900, 1200] },
   { key: 'interval-walking', label: 'Interval Walking', desc: '3 min brisk / 3 min slow', icon: 'walk-outline', howItWorks: 'Alternate 3 minutes brisk walking with 3 minutes slow walking. Norwegian study showed this improved HRV more than continuous moderate walking in older adults.', durations: [900, 1200, 1800] },
+  { key: 'swimming', label: 'Swimming / Water Immersion', desc: 'Dive reflex + easy movement', icon: 'water-outline', howItWorks: 'Water immersion activates the mammalian dive reflex, boosting parasympathetic tone. Even floating in cool water improves HRV. Swimming at easy pace combines cold + movement.', durations: [600, 900, 1200, 1800] },
 ];
 
 function BreathingCircle({ phase, progress }: { phase: string; progress: number }) {

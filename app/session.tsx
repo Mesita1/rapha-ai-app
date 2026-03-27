@@ -7,10 +7,13 @@ import {
   Animated,
   Dimensions,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path, Circle } from 'react-native-svg';
 import GlassCard from '../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius } from '../constants/theme';
 import { mockCurrentHRV } from '../constants/mockData';
@@ -20,92 +23,167 @@ try { Haptics = require('expo-haptics'); } catch {}
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const goals = [
-  { key: 'calm', label: 'Calm', icon: 'leaf-outline' as const, freq: '10 Hz Alpha → 7-8 Hz Theta', desc: 'Parasympathetic activation' },
-  { key: 'focus', label: 'Focus', icon: 'flash-outline' as const, freq: '14-18 Hz Beta', desc: 'Low beta concentration' },
-  { key: 'sleep', label: 'Sleep Prep', icon: 'moon-outline' as const, freq: '10 Hz → 4 Hz Delta', desc: 'Theta/delta transition' },
-  { key: 'recovery', label: 'Recovery', icon: 'fitness-outline' as const, freq: '7-10 Hz Alpha/Theta', desc: 'Vagal tone boost' },
+type SessionPhase = 'selection' | 'active' | 'summary';
+
+const modes = [
+  {
+    key: 'calm',
+    label: 'Calm',
+    icon: 'leaf-outline' as const,
+    desc: 'Parasympathetic activation. Alpha \u2192 Theta. Best for stress relief.',
+    gradient: ['#6C5CE7', '#3B82F6'] as [string, string],
+    targetZone: 'Theta (4-8 Hz)',
+    startFreq: 10,
+    endFreq: 6,
+  },
+  {
+    key: 'focus',
+    label: 'Focus',
+    icon: 'flash-outline' as const,
+    desc: 'Beta wave entrainment. 14-18Hz. Sharpen concentration.',
+    gradient: ['#f59e0b', '#ef4444'] as [string, string],
+    targetZone: 'Beta (14-18 Hz)',
+    startFreq: 12,
+    endFreq: 16,
+  },
+  {
+    key: 'sleep',
+    label: 'Sleep Prep',
+    icon: 'moon-outline' as const,
+    desc: 'Alpha \u2192 Delta transition. Wind down for deep sleep.',
+    gradient: ['#1e3a5f', '#3B82F6'] as [string, string],
+    targetZone: 'Delta (1-4 Hz)',
+    startFreq: 10,
+    endFreq: 3,
+  },
+  {
+    key: 'recovery',
+    label: 'Recovery',
+    icon: 'heart-outline' as const,
+    desc: 'Vagal tone boost. RSA entrainment at 0.1Hz.',
+    gradient: ['#0ea87a', '#00d68f'] as [string, string],
+    targetZone: 'RSA (0.1 Hz)',
+    startFreq: 8,
+    endFreq: 7,
+  },
 ];
 
 const durations = [5, 10, 15, 20, 30];
 
-type SessionPhase = 'setup' | 'active' | 'complete';
-
-function WaveformAnimation({ isPlaying }: { isPlaying: boolean }) {
-  const bars = useRef(
-    Array.from({ length: 20 }, () => new Animated.Value(0.3))
-  ).current;
-
-  useEffect(() => {
-    if (isPlaying) {
-      bars.forEach((bar, i) => {
-        const animate = () => {
-          Animated.sequence([
-            Animated.timing(bar, {
-              toValue: 0.3 + Math.random() * 0.7,
-              duration: 300 + Math.random() * 400,
-              useNativeDriver: true,
-            }),
-            Animated.timing(bar, {
-              toValue: 0.3,
-              duration: 300 + Math.random() * 400,
-              useNativeDriver: true,
-            }),
-          ]).start(animate);
-        };
-        setTimeout(animate, i * 50);
-      });
-    }
-  }, [isPlaying]);
+function SineWaveViz({ progress }: { progress: number }) {
+  const w = SCREEN_WIDTH - 64;
+  const h = 100;
+  const waves = [
+    { amp: 30, freq: 2, phase: 0, opacity: 0.8, color: Colors.accent },
+    { amp: 20, freq: 3, phase: 1.5, opacity: 0.4, color: Colors.purple },
+    { amp: 15, freq: 4, phase: 3, opacity: 0.25, color: '#3B82F6' },
+    { amp: 25, freq: 1.5, phase: progress * Math.PI * 2, opacity: 0.5, color: Colors.accent },
+  ];
 
   return (
-    <View style={styles.waveform}>
-      {bars.map((bar, i) => (
-        <Animated.View
-          key={i}
-          style={[
-            styles.waveBar,
-            {
-              transform: [{ scaleY: bar }],
-              backgroundColor: i % 2 === 0 ? Colors.purple : 'rgba(108, 92, 231, 0.4)',
-            },
-          ]}
+    <Svg width={w} height={h} style={{ marginVertical: Spacing.md }}>
+      {waves.map((wave, wi) => {
+        let d = `M 0 ${h / 2}`;
+        for (let x = 0; x <= w; x += 2) {
+          const y = h / 2 + wave.amp * Math.sin((x / w) * Math.PI * 2 * wave.freq + wave.phase + progress * 6);
+          d += ` L ${x} ${y}`;
+        }
+        return (
+          <Path key={wi} d={d} fill="none" stroke={wave.color} strokeWidth={2} opacity={wave.opacity} />
+        );
+      })}
+    </Svg>
+  );
+}
+
+function HrvSparkline({ data }: { data: number[] }) {
+  const w = SCREEN_WIDTH - 120;
+  const h = 40;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+
+  let d = '';
+  data.forEach((val, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((val - min) / range) * h;
+    d += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
+  });
+
+  return (
+    <Svg width={w} height={h}>
+      <Path d={d} fill="none" stroke={Colors.accent} strokeWidth={1.5} />
+      {data.length > 0 && (
+        <Circle
+          cx={w}
+          cy={h - ((data[data.length - 1] - min) / range) * h}
+          r={3}
+          fill={Colors.accent}
         />
-      ))}
-    </View>
+      )}
+    </Svg>
   );
 }
 
 export default function SessionScreen() {
-  const [phase, setPhase] = useState<SessionPhase>('setup');
-  const [selectedGoal, setSelectedGoal] = useState('calm');
+  const [phase, setPhase] = useState<SessionPhase>('selection');
+  const [selectedMode, setSelectedMode] = useState('calm');
   const [selectedDuration, setSelectedDuration] = useState(10);
-  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [activeTab, setActiveTab] = useState<'builtin' | 'music'>('builtin');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [feeling, setFeeling] = useState<string | null>(null);
 
-  const preRmssd = mockCurrentHRV.rmssd;
-  const postRmssd = preRmssd + 8.4 + Math.random() * 6;
-  const changePercent = ((postRmssd - preRmssd) / preRmssd * 100).toFixed(1);
+  // Simulated HRV values during session
+  const [currentRmssd, setCurrentRmssd] = useState(mockCurrentHRV.rmssd);
+  const [currentFreq, setCurrentFreq] = useState(9.2);
+  const [hrvHistory, setHrvHistory] = useState<number[]>([mockCurrentHRV.rmssd]);
+  const startRmssd = useRef(mockCurrentHRV.rmssd);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const waveProgress = useRef(new Animated.Value(0)).current;
+
+  const currentMode = modes.find((m) => m.key === selectedMode)!;
+  const totalSeconds = selectedDuration * 60;
+  const progress = totalSeconds > 0 ? elapsed / totalSeconds : 0;
 
   const startSession = () => {
     try { Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
     setPhase('active');
-    setTimeRemaining(selectedDuration * 60);
+    setElapsed(0);
     setIsPlaying(true);
+    startRmssd.current = mockCurrentHRV.rmssd;
+    setCurrentRmssd(mockCurrentHRV.rmssd);
+    setHrvHistory([mockCurrentHRV.rmssd]);
+    setCurrentFreq(currentMode.startFreq);
 
     intervalRef.current = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
+      setElapsed((prev) => {
+        const next = prev + 1;
+        if (next >= totalSeconds) {
           clearInterval(intervalRef.current!);
           setIsPlaying(false);
-          setPhase('complete');
+          setPhase('summary');
           try { Haptics?.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-          return 0;
+          return totalSeconds;
         }
-        return prev - 1;
+        return next;
+      });
+
+      // Simulate HRV fluctuations — gradual improvement
+      setCurrentRmssd((prev) => {
+        const drift = 0.05 + Math.random() * 0.15;
+        const noise = (Math.random() - 0.45) * 1.2;
+        const newVal = prev + drift + noise;
+        setHrvHistory((h) => [...h.slice(-30), newVal]);
+        return newVal;
+      });
+
+      // Simulate frequency approaching target
+      setCurrentFreq((prev) => {
+        const target = currentMode.endFreq;
+        const step = (target - prev) * 0.02;
+        return prev + step + (Math.random() - 0.5) * 0.3;
       });
     }, 1000);
   };
@@ -122,54 +200,101 @@ export default function SessionScreen() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const currentGoal = goals.find((g) => g.key === selectedGoal)!;
+  const endRmssd = currentRmssd;
+  const changePercent = ((endRmssd - startRmssd.current) / startRmssd.current * 100).toFixed(1);
 
-  if (phase === 'complete') {
+  // ==================== SUMMARY VIEW ====================
+  if (phase === 'summary') {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.completeContainer}>
+        <ScrollView contentContainerStyle={styles.summaryContent}>
           <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
             <Ionicons name="close" size={24} color={Colors.textMuted} />
           </TouchableOpacity>
 
-          <Ionicons name="checkmark-circle" size={72} color={Colors.accent} />
-          <Text style={styles.completeTitle}>Session Complete</Text>
-
-          <View style={styles.comparisonRow}>
-            <View style={styles.comparisonItem}>
-              <Text style={styles.comparisonLabel}>Before</Text>
-              <Text style={styles.comparisonValue}>{preRmssd.toFixed(1)}</Text>
-              <Text style={styles.comparisonUnit}>ms RMSSD</Text>
-            </View>
-            <Ionicons name="arrow-forward" size={24} color={Colors.accent} />
-            <View style={styles.comparisonItem}>
-              <Text style={styles.comparisonLabel}>After</Text>
-              <Text style={[styles.comparisonValue, { color: Colors.accent }]}>
-                {postRmssd.toFixed(1)}
-              </Text>
-              <Text style={styles.comparisonUnit}>ms RMSSD</Text>
-            </View>
+          <View style={styles.summaryHeader}>
+            <Ionicons name="checkmark-circle" size={64} color={Colors.accent} />
+            <Text style={styles.summaryTitle}>Session Complete</Text>
           </View>
 
-          <View style={styles.changeBadge}>
-            <Ionicons name="trending-up" size={18} color={Colors.accent} />
-            <Text style={styles.changeText}>+{changePercent}% improvement</Text>
-          </View>
+          <GlassCard style={styles.summaryStats}>
+            <View style={styles.statRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Starting HRV</Text>
+                <Text style={styles.statValue}>{startRmssd.current.toFixed(1)}</Text>
+                <Text style={styles.statUnit}>ms</Text>
+              </View>
+              <Ionicons name="arrow-forward" size={20} color={Colors.accent} />
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Ending HRV</Text>
+                <Text style={[styles.statValue, { color: Colors.accent }]}>{endRmssd.toFixed(1)}</Text>
+                <Text style={styles.statUnit}>ms</Text>
+              </View>
+            </View>
+            <View style={styles.summaryMetaRow}>
+              <View style={styles.summaryMetaItem}>
+                <Text style={styles.summaryMetaLabel}>Change</Text>
+                <Text style={[styles.summaryMetaValue, { color: Colors.accent }]}>+{changePercent}%</Text>
+              </View>
+              <View style={styles.summaryMetaItem}>
+                <Text style={styles.summaryMetaLabel}>Duration</Text>
+                <Text style={styles.summaryMetaValue}>{selectedDuration} min</Text>
+              </View>
+              <View style={styles.summaryMetaItem}>
+                <Text style={styles.summaryMetaLabel}>Mode</Text>
+                <Text style={styles.summaryMetaValue}>{currentMode.label}</Text>
+              </View>
+            </View>
+          </GlassCard>
 
-          <TouchableOpacity style={styles.logSessionButton} onPress={() => router.back()}>
-            <Text style={styles.logSessionText}>Done</Text>
+          <GlassCard style={styles.comparisonCard}>
+            <Ionicons name="analytics-outline" size={18} color={Colors.purple} />
+            <Text style={styles.comparisonText}>
+              12% better than your average {currentMode.label} session
+            </Text>
+          </GlassCard>
+
+          <GlassCard style={styles.feelingCard}>
+            <Text style={styles.feelingTitle}>How are you feeling?</Text>
+            <View style={styles.feelingOptions}>
+              {['Much Better', 'Better', 'Same', 'Worse'].map((opt) => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.feelingBtn, feeling === opt && styles.feelingBtnSelected]}
+                  onPress={() => setFeeling(opt)}
+                >
+                  <Text style={[styles.feelingBtnText, feeling === opt && styles.feelingBtnTextSelected]}>
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </GlassCard>
+
+          <TouchableOpacity style={styles.saveCloseBtn} onPress={() => router.back()}>
+            <Text style={styles.saveCloseText}>Save & Close</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
+  // ==================== ACTIVE SESSION VIEW ====================
   if (phase === 'active') {
+    const freqArrow = currentFreq > currentMode.endFreq ? '\u2193' : '\u2191';
+
+    // Circular progress ring
+    const ringSize = 160;
+    const ringStroke = 6;
+    const ringRadius = (ringSize - ringStroke) / 2;
+    const ringCircumference = 2 * Math.PI * ringRadius;
+    const ringOffset = ringCircumference * (1 - progress);
+
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.activeContainer}>
           <TouchableOpacity
-            style={styles.closeBtn}
+            style={styles.closeBtnActive}
             onPress={() => {
               if (intervalRef.current) clearInterval(intervalRef.current);
               setIsPlaying(false);
@@ -179,129 +304,246 @@ export default function SessionScreen() {
             <Ionicons name="close" size={24} color={Colors.textMuted} />
           </TouchableOpacity>
 
-          <Text style={styles.activeGoal}>{currentGoal.label}</Text>
-          <Text style={styles.activeFreq}>{currentGoal.freq}</Text>
+          {/* State badge */}
+          <View style={styles.stateBadge}>
+            <View style={styles.stateDot} />
+            <Text style={styles.stateText}>
+              {progress < 0.3 ? 'Entraining...' : progress < 0.7 ? `Transitioning to ${currentMode.targetZone.split(' ')[0]}...` : 'Deep state achieved'}
+            </Text>
+          </View>
 
-          <Text style={styles.liveRmssd}>{mockCurrentHRV.rmssd}</Text>
-          <Text style={styles.liveRmssdUnit}>ms RMSSD</Text>
+          {/* Large RMSSD display */}
+          <View style={styles.rmssdContainer}>
+            <Svg width={ringSize} height={ringSize} style={styles.progressRing}>
+              <Circle
+                cx={ringSize / 2}
+                cy={ringSize / 2}
+                r={ringRadius}
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth={ringStroke}
+                fill="none"
+              />
+              <Circle
+                cx={ringSize / 2}
+                cy={ringSize / 2}
+                r={ringRadius}
+                stroke={Colors.accent}
+                strokeWidth={ringStroke}
+                fill="none"
+                strokeDasharray={`${ringCircumference}`}
+                strokeDashoffset={ringOffset}
+                strokeLinecap="round"
+                rotation="-90"
+                origin={`${ringSize / 2}, ${ringSize / 2}`}
+              />
+            </Svg>
+            <View style={styles.rmssdOverlay}>
+              <Text style={styles.rmssdBig}>{currentRmssd.toFixed(1)}</Text>
+              <View style={styles.rmssdLabelRow}>
+                <Text style={styles.rmssdUnit}>ms</Text>
+                <View style={styles.liveDot} />
+              </View>
+            </View>
+          </View>
 
-          <WaveformAnimation isPlaying={isPlaying} />
+          {/* Target zone */}
+          <View style={styles.targetRow}>
+            <Text style={styles.targetLabel}>Target: {currentMode.targetZone}</Text>
+            <Text style={styles.freqText}>Current: {currentFreq.toFixed(1)} Hz {freqArrow}</Text>
+          </View>
 
-          <Text style={styles.timer}>{formatTime(timeRemaining)}</Text>
+          {/* Waveform */}
+          <SineWaveViz progress={progress} />
 
-          <TouchableOpacity
-            style={styles.pauseButton}
-            onPress={() => {
-              if (isPlaying) {
+          {/* Timer */}
+          <Text style={styles.timerText}>
+            {formatTime(elapsed)} / {formatTime(totalSeconds)}
+          </Text>
+
+          {/* HRV sparkline */}
+          <View style={styles.sparklineContainer}>
+            <Text style={styles.sparklineLabel}>HRV Trend</Text>
+            <HrvSparkline data={hrvHistory} />
+          </View>
+
+          {/* Controls */}
+          <View style={styles.controlsRow}>
+            <TouchableOpacity
+              style={styles.controlBtn}
+              onPress={() => {
+                if (isPlaying) {
+                  if (intervalRef.current) clearInterval(intervalRef.current);
+                } else {
+                  // Resume
+                  intervalRef.current = setInterval(() => {
+                    setElapsed((prev) => {
+                      const next = prev + 1;
+                      if (next >= totalSeconds) {
+                        clearInterval(intervalRef.current!);
+                        setIsPlaying(false);
+                        setPhase('summary');
+                        return totalSeconds;
+                      }
+                      return next;
+                    });
+                    setCurrentRmssd((prev) => {
+                      const drift = 0.05 + Math.random() * 0.15;
+                      const noise = (Math.random() - 0.45) * 1.2;
+                      const newVal = prev + drift + noise;
+                      setHrvHistory((h) => [...h.slice(-30), newVal]);
+                      return newVal;
+                    });
+                    setCurrentFreq((prev) => {
+                      const target = currentMode.endFreq;
+                      const step = (target - prev) * 0.02;
+                      return prev + step + (Math.random() - 0.5) * 0.3;
+                    });
+                  }, 1000);
+                }
+                setIsPlaying(!isPlaying);
+                try { Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+              }}
+            >
+              <Ionicons name={isPlaying ? 'pause' : 'play'} size={28} color={Colors.white} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.controlBtn, styles.stopBtn]}
+              onPress={() => {
                 if (intervalRef.current) clearInterval(intervalRef.current);
-              } else {
-                startSession();
-              }
-              setIsPlaying(!isPlaying);
-              try { Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
-            }}
-          >
-            <Ionicons
-              name={isPlaying ? 'pause' : 'play'}
-              size={32}
-              color={Colors.white}
-            />
-          </TouchableOpacity>
+                setIsPlaying(false);
+                setPhase('summary');
+              }}
+            >
+              <Ionicons name="stop" size={28} color={Colors.white} />
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
     );
   }
 
+  // ==================== SELECTION VIEW ====================
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.setupContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Audio Sessions</Text>
+      <ScrollView contentContainerStyle={styles.selectionContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.selectionHeader}>
+          <View style={styles.selectionTitleRow}>
+            <Ionicons name="headset-outline" size={24} color={Colors.purple} />
+            <Text style={styles.selectionTitle}>Audio Sessions</Text>
+          </View>
           <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
             <Ionicons name="close" size={24} color={Colors.textMuted} />
           </TouchableOpacity>
         </View>
 
-        {/* Tab: Built-in / Your Music */}
-        <View style={styles.tabRow}>
-          <TouchableOpacity
-            style={[styles.tabBtn, activeTab === 'builtin' && styles.tabBtnActive]}
-            onPress={() => setActiveTab('builtin')}
-          >
-            <Text style={[styles.tabText, activeTab === 'builtin' && styles.tabTextActive]}>Binaural Beats</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabBtn, activeTab === 'music' && styles.tabBtnActive]}
-            onPress={() => setActiveTab('music')}
-          >
-            <Text style={[styles.tabText, activeTab === 'music' && styles.tabTextActive]}>Your Music</Text>
+        {/* Mode Cards — 2x2 Grid */}
+        <Text style={styles.sectionLabel}>SELECT MODE</Text>
+        <View style={styles.modeGrid}>
+          {modes.map((mode) => {
+            const selected = selectedMode === mode.key;
+            return (
+              <TouchableOpacity
+                key={mode.key}
+                style={[styles.modeCard, selected && styles.modeCardSelected]}
+                onPress={() => {
+                  setSelectedMode(mode.key);
+                  try { Haptics?.selectionAsync(); } catch {}
+                }}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={selected ? mode.gradient : ['rgba(255,255,255,0.03)', 'rgba(255,255,255,0.01)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.modeGradient}
+                >
+                  <Ionicons
+                    name={mode.icon}
+                    size={28}
+                    color={selected ? Colors.white : Colors.textMuted}
+                  />
+                  <Text style={[styles.modeLabel, selected && styles.modeLabelSelected]}>
+                    {mode.label}
+                  </Text>
+                  <Text style={[styles.modeDesc, selected && styles.modeDescSelected]}>
+                    {mode.desc}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Duration Selector */}
+        <Text style={styles.sectionLabel}>DURATION</Text>
+        <View style={styles.durationRow}>
+          {durations.map((d) => (
+            <TouchableOpacity
+              key={d}
+              style={[styles.durationPill, selectedDuration === d && styles.durationPillSelected]}
+              onPress={() => {
+                setSelectedDuration(d);
+                try { Haptics?.selectionAsync(); } catch {}
+              }}
+            >
+              <Text style={[styles.durationText, selectedDuration === d && styles.durationTextSelected]}>
+                {d} min
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Your Music Section */}
+        <View style={styles.musicSection}>
+          <View style={styles.musicHeaderRow}>
+            <Text style={styles.sectionLabel}>YOUR MUSIC</Text>
             <View style={styles.proBadge}>
               <Text style={styles.proBadgeText}>Pro</Text>
             </View>
-          </TouchableOpacity>
+          </View>
+          <GlassCard style={styles.musicCard}>
+            <View style={styles.youtubeRow}>
+              <TextInput
+                style={styles.youtubeInput}
+                placeholder="Paste YouTube URL..."
+                placeholderTextColor={Colors.textDim}
+                value={youtubeUrl}
+                onChangeText={setYoutubeUrl}
+              />
+              <TouchableOpacity style={styles.pasteBtn}>
+                <Ionicons name="clipboard-outline" size={18} color={Colors.purple} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.musicBtnRow}>
+              <TouchableOpacity style={styles.musicOptionBtn}>
+                <Ionicons name="phone-portrait-outline" size={16} color={Colors.textMuted} />
+                <Text style={styles.musicOptionText}>Device Library</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.musicOptionBtn}>
+                <Ionicons name="musical-notes-outline" size={16} color={Colors.textMuted} />
+                <Text style={styles.musicOptionText}>Spotify / Apple Music</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.musicNote}>
+              Rapha AI overlays subtle binaural beats and tracks HRV in real-time
+            </Text>
+          </GlassCard>
         </View>
 
-        {activeTab === 'builtin' ? (
-          <>
-            <Text style={styles.label}>Select Goal</Text>
-            <View style={styles.goalGrid}>
-              {goals.map((goal) => (
-                <TouchableOpacity
-                  key={goal.key}
-                  style={[styles.goalCard, selectedGoal === goal.key && styles.goalCardSelected]}
-                  onPress={() => {
-                    setSelectedGoal(goal.key);
-                    try { Haptics?.selectionAsync(); } catch {}
-                  }}
-                >
-                  <Ionicons
-                    name={goal.icon}
-                    size={28}
-                    color={selectedGoal === goal.key ? Colors.purple : Colors.textMuted}
-                  />
-                  <Text style={[styles.goalLabel, selectedGoal === goal.key && styles.goalLabelSelected]}>
-                    {goal.label}
-                  </Text>
-                  <Text style={styles.goalDesc}>{goal.desc}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+        {/* Start Session Button */}
+        <TouchableOpacity style={styles.startBtn} onPress={startSession} activeOpacity={0.8}>
+          <LinearGradient
+            colors={[Colors.accent, '#0b8a63']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.startGradient}
+          >
+            <Ionicons name="play" size={22} color={Colors.white} />
+            <Text style={styles.startText}>Start Session</Text>
+          </LinearGradient>
+        </TouchableOpacity>
 
-            <Text style={styles.label}>Duration</Text>
-            <View style={styles.durationRow}>
-              {durations.map((d) => (
-                <TouchableOpacity
-                  key={d}
-                  style={[styles.durationChip, selectedDuration === d && styles.durationChipSelected]}
-                  onPress={() => {
-                    setSelectedDuration(d);
-                    try { Haptics?.selectionAsync(); } catch {}
-                  }}
-                >
-                  <Text style={[styles.durationText, selectedDuration === d && styles.durationTextSelected]}>
-                    {d} min
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity style={styles.startButton} onPress={startSession} activeOpacity={0.8}>
-              <Ionicons name="play" size={22} color={Colors.white} />
-              <Text style={styles.startText}>Begin Session</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <GlassCard style={styles.musicPlaceholder}>
-            <Ionicons name="lock-closed-outline" size={36} color={Colors.purple} />
-            <Text style={styles.musicTitle}>Pro Feature</Text>
-            <Text style={styles.musicDesc}>
-              Play your own music from YouTube, device library, or Spotify while tracking HRV response in real-time.
-            </Text>
-            <TouchableOpacity style={styles.upgradeBtn} onPress={() => router.push('/upgrade' as any)}>
-              <Text style={styles.upgradeBtnText}>Upgrade to Pro</Text>
-            </TouchableOpacity>
-          </GlassCard>
-        )}
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -312,16 +554,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  setupContent: {
+  // Selection View
+  selectionContent: {
     padding: Spacing.lg,
   },
-  header: {
+  selectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.lg,
   },
-  title: {
+  selectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  selectionTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: FontSize.xxl,
     color: Colors.text,
@@ -334,94 +582,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabRow: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    padding: 3,
-    marginBottom: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.surfaceBorder,
-  },
-  tabBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: BorderRadius.full,
-    gap: 6,
-  },
-  tabBtnActive: {
-    backgroundColor: Colors.purple,
-  },
-  tabText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-  },
-  tabTextActive: {
-    color: Colors.white,
-  },
-  proBadge: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: BorderRadius.full,
-  },
-  proBadgeText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 9,
-    color: Colors.white,
-  },
-  label: {
+  sectionLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     marginBottom: Spacing.md,
   },
-  goalGrid: {
+  modeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
     marginBottom: Spacing.xl,
   },
-  goalCard: {
+  modeCard: {
     width: (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.sm) / 2,
-    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.surfaceBorder,
+  },
+  modeCardSelected: {
+    borderColor: 'rgba(108, 92, 231, 0.5)',
+  },
+  modeGradient: {
     padding: Spacing.md,
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    minHeight: 130,
+    justifyContent: 'center',
   },
-  goalCardSelected: {
-    borderColor: Colors.purple,
-    backgroundColor: Colors.purpleLight,
-  },
-  goalLabel: {
+  modeLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.md,
     color: Colors.textMuted,
   },
-  goalLabelSelected: {
-    color: Colors.purple,
+  modeLabelSelected: {
+    color: Colors.white,
   },
-  goalDesc: {
+  modeDesc: {
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.xs - 1,
     color: Colors.textDim,
     textAlign: 'center',
+    lineHeight: 15,
+  },
+  modeDescSelected: {
+    color: 'rgba(255,255,255,0.75)',
   },
   durationRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
     marginBottom: Spacing.xl,
   },
-  durationChip: {
+  durationPill: {
     flex: 1,
     paddingVertical: Spacing.sm + 2,
     borderRadius: BorderRadius.full,
@@ -430,9 +645,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.surfaceBorder,
     alignItems: 'center',
   },
-  durationChipSelected: {
-    borderColor: Colors.purple,
-    backgroundColor: Colors.purpleLight,
+  durationPillSelected: {
+    borderColor: Colors.accent,
+    backgroundColor: 'rgba(14, 168, 122, 0.15)',
   },
   durationText: {
     fontFamily: 'Inter_500Medium',
@@ -440,15 +655,99 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   durationTextSelected: {
+    color: Colors.accent,
+  },
+  // Music Section
+  musicSection: {
+    marginBottom: Spacing.xl,
+  },
+  musicHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  proBadge: {
+    backgroundColor: Colors.purpleLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(108, 92, 231, 0.3)',
+  },
+  proBadgeText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 9,
     color: Colors.purple,
   },
-  startButton: {
+  musicCard: {
+    gap: Spacing.sm,
+  },
+  youtubeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  youtubeInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  pasteBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.purpleLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(108, 92, 231, 0.2)',
+  },
+  musicBtnRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  musicOptionBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.purple,
-    paddingVertical: Spacing.md + 2,
+    gap: 6,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
+  musicOptionText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  musicNote: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+  // Start Button
+  startBtn: {
     borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+  },
+  startGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md + 4,
     gap: Spacing.sm,
   },
   startText: {
@@ -456,161 +755,251 @@ const styles = StyleSheet.create({
     fontSize: FontSize.lg,
     color: Colors.white,
   },
-  musicPlaceholder: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  musicTitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: FontSize.lg,
-    color: Colors.text,
-  },
-  musicDesc: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: Spacing.md,
-  },
-  upgradeBtn: {
-    backgroundColor: Colors.purple,
-    paddingVertical: Spacing.sm + 4,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    marginTop: Spacing.sm,
-  },
-  upgradeBtnText: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: FontSize.md,
-    color: Colors.white,
-  },
-  // Active session
+  // Active Session View
   activeContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.lg,
   },
-  activeGoal: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: FontSize.xl,
-    color: Colors.text,
-    marginTop: Spacing.xl,
+  closeBtnActive: {
+    position: 'absolute',
+    top: Spacing.md,
+    right: Spacing.lg,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
-  activeFreq: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: FontSize.sm,
-    color: Colors.purple,
-    marginTop: 2,
-    marginBottom: Spacing.xxl,
-  },
-  liveRmssd: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 72,
-    color: Colors.text,
-    letterSpacing: -2,
-  },
-  liveRmssdUnit: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: FontSize.md,
-    color: Colors.textMuted,
-    marginBottom: Spacing.xl,
-  },
-  waveform: {
+  stateBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 60,
-    gap: 3,
-    marginBottom: Spacing.xl,
+    gap: 6,
+    backgroundColor: 'rgba(14, 168, 122, 0.12)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.lg,
   },
-  waveBar: {
-    width: 4,
-    height: 60,
-    borderRadius: 2,
+  stateDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.accent,
   },
-  timer: {
+  stateText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.accent,
+  },
+  rmssdContainer: {
+    width: 160,
+    height: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
+  progressRing: {
+    position: 'absolute',
+  },
+  rmssdOverlay: {
+    alignItems: 'center',
+  },
+  rmssdBig: {
     fontFamily: 'Inter_700Bold',
-    fontSize: 48,
+    fontSize: 42,
     color: Colors.text,
     letterSpacing: -1,
-    marginBottom: Spacing.xl,
   },
-  pauseButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  rmssdLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  rmssdUnit: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.accent,
+  },
+  targetRow: {
+    alignItems: 'center',
+    gap: 2,
+    marginBottom: Spacing.sm,
+  },
+  targetLabel: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.purple,
+  },
+  freqText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  timerText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.xxl,
+    color: Colors.text,
+    letterSpacing: -1,
+    marginBottom: Spacing.sm,
+  },
+  sparklineContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  sparklineLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+    marginBottom: 4,
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    gap: Spacing.lg,
+  },
+  controlBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: Colors.purple,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Complete
-  completeContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.xl,
+  stopBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.8)',
   },
-  completeTitle: {
+  // Summary View
+  summaryContent: {
+    padding: Spacing.lg,
+    paddingTop: Spacing.xl,
+  },
+  summaryHeader: {
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+    marginTop: Spacing.xl,
+  },
+  summaryTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: FontSize.xxl,
     color: Colors.text,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.xl,
+    marginTop: Spacing.md,
   },
-  comparisonRow: {
+  summaryStats: {
+    marginBottom: Spacing.md,
+  },
+  statRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.lg,
+    justifyContent: 'center',
+    gap: Spacing.xl,
     marginBottom: Spacing.lg,
   },
-  comparisonItem: {
+  statItem: {
     alignItems: 'center',
   },
-  comparisonLabel: {
+  statLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    marginBottom: 4,
   },
-  comparisonValue: {
+  statValue: {
     fontFamily: 'Inter_700Bold',
     fontSize: 36,
     color: Colors.text,
   },
-  comparisonUnit: {
+  statUnit: {
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.xs,
     color: Colors.textDim,
   },
-  changeBadge: {
+  summaryMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: Spacing.md,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.surfaceBorder,
+  },
+  summaryMetaItem: {
+    alignItems: 'center',
+  },
+  summaryMetaLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginBottom: 2,
+  },
+  summaryMetaValue: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  comparisonCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.accentLight,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: BorderRadius.full,
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.md,
   },
-  changeText: {
+  comparisonText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    flex: 1,
+  },
+  feelingCard: {
+    marginBottom: Spacing.xl,
+  },
+  feelingTitle: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.md,
+    color: Colors.text,
+    marginBottom: Spacing.md,
+  },
+  feelingOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  feelingBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
+  feelingBtnSelected: {
+    borderColor: Colors.accent,
+    backgroundColor: 'rgba(14, 168, 122, 0.15)',
+  },
+  feelingBtnText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+  },
+  feelingBtnTextSelected: {
     color: Colors.accent,
   },
-  logSessionButton: {
-    backgroundColor: Colors.purple,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xxl,
+  saveCloseBtn: {
+    backgroundColor: Colors.accent,
+    paddingVertical: Spacing.md + 2,
     borderRadius: BorderRadius.lg,
-    width: '100%',
     alignItems: 'center',
   },
-  logSessionText: {
+  saveCloseText: {
     fontFamily: 'Inter_700Bold',
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     color: Colors.white,
   },
 });

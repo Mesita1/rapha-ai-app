@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -26,6 +26,7 @@ import {
   autonomicTimeline,
   bodyBattery,
   trendArrows,
+  mockAthleteInsights,
 } from '../../constants/mockData';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -43,6 +44,8 @@ const TREND_ARROW_MAP: Record<string, { symbol: string; color: string }> = {
 };
 
 export default function DashboardScreen() {
+  const [showRecommendation, setShowRecommendation] = useState(false);
+
   // Autonomic balance: count sympathetic vs parasympathetic hours for gauge position
   const symCount = autonomicTimeline.filter((s) => s.state === 'sympathetic').length;
   const paraCount = autonomicTimeline.filter((s) => s.state === 'parasympathetic').length;
@@ -93,6 +96,22 @@ export default function DashboardScreen() {
             </View>
           </LinearGradient>
         </View>
+
+        {/* Readiness Card */}
+        <GlassCard style={styles.readinessCard}>
+          <View style={styles.readinessRow}>
+            <View style={styles.readinessScoreContainer}>
+              <Text style={styles.readinessScore}>{mockAthleteInsights.preWorkout.readiness}</Text>
+            </View>
+            <View style={styles.readinessInfo}>
+              <Text style={styles.readinessLabel}>Readiness</Text>
+              <Text style={styles.readinessRec}>Green light for high intensity</Text>
+            </View>
+            <View style={styles.readinessIndicator}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.accent} />
+            </View>
+          </View>
+        </GlassCard>
 
         {/* Live HRV Card */}
         <GlassCard style={styles.hrvCard} glowColor={Colors.accent}>
@@ -284,10 +303,33 @@ export default function DashboardScreen() {
         </GlassCard>
 
         {/* "What Should I Do Right Now?" Button */}
-        <TouchableOpacity style={styles.whatNowButton} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.whatNowButton}
+          activeOpacity={0.8}
+          onPress={() => setShowRecommendation(!showRecommendation)}
+        >
           <Ionicons name="bulb-outline" size={22} color={Colors.white} />
           <Text style={styles.whatNowText}>What Should I Do Right Now?</Text>
         </TouchableOpacity>
+
+        {showRecommendation && (
+          <GlassCard style={styles.recommendationCard}>
+            <View style={styles.recommendationHeader}>
+              <Ionicons name="sparkles-outline" size={16} color={Colors.accent} />
+              <Text style={styles.recommendationLabel}>AI Recommendation</Text>
+            </View>
+            <Text style={styles.recommendationText}>
+              Your LF/HF ratio is elevated. A 5-min box breathing session would bring you back to baseline.
+            </Text>
+            <TouchableOpacity
+              style={styles.recommendationAction}
+              onPress={() => router.push('/session')}
+            >
+              <Ionicons name="play-circle" size={18} color={Colors.accent} />
+              <Text style={styles.recommendationActionText}>Start Now</Text>
+            </TouchableOpacity>
+          </GlassCard>
+        )}
 
         {/* "I'm Flaring" Button */}
         <TouchableOpacity
@@ -801,6 +843,86 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
     fontSize: FontSize.md,
     marginLeft: Spacing.md,
+  },
+  // Readiness
+  readinessCard: {
+    marginBottom: Spacing.sm + 4,
+  },
+  readinessRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  readinessScoreContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(14, 168, 122, 0.15)',
+    borderWidth: 2,
+    borderColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  readinessScore: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.xl,
+    color: Colors.accent,
+  },
+  readinessInfo: {
+    flex: 1,
+  },
+  readinessLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  readinessRec: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.accent,
+    marginTop: 2,
+  },
+  readinessIndicator: {
+    marginLeft: Spacing.sm,
+  },
+  // Recommendation
+  recommendationCard: {
+    marginBottom: Spacing.sm + 4,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 168, 122, 0.2)',
+  },
+  recommendationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: Spacing.sm,
+  },
+  recommendationLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.accent,
+  },
+  recommendationText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    lineHeight: 22,
+    marginBottom: Spacing.md,
+  },
+  recommendationAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(14, 168, 122, 0.12)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  recommendationActionText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.accent,
   },
   // FAB
   fab: {

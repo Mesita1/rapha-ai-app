@@ -17,6 +17,8 @@ import {
   mockWeeklyReport,
   communityDiscoveries,
   interventionStacks,
+  mockPopularSupplements,
+  mockAthleteInsights,
 } from '../../constants/mockData';
 
 function InterventionBar({
@@ -102,8 +104,75 @@ function SleepBarChart({ data, labels }: { data: number[]; labels: string[] }) {
   );
 }
 
+function SupplementRow({
+  item,
+  onPress,
+  expanded,
+}: {
+  item: typeof mockPopularSupplements[0];
+  onPress: () => void;
+  expanded: boolean;
+}) {
+  const isPositive = item.avgDelta >= 0;
+  const sleepPositive = item.sleepImpact >= 0;
+  const recoveryPositive = item.recoveryImpact >= 0;
+  const categoryColors: Record<string, string> = {
+    supplement: Colors.purple,
+    therapy: Colors.accent,
+    activity: '#f59e0b',
+  };
+  const catColor = categoryColors[item.category] || Colors.textMuted;
+
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.suppRow}>
+        <View style={styles.suppLeft}>
+          <View style={styles.suppNameRow}>
+            <Text style={styles.suppName}>{item.name}</Text>
+            <View style={[styles.suppCatBadge, { backgroundColor: `${catColor}20`, borderColor: `${catColor}40` }]}>
+              <Text style={[styles.suppCatText, { color: catColor }]}>{item.category}</Text>
+            </View>
+          </View>
+          <View style={styles.suppMetrics}>
+            <Text style={[styles.suppDelta, { color: isPositive ? Colors.accent : Colors.negative }]}>
+              {isPositive ? '+' : ''}{item.avgDelta}ms
+            </Text>
+            <View style={styles.suppImpactItem}>
+              <Ionicons name="moon-outline" size={11} color={sleepPositive ? Colors.accent : Colors.negative} />
+              <Text style={[styles.suppImpactText, { color: sleepPositive ? Colors.accent : Colors.negative }]}>
+                {sleepPositive ? '+' : ''}{item.sleepImpact}
+              </Text>
+            </View>
+            <View style={styles.suppImpactItem}>
+              <Ionicons name="fitness-outline" size={11} color={recoveryPositive ? Colors.accent : Colors.negative} />
+              <Text style={[styles.suppImpactText, { color: recoveryPositive ? Colors.accent : Colors.negative }]}>
+                {recoveryPositive ? '+' : ''}{item.recoveryImpact}
+              </Text>
+            </View>
+            <Text style={styles.suppUsers}>{item.users} users</Text>
+          </View>
+        </View>
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.textDim} />
+      </View>
+      {expanded && (
+        <View style={styles.suppInsight}>
+          <Text style={styles.suppInsightText}>{item.insight}</Text>
+          <View style={styles.suppTags}>
+            {item.tags.map((tag) => (
+              <View key={tag} style={styles.suppTag}>
+                <Text style={styles.suppTagText}>{tag}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
 export default function InsightsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState('This Week');
+  const [expandedSupplement, setExpandedSupplement] = useState<string | null>(null);
   const maxDelta = Math.max(...mockTopInterventions.map((i) => Math.abs(i.avgDelta)));
   const topStack = interventionStacks[0];
 
@@ -139,6 +208,68 @@ export default function InsightsScreen() {
                 maxDelta={maxDelta}
               />
             ))}
+          </GlassCard>
+        </View>
+
+        {/* Community Protocols Section */}
+        <View style={styles.protocolsSection}>
+          <View style={styles.protocolsHeaderRow}>
+            <Ionicons name="flask-outline" size={16} color={Colors.accent} />
+            <Text style={styles.protocolsHeaderText}>Community Protocols</Text>
+            <View style={styles.communityBadge}>
+              <Text style={styles.communityBadgeText}>{mockPopularSupplements.reduce((a, b) => a + b.users, 0).toLocaleString()}+ users</Text>
+            </View>
+          </View>
+
+          <GlassCard style={styles.protocolsCard}>
+            <View style={styles.protocolsLegend}>
+              <View style={styles.protocolsLegendItem}>
+                <Ionicons name="trending-up-outline" size={11} color={Colors.textMuted} />
+                <Text style={styles.protocolsLegendText}>HRV</Text>
+              </View>
+              <View style={styles.protocolsLegendItem}>
+                <Ionicons name="moon-outline" size={11} color={Colors.textMuted} />
+                <Text style={styles.protocolsLegendText}>Sleep</Text>
+              </View>
+              <View style={styles.protocolsLegendItem}>
+                <Ionicons name="fitness-outline" size={11} color={Colors.textMuted} />
+                <Text style={styles.protocolsLegendText}>Recovery</Text>
+              </View>
+            </View>
+            {mockPopularSupplements.map((item) => (
+              <SupplementRow
+                key={item.name}
+                item={item}
+                expanded={expandedSupplement === item.name}
+                onPress={() => setExpandedSupplement(expandedSupplement === item.name ? null : item.name)}
+              />
+            ))}
+          </GlassCard>
+        </View>
+
+        {/* Stack Analysis */}
+        <View style={styles.stackAnalysisSection}>
+          <View style={styles.protocolsHeaderRow}>
+            <Ionicons name="git-merge-outline" size={16} color={Colors.purple} />
+            <Text style={styles.stackAnalysisHeader}>Stack Analysis</Text>
+          </View>
+
+          <GlassCard style={styles.stackAnalysisCard}>
+            <Text style={styles.stackAnalysisSubtitle}>Top synergistic combinations</Text>
+            {mockAthleteInsights.stackAnalysis.map((stack) => {
+              const isPositive = stack.netDelta >= 0;
+              return (
+                <View key={stack.stack} style={styles.stackAnalysisRow}>
+                  <View style={styles.stackAnalysisInfo}>
+                    <Text style={styles.stackAnalysisName}>{stack.stack}</Text>
+                    <Text style={styles.stackAnalysisNote}>{stack.note}</Text>
+                  </View>
+                  <Text style={[styles.stackAnalysisDelta, { color: isPositive ? Colors.accent : Colors.negative }]}>
+                    {isPositive ? '+' : ''}{stack.netDelta}ms
+                  </Text>
+                </View>
+              );
+            })}
           </GlassCard>
         </View>
 
@@ -673,5 +804,173 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.sm,
     color: Colors.textMuted,
+  },
+  // Community Protocols
+  protocolsSection: {
+    marginBottom: Spacing.md,
+  },
+  protocolsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+  },
+  protocolsHeaderText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    flex: 1,
+  },
+  protocolsCard: {
+    paddingBottom: Spacing.xs,
+  },
+  protocolsLegend: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.surfaceBorder,
+  },
+  protocolsLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  protocolsLegendText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs - 1,
+    color: Colors.textDim,
+  },
+  suppRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm + 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.surfaceBorder,
+  },
+  suppLeft: {
+    flex: 1,
+  },
+  suppNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: 4,
+  },
+  suppName: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  suppCatBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  suppCatText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs - 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  suppMetrics: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  suppDelta: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.sm,
+    minWidth: 50,
+  },
+  suppImpactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  suppImpactText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+  },
+  suppUsers: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+  },
+  suppInsight: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.sm + 2,
+    marginBottom: Spacing.sm,
+  },
+  suppInsightText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    lineHeight: 20,
+    marginBottom: Spacing.sm,
+  },
+  suppTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  suppTag: {
+    backgroundColor: 'rgba(14, 168, 122, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  suppTagText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs - 1,
+    color: Colors.accent,
+  },
+  // Stack Analysis
+  stackAnalysisSection: {
+    marginBottom: Spacing.md,
+  },
+  stackAnalysisHeader: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    flex: 1,
+  },
+  stackAnalysisCard: {},
+  stackAnalysisSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
+  },
+  stackAnalysisRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm + 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.surfaceBorder,
+  },
+  stackAnalysisInfo: {
+    flex: 1,
+  },
+  stackAnalysisName: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  stackAnalysisNote: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  stackAnalysisDelta: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.md,
+    marginLeft: Spacing.md,
   },
 });

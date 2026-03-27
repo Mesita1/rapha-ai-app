@@ -343,3 +343,30 @@ export const reasonOptions = [
   { key: 'practitioner', label: 'Practitioner Recommended', icon: 'person-outline' as const },
   { key: 'wellness', label: 'General Wellness', icon: 'leaf-outline' as const },
 ];
+
+// --- ATHLETE & BIOHACKER EXPANSION ---
+
+export const mockPopularSupplements = [
+  { name: 'Creatine 5g', category: 'supplement' as const, avgDelta: +4.2, sleepImpact: -3.1, recoveryImpact: +8, observations: 312, users: 89, tags: ['strength', 'recovery'], insight: 'Boosts daytime HRV +4.2ms but reduces overnight RMSSD by 3.1ms. Best taken morning, not evening.' },
+  { name: 'Ashwagandha KSM-66', category: 'supplement' as const, avgDelta: +11.3, sleepImpact: +6.8, recoveryImpact: +15, observations: 478, users: 134, tags: ['stress', 'sleep', 'recovery'], insight: 'Consistent parasympathetic boost. 134 users avg +11.3ms. Evening dose improves sleep score by 12%.' },
+  { name: 'Tongkat Ali 400mg', category: 'supplement' as const, avgDelta: +2.1, sleepImpact: -1.4, recoveryImpact: +5, observations: 156, users: 47, tags: ['hormones', 'performance'], insight: 'Mild HRV benefit. Some users report disrupted sleep at higher doses.' },
+  { name: 'L-Theanine 200mg', category: 'supplement' as const, avgDelta: +6.1, sleepImpact: +4.2, recoveryImpact: +9, observations: 523, users: 156, tags: ['focus', 'calm', 'sleep'], insight: 'One of the most reliable HRV boosters. Stacks well with caffeine — offsets the HRV dip.' },
+  { name: 'Caffeine 200mg', category: 'supplement' as const, avgDelta: -7.8, sleepImpact: -12.3, recoveryImpact: -18, observations: 891, users: 267, tags: ['energy', 'focus'], insight: 'Strong sympathetic activator. HRV drops avg 7.8ms. After 2pm, sleep score drops 18%.' },
+  { name: 'Cold Plunge 2-3min', category: 'therapy' as const, avgDelta: +15.2, sleepImpact: +3.4, recoveryImpact: +22, observations: 634, users: 189, tags: ['recovery', 'hormesis'], insight: 'Strongest acute HRV booster. 189 users avg +15.2ms. Morning cold > evening cold for sleep.' },
+  { name: 'Sauna 15-20min', category: 'therapy' as const, avgDelta: +8.9, sleepImpact: +7.1, recoveryImpact: +14, observations: 298, users: 87, tags: ['recovery', 'sleep'], insight: 'Best 2-3 hours before bed. Evening sauna + cold plunge = +24ms combo.' },
+  { name: 'Zone 2 Cardio 30min', category: 'activity' as const, avgDelta: +9.7, sleepImpact: +5.3, recoveryImpact: +16, observations: 445, users: 132, tags: ['cardio', 'endurance'], insight: 'Best HRV ROI for exercise. Keep HR under 65% max for parasympathetic benefit.' },
+  { name: 'Heavy Lifting', category: 'activity' as const, avgDelta: -4.3, sleepImpact: -2.1, recoveryImpact: -8, observations: 367, users: 109, tags: ['strength'], insight: 'Acute HRV dip normal. Recovery within 4-6 hours. Avoid training when recovery score < 50%.' },
+  { name: 'Breathwork (Wim Hof)', category: 'therapy' as const, avgDelta: +12.4, sleepImpact: +2.8, recoveryImpact: +11, observations: 234, users: 71, tags: ['breathing', 'hormesis'], insight: 'Powerful sympathetic-then-parasympathetic shift. 3 rounds optimal. More rounds = diminishing returns.' },
+];
+
+export const mockAthleteInsights = {
+  preWorkout: { readiness: 87, recommendation: 'Green light for high intensity. Recovery score strong, HRV 14% above baseline.' },
+  postWorkout: { recoveryEta: '4-6 hours', suggestion: 'Cold plunge within 30min will accelerate recovery by ~40%.' },
+  sleepOptimization: { score: 82, insight: 'Your creatine timing is hurting sleep. Moving dose from 8pm to 7am could improve sleep score by 15%.' },
+  stackAnalysis: [
+    { stack: 'Creatine + L-Theanine', netDelta: +8.1, note: 'L-Theanine offsets creatine sleep disruption' },
+    { stack: 'Cold Plunge + Sauna', netDelta: +24.1, note: 'Most powerful recovery combo across 87 users' },
+    { stack: 'Caffeine + L-Theanine', netDelta: -1.7, note: 'L-Theanine reduces caffeine HRV hit by 78%' },
+    { stack: 'Ashwagandha + Magnesium', netDelta: +22.4, note: 'Evening stack: sleep score improves 19%' },
+  ],
+};

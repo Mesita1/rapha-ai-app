@@ -21,10 +21,11 @@ import { getVerseOfTheDay, getVerseForState, scriptureVerses, ScriptureVerse } f
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-type SessionType = 'breathing' | 'bilateral' | 'humming' | 'binaural' | 'custom';
+type SessionType = 'breathing' | 'bilateral' | 'humming' | 'binaural' | 'custom' | 'exercise';
 type BreathingMode = 'box' | 'resonance' | '478' | 'custom';
 type BilateralMode = 'butterfly' | 'tapping' | 'visual-tracking';
 type HummingMode = 'om' | 'bhramari' | 'gargling' | 'bowl';
+type ExerciseMode = 'zone2-walk' | 'yoga' | 'tai-chi' | 'cold-exposure' | 'mobility' | 'interval-walking';
 
 interface ActiveSession {
   type: SessionType;
@@ -75,6 +76,14 @@ const SESSION_TYPES = [
     gradientColors: ['rgba(142,142,147,0.3)', 'rgba(142,142,147,0.05)'] as [string, string],
     borderColor: '#8e8e93',
   },
+  {
+    key: 'exercise' as SessionType,
+    title: 'HRV Exercise',
+    subtitle: 'Movement protocols proven to boost HRV',
+    icon: 'bicycle-outline' as const,
+    gradientColors: ['rgba(0,214,143,0.3)', 'rgba(0,214,143,0.05)'] as [string, string],
+    borderColor: '#00d68f',
+  },
 ];
 
 const BREATHING_MODES = [
@@ -95,6 +104,15 @@ const HUMMING_MODES = [
   { key: 'bhramari' as HummingMode, label: 'Bee Breath (Bhramari)', desc: 'Bhramari pranayama', howItWorks: 'Cover ears with thumbs, close eyes. Inhale deeply, then exhale while making a buzzing/humming sound like a bee. The vibration + ear coverage amplifies vagal stimulation.' },
   { key: 'gargling' as HummingMode, label: 'Gargling', desc: 'Vagal nerve activation', howItWorks: 'Gargle water vigorously for 30-60 seconds. This activates the muscles at the back of the throat connected to the vagus nerve. Simple but effective.' },
   { key: 'bowl' as HummingMode, label: 'Singing Bowl', desc: 'Play tone, hum along', howItWorks: 'Listen to the tone and hum along at the same pitch. Matching the frequency creates resonance in your chest cavity that stimulates vagal tone.' },
+];
+
+const EXERCISE_MODES: { key: ExerciseMode; label: string; desc: string; icon: string; howItWorks: string; durations: number[]; hrTarget?: string }[] = [
+  { key: 'zone2-walk', label: 'Zone 2 Walk', desc: 'Low-intensity aerobic walk', icon: 'leaf-outline', howItWorks: 'Walk at a comfortable pace where you can hold a conversation. Keep HR under 65% of max. The #1 exercise for HRV improvement — parasympathetic boost during and after.', durations: [900, 1200, 1800, 2700, 3600], hrTarget: 'Keep HR under 120 bpm' },
+  { key: 'yoga', label: 'Yoga / Gentle Flow', desc: 'Breath-coordinated movement', icon: 'body-outline', howItWorks: 'Slow, deliberate movement with breath coordination. Proven to increase vagal tone by 22% over 8 weeks in clinical studies. Focus on forward folds and inversions.', durations: [600, 900, 1200, 1800] },
+  { key: 'tai-chi', label: 'Tai Chi / Qigong', desc: 'Flowing movement + deep breath', icon: 'hand-left-outline', howItWorks: 'Slow, flowing movements with deep breathing. Meta-analysis of 26 studies showed significant HRV improvement. Especially effective for autonomic balance.', durations: [600, 900, 1200, 1800] },
+  { key: 'cold-exposure', label: 'Cold Exposure', desc: 'Dive reflex vagal activation', icon: 'snow-outline', howItWorks: 'Cold shower, plunge, or face immersion. Activates the dive reflex — one of the most powerful acute vagal stimulators. Start with 30 seconds, build to 2-3 minutes.', durations: [60, 120, 180, 300], hrTarget: 'Any pace' },
+  { key: 'mobility', label: 'Mobility / Stretching', desc: 'Reduce sympathetic tension', icon: 'resize-outline', howItWorks: 'Gentle stretching and foam rolling. Reduces muscle tension signaling to the brain, lowering sympathetic tone. Focus on hip flexors, thoracic spine, and neck.', durations: [300, 600, 900, 1200] },
+  { key: 'interval-walking', label: 'Interval Walking', desc: '3 min brisk / 3 min slow', icon: 'walk-outline', howItWorks: 'Alternate 3 minutes brisk walking with 3 minutes slow walking. Norwegian study showed this improved HRV more than continuous moderate walking in older adults.', durations: [900, 1200, 1800] },
 ];
 
 function BreathingCircle({ phase, progress }: { phase: string; progress: number }) {
@@ -227,6 +245,17 @@ export default function TrainScreen() {
   const [customMarkedEvents, setCustomMarkedEvents] = useState<{ time: number; note: string }[]>([]);
   const customIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // HRV Exercise state
+  const [showExerciseSetup, setShowExerciseSetup] = useState(false);
+  const [selectedExerciseMode, setSelectedExerciseMode] = useState<ExerciseMode>('zone2-walk');
+  const [exerciseDuration, setExerciseDuration] = useState(1800);
+  const [exerciseSessionActive, setExerciseSessionActive] = useState(false);
+  const [exerciseElapsed, setExerciseElapsed] = useState(0);
+  const [exerciseRmssd, setExerciseRmssd] = useState(mockCurrentHRV.rmssd);
+  const [exerciseStartRmssd, setExerciseStartRmssd] = useState(mockCurrentHRV.rmssd);
+  const [exerciseSessionComplete, setExerciseSessionComplete] = useState(false);
+  const exerciseIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const breathAnimRef = useRef(new Animated.Value(0.7)).current;
 
   useEffect(() => {
@@ -352,6 +381,47 @@ export default function TrainScreen() {
   const markCustomEvent = () => {
     const note = `Event at ${formatTime(customElapsed)}`;
     setCustomMarkedEvents((prev) => [...prev, { time: customElapsed, note }]);
+  };
+
+  // HRV Exercise session timer
+  useEffect(() => {
+    if (exerciseSessionActive) {
+      exerciseIntervalRef.current = setInterval(() => {
+        setExerciseElapsed((prev) => {
+          if (prev + 1 >= exerciseDuration) {
+            stopExerciseSession();
+            return prev;
+          }
+          return prev + 1;
+        });
+        setExerciseRmssd((prev) => prev + (Math.random() * 0.5 - 0.05));
+      }, 1000);
+    }
+    return () => {
+      if (exerciseIntervalRef.current) clearInterval(exerciseIntervalRef.current);
+    };
+  }, [exerciseSessionActive]);
+
+  const startExerciseSession = () => {
+    setExerciseStartRmssd(mockCurrentHRV.rmssd);
+    setExerciseRmssd(mockCurrentHRV.rmssd);
+    setExerciseElapsed(0);
+    setExerciseSessionActive(true);
+    setExerciseSessionComplete(false);
+  };
+
+  const stopExerciseSession = () => {
+    if (exerciseIntervalRef.current) clearInterval(exerciseIntervalRef.current);
+    setExerciseSessionActive(false);
+    setExerciseSessionComplete(true);
+  };
+
+  const resetExerciseSession = () => {
+    setShowExerciseSetup(false);
+    setExerciseSessionActive(false);
+    setExerciseSessionComplete(false);
+    setExerciseElapsed(0);
+    setSelectedExerciseMode('zone2-walk');
   };
 
   const CUSTOM_CATEGORIES = ['Frequency Device', 'Neurostimulator', 'Light Therapy', 'Sound Therapy', 'Neurofeedback', 'PEMF', 'Other'];
@@ -571,6 +641,8 @@ export default function TrainScreen() {
                   router.push('/session');
                 } else if (type.key === 'custom') {
                   setShowCustomSetup(true);
+                } else if (type.key === 'exercise') {
+                  setShowExerciseSetup(true);
                 } else {
                   setSelectedType(type.key);
                 }
@@ -897,6 +969,189 @@ export default function TrainScreen() {
                   </TouchableOpacity>
                 </View>
               )}
+            </GlassCard>
+          </ScrollView>
+        </View>
+      )}
+
+      {/* HRV Exercise Overlay */}
+      {showExerciseSetup && (
+        <View style={styles.modeOverlay}>
+          <ScrollView contentContainerStyle={styles.scriptureOverlayScroll}>
+            <GlassCard style={styles.scriptureModal}>
+              {/* Header */}
+              <View style={styles.modeHeader}>
+                <Ionicons name="bicycle-outline" size={20} color="#00d68f" />
+                <Text style={styles.modeTitle}>HRV Exercise</Text>
+                <TouchableOpacity onPress={resetExerciseSession} style={styles.modeClose}>
+                  <Ionicons name="close" size={20} color={Colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              {!exerciseSessionActive && !exerciseSessionComplete && (
+                <>
+                  <Text style={styles.modeHowItWorks}>
+                    Evidence-based movement protocols proven to boost HRV. Select an exercise, set your duration, and track your real-time HRV response.
+                  </Text>
+
+                  <Text style={[styles.modeSubtitle, { marginTop: Spacing.md }]}>Select Protocol</Text>
+                  {EXERCISE_MODES.map((mode) => (
+                    <TouchableOpacity
+                      key={mode.key}
+                      style={[
+                        styles.modeOption,
+                        selectedExerciseMode === mode.key && { borderColor: '#00d68f', backgroundColor: 'rgba(0,214,143,0.08)' },
+                      ]}
+                      onPress={() => {
+                        setSelectedExerciseMode(mode.key);
+                        setExerciseDuration(mode.durations[Math.floor(mode.durations.length / 2)]);
+                      }}
+                    >
+                      <View style={styles.exerciseModeHeader}>
+                        <Ionicons name={mode.icon as any} size={18} color={selectedExerciseMode === mode.key ? '#00d68f' : Colors.textMuted} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.modeOptionLabel}>{mode.label}</Text>
+                          <Text style={styles.modeOptionDesc}>{mode.desc}</Text>
+                        </View>
+                      </View>
+                      {selectedExerciseMode === mode.key && (
+                        <Text style={styles.modeHowItWorks}>{mode.howItWorks}</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+
+                  {/* Duration */}
+                  <Text style={styles.durationLabel}>Duration</Text>
+                  <View style={styles.durationRow}>
+                    {(EXERCISE_MODES.find(m => m.key === selectedExerciseMode)?.durations || []).map((d) => (
+                      <TouchableOpacity
+                        key={d}
+                        style={[styles.durationPill, exerciseDuration === d && { backgroundColor: '#00d68f' }]}
+                        onPress={() => setExerciseDuration(d)}
+                      >
+                        <Text style={[styles.durationPillText, exerciseDuration === d && { color: Colors.white }]}>
+                          {d >= 60 ? `${d / 60}m` : `${d}s`}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* Start Button */}
+                  <TouchableOpacity
+                    style={[styles.startButton, { backgroundColor: '#00d68f' }]}
+                    onPress={startExerciseSession}
+                  >
+                    <Ionicons name="play" size={18} color={Colors.white} />
+                    <Text style={styles.startButtonText}>Start Session</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {/* Active Exercise Session */}
+              {exerciseSessionActive && (() => {
+                const currentMode = EXERCISE_MODES.find(m => m.key === selectedExerciseMode);
+                return (
+                  <View style={styles.scriptureActiveSession}>
+                    <Ionicons name={currentMode?.icon as any || 'fitness-outline'} size={32} color="#00d68f" />
+                    <Text style={styles.customDeviceTitle}>{currentMode?.label}</Text>
+
+                    {/* Large RMSSD */}
+                    <View style={styles.customRmssdContainer}>
+                      <Text style={styles.customRmssdValue}>{exerciseRmssd.toFixed(1)}</Text>
+                      <Text style={styles.customRmssdUnit}>ms RMSSD</Text>
+                      <Text style={[styles.exerciseTrend, { color: (exerciseRmssd - exerciseStartRmssd) >= 0 ? '#00d68f' : '#ef4444' }]}>
+                        {(exerciseRmssd - exerciseStartRmssd) >= 0 ? '↑' : '↓'} {Math.abs(exerciseRmssd - exerciseStartRmssd).toFixed(1)} ms
+                      </Text>
+                    </View>
+
+                    {/* Timer */}
+                    <Text style={styles.customTimerText}>{formatTime(exerciseDuration - exerciseElapsed)} remaining</Text>
+
+                    {/* HR Target Zone */}
+                    {currentMode?.hrTarget && (
+                      <View style={styles.exerciseHrTarget}>
+                        <Ionicons name="heart-outline" size={14} color="#00d68f" />
+                        <Text style={styles.exerciseHrTargetText}>{currentMode.hrTarget}</Text>
+                      </View>
+                    )}
+
+                    {/* Stats */}
+                    <View style={[styles.scriptureActiveStats, { marginTop: Spacing.md }]}>
+                      <View style={styles.activeStat}>
+                        <Text style={styles.activeStatLabel}>Change</Text>
+                        <Text style={[styles.activeStatValue, { color: '#00d68f' }]}>
+                          {(exerciseRmssd - exerciseStartRmssd) >= 0 ? '+' : ''}{(exerciseRmssd - exerciseStartRmssd).toFixed(1)} ms
+                        </Text>
+                      </View>
+                      <View style={styles.activeStat}>
+                        <Text style={styles.activeStatLabel}>Elapsed</Text>
+                        <Text style={styles.activeStatValue}>{formatTime(exerciseElapsed)}</Text>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity style={styles.stopButton} onPress={stopExerciseSession}>
+                      <Ionicons name="stop-circle" size={18} color="#ef4444" />
+                      <Text style={styles.stopButtonText}>Stop</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()}
+
+              {/* Post-Session Summary */}
+              {exerciseSessionComplete && (() => {
+                const currentMode = EXERCISE_MODES.find(m => m.key === selectedExerciseMode);
+                const delta = exerciseRmssd - exerciseStartRmssd;
+                return (
+                  <View style={styles.scripturePostSession}>
+                    <Ionicons name="checkmark-circle" size={48} color="#00d68f" />
+                    <Text style={styles.scripturePostTitle}>Session Complete</Text>
+                    <Text style={styles.exercisePostModeName}>{currentMode?.label}</Text>
+
+                    <View style={styles.scripturePostStats}>
+                      <View style={styles.scripturePostStatItem}>
+                        <Text style={styles.scripturePostStatLabel}>Before</Text>
+                        <Text style={styles.scripturePostStatValue}>{exerciseStartRmssd.toFixed(1)} ms</Text>
+                      </View>
+                      <View style={styles.scripturePostStatItem}>
+                        <Text style={styles.scripturePostStatLabel}>After</Text>
+                        <Text style={styles.scripturePostStatValue}>{exerciseRmssd.toFixed(1)} ms</Text>
+                      </View>
+                      <View style={styles.scripturePostStatItem}>
+                        <Text style={styles.scripturePostStatLabel}>Delta</Text>
+                        <Text style={[styles.scripturePostStatValue, { color: '#00d68f' }]}>
+                          {delta >= 0 ? '+' : ''}{delta.toFixed(1)} ms
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.scripturePostStats}>
+                      <View style={styles.scripturePostStatItem}>
+                        <Text style={styles.scripturePostStatLabel}>Duration</Text>
+                        <Text style={styles.scripturePostStatValue}>{formatTime(exerciseElapsed)}</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.scripturePostInsight}>
+                      {currentMode?.label} is your 2nd best HRV exercise, averaging +7.2ms across 8 sessions.
+                    </Text>
+
+                    <TouchableOpacity
+                      style={[styles.startButton, { backgroundColor: '#00d68f', marginTop: Spacing.sm }]}
+                      onPress={resetExerciseSession}
+                    >
+                      <Ionicons name="save-outline" size={18} color={Colors.white} />
+                      <Text style={styles.startButtonText}>Save</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.stopButton, { marginTop: Spacing.sm }]}
+                      onPress={resetExerciseSession}
+                    >
+                      <Text style={styles.stopButtonText}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()}
             </GlassCard>
           </ScrollView>
         </View>
@@ -1822,6 +2077,40 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: 'center',
     lineHeight: 20,
+    marginBottom: Spacing.lg,
+  },
+  // HRV Exercise Styles
+  exerciseModeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  exerciseTrend: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    marginTop: 4,
+  },
+  exerciseHrTarget: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: 'rgba(0,214,143,0.1)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(0,214,143,0.25)',
+    marginTop: Spacing.sm,
+  },
+  exerciseHrTargetText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: '#00d68f',
+  },
+  exercisePostModeName: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: '#00d68f',
     marginBottom: Spacing.lg,
   },
 });

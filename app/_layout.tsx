@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import {
   useFonts,
   Inter_400Regular,
@@ -9,18 +9,31 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
-import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '../context/AuthContext';
 import { Colors } from '../constants/theme';
 
-SplashScreen.preventAutoHideAsync();
+// Conditionally import native-only modules
+let SplashScreen: any = null;
+let GestureHandlerRootView: any = View;
+
+try {
+  SplashScreen = require('expo-splash-screen');
+  SplashScreen.preventAutoHideAsync().catch(() => {});
+} catch {
+  // Web or unavailable
+}
+
+try {
+  GestureHandlerRootView = require('react-native-gesture-handler').GestureHandlerRootView;
+} catch {
+  GestureHandlerRootView = View;
+}
 
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -28,12 +41,12 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
+    if ((fontsLoaded || fontError) && SplashScreen) {
+      SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 

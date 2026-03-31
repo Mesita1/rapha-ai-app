@@ -14,7 +14,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.raphaai.app"
+      "bundleIdentifier": "com.raphaai.app",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Rapha AI uses Bluetooth to connect to your heart rate monitor and HRV devices like Polar H10, WHOOP, and other wearables for real-time health tracking.",
+        "NSBluetoothPeripheralUsageDescription": "Rapha AI uses Bluetooth to connect to your heart rate monitor and HRV devices.",
+        "UIBackgroundModes": ["bluetooth-central"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +28,14 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.raphaai.app"
+      "package": "com.raphaai.app",
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -32,7 +44,19 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-asset"
-    ]
+      "expo-asset",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": true,
+          "modes": ["central"]
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
   }
 }

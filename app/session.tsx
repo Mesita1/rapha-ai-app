@@ -68,7 +68,7 @@ const modes = [
   },
 ];
 
-const durations = [5, 10, 15, 20, 30];
+const durations = [5, 10, 15, 20, 30, 0]; // 0 = custom
 
 function SineWaveViz({ progress }: { progress: number }) {
   const w = SCREEN_WIDTH - 64;
@@ -133,6 +133,8 @@ export default function SessionScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [feeling, setFeeling] = useState<string | null>(null);
+  const [showCustomDuration, setShowCustomDuration] = useState(false);
+  const [customDurationInput, setCustomDurationInput] = useState('');
 
   // Simulated HRV values during session
   const [currentRmssd, setCurrentRmssd] = useState(mockCurrentHRV.rmssd);
@@ -214,6 +216,9 @@ export default function SessionScreen() {
 
           <View style={styles.summaryHeader}>
             <Ionicons name="checkmark-circle" size={64} color={Colors.accent} />
+            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: Colors.accent, textAlign: 'center', marginTop: 8 }}>
+              {['Way to go!', 'Great job!', 'You showed up \u2014 that matters!', 'Your nervous system thanks you!', 'Keep it up!', 'Progress, not perfection!', "You're doing amazing!", 'Every session counts!'][Math.floor(Math.random() * 8)]}
+            </Text>
             <Text style={styles.summaryTitle}>Session Complete</Text>
           </View>
 
@@ -477,21 +482,45 @@ export default function SessionScreen() {
         {/* Duration Selector */}
         <Text style={styles.sectionLabel}>DURATION</Text>
         <View style={styles.durationRow}>
-          {durations.map((d) => (
+          {durations.filter(d => d > 0).map((d) => (
             <TouchableOpacity
               key={d}
-              style={[styles.durationPill, selectedDuration === d && styles.durationPillSelected]}
+              style={[styles.durationPill, selectedDuration === d && !showCustomDuration && styles.durationPillSelected]}
               onPress={() => {
                 setSelectedDuration(d);
+                setShowCustomDuration(false);
                 try { Haptics?.selectionAsync(); } catch {}
               }}
             >
-              <Text style={[styles.durationText, selectedDuration === d && styles.durationTextSelected]}>
+              <Text style={[styles.durationText, selectedDuration === d && !showCustomDuration && styles.durationTextSelected]}>
                 {d} min
               </Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={[styles.durationPill, showCustomDuration && styles.durationPillSelected]}
+            onPress={() => setShowCustomDuration(true)}
+          >
+            <Text style={[styles.durationText, showCustomDuration && styles.durationTextSelected]}>Custom</Text>
+          </TouchableOpacity>
         </View>
+        {showCustomDuration && (
+          <View style={{ backgroundColor: Colors.surface, borderRadius: 12, borderWidth: 1, borderColor: Colors.surfaceBorder, marginBottom: 16 }}>
+            <TextInput
+              style={{ paddingHorizontal: 16, paddingVertical: 10, fontFamily: 'Inter_400Regular', fontSize: 14, color: Colors.text }}
+              placeholder="Minutes (1-480)"
+              placeholderTextColor={Colors.textDim}
+              value={customDurationInput}
+              onChangeText={(text) => {
+                setCustomDurationInput(text);
+                const mins = parseInt(text);
+                if (mins >= 1 && mins <= 480) setSelectedDuration(mins);
+              }}
+              keyboardType="numeric"
+              maxLength={3}
+            />
+          </View>
+        )}
 
         {/* Your Music Section */}
         <View style={styles.musicSection}>

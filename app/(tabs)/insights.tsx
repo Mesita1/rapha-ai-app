@@ -8,102 +8,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Rect } from 'react-native-svg';
 import GlassCard from '../../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 import {
-  mockTopInterventions,
-  mockSleepData,
-  mockWeeklyReport,
   communityDiscoveries,
   interventionStacks,
   mockPopularSupplements,
   mockAthleteInsights,
-  mockExerciseData,
 } from '../../constants/mockData';
-
-function InterventionBar({
-  name,
-  avgDelta,
-  observations,
-  confidence,
-  maxDelta,
-}: {
-  name: string;
-  avgDelta: number;
-  observations: number;
-  confidence: number;
-  maxDelta: number;
-}) {
-  const isPositive = avgDelta >= 0;
-  const barWidth = Math.abs(avgDelta) / maxDelta;
-  const barColor = isPositive ? Colors.accent : Colors.negative;
-  const icon = isPositive ? 'trending-up-outline' : 'trending-down-outline';
-
-  return (
-    <View style={styles.barContainer}>
-      <View style={styles.barHeader}>
-        <View style={styles.barNameRow}>
-          <Ionicons name={icon as any} size={14} color={barColor} />
-          <Text style={styles.barName}>{name}</Text>
-        </View>
-        <Text style={[styles.barDelta, { color: barColor }]}>
-          {isPositive ? '+' : ''}{avgDelta.toFixed(1)}ms
-        </Text>
-      </View>
-      <View style={styles.barTrack}>
-        <View
-          style={[
-            styles.barFill,
-            {
-              width: `${barWidth * 100}%`,
-              backgroundColor: barColor,
-            },
-          ]}
-        />
-      </View>
-      <View style={styles.barMeta}>
-        <Text style={styles.barMetaText}>{observations} observations</Text>
-        <Text style={styles.barMetaText}>{Math.round(confidence * 100)}% confidence</Text>
-      </View>
-    </View>
-  );
-}
-
-function SleepBarChart({ data, labels }: { data: number[]; labels: string[] }) {
-  const max = Math.max(...data);
-  const barWidth = 28;
-  const chartHeight = 80;
-  const gap = 8;
-
-  return (
-    <View style={styles.sleepChart}>
-      <Svg width={data.length * (barWidth + gap)} height={chartHeight + 20}>
-        {data.map((val, i) => {
-          const barH = (val / max) * chartHeight;
-          const isLast = i === data.length - 1;
-          return (
-            <React.Fragment key={i}>
-              <Rect
-                x={i * (barWidth + gap)}
-                y={chartHeight - barH}
-                width={barWidth}
-                height={barH}
-                rx={4}
-                fill={isLast ? Colors.purple : 'rgba(108, 92, 231, 0.25)'}
-              />
-            </React.Fragment>
-          );
-        })}
-      </Svg>
-      <View style={styles.sleepLabels}>
-        {labels.map((label, i) => (
-          <Text key={i} style={[styles.sleepLabel, { width: barWidth + gap }]}>{label}</Text>
-        ))}
-      </View>
-    </View>
-  );
-}
 
 function SupplementRow({
   item,
@@ -174,7 +86,6 @@ function SupplementRow({
 export default function InsightsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState('This Week');
   const [expandedSupplement, setExpandedSupplement] = useState<string | null>(null);
-  const maxDelta = Math.max(...mockTopInterventions.map((i) => Math.abs(i.avgDelta)));
   const topStack = interventionStacks[0];
 
   return (
@@ -199,16 +110,12 @@ export default function InsightsScreen() {
           </View>
 
           <GlassCard style={styles.interventionsCard}>
-            {mockTopInterventions.map((intervention) => (
-              <InterventionBar
-                key={intervention.name}
-                name={intervention.name}
-                avgDelta={intervention.avgDelta}
-                observations={intervention.observations}
-                confidence={intervention.confidence}
-                maxDelta={maxDelta}
-              />
-            ))}
+            <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
+              <Ionicons name="bar-chart-outline" size={28} color={Colors.textMuted} />
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 }}>
+                Start tracking interventions to see your patterns here
+              </Text>
+            </View>
           </GlassCard>
         </View>
 
@@ -219,104 +126,12 @@ export default function InsightsScreen() {
             <Text style={styles.exerciseHeaderText}>Exercise Impact</Text>
           </View>
 
-          {mockExerciseData.recentWorkouts.map((workout, i) => {
-            const hrvDrop = workout.hrvAfter - workout.hrvBefore;
-            const recoveryHours = workout.recovery === 'Immediate' ? 0 : parseFloat(workout.recovery);
-            const statusColor = workout.recovery === 'Immediate' ? Colors.accent
-              : recoveryHours <= 6 ? Colors.accent
-              : recoveryHours <= 12 ? '#f59e0b'
-              : Colors.negative;
-            const isPositive = hrvDrop >= 0;
-
-            return (
-              <GlassCard key={i} style={styles.exerciseCard}>
-                <View style={styles.exerciseTop}>
-                  <View style={styles.exerciseTypeRow}>
-                    <Text style={styles.exerciseType}>{workout.type}</Text>
-                    {'subtype' in workout && workout.subtype && (
-                      <Text style={styles.exerciseSubtype}>{workout.subtype}</Text>
-                    )}
-                  </View>
-                  <View style={[styles.exerciseStatusDot, { backgroundColor: statusColor }]} />
-                </View>
-
-                <View style={styles.exerciseMetrics}>
-                  <View style={styles.exerciseMetric}>
-                    <Text style={styles.exerciseMetricLabel}>HRV</Text>
-                    <View style={styles.exerciseHrvFlow}>
-                      <Text style={styles.exerciseHrvValue}>{workout.hrvBefore}</Text>
-                      <Text style={[styles.exerciseHrvArrow, { color: isPositive ? Colors.accent : Colors.negative }]}>
-                        {isPositive ? '\u2192' : '\u2192'}
-                      </Text>
-                      <Text style={[styles.exerciseHrvValue, { color: isPositive ? Colors.accent : Colors.negative }]}>
-                        {workout.hrvAfter}
-                      </Text>
-                      <Text style={[styles.exerciseHrvDelta, { color: isPositive ? Colors.accent : Colors.negative }]}>
-                        ({isPositive ? '+' : ''}{hrvDrop}ms)
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.exerciseMetric}>
-                    <Text style={styles.exerciseMetricLabel}>Recovery</Text>
-                    <Text style={[styles.exerciseRecovery, { color: statusColor }]}>{workout.recovery}</Text>
-                  </View>
-                </View>
-
-                {'distance' in workout && workout.distance && (
-                  <View style={styles.exerciseDetailRow}>
-                    <Text style={styles.exerciseDetail}>{workout.distance}</Text>
-                    <Text style={styles.exerciseDetailSep}>{'\u00B7'}</Text>
-                    <Text style={styles.exerciseDetail}>{workout.duration}</Text>
-                    <Text style={styles.exerciseDetailSep}>{'\u00B7'}</Text>
-                    <Text style={styles.exerciseDetail}>Avg {workout.avgHR} bpm</Text>
-                  </View>
-                )}
-                {'sets' in workout && (
-                  <View style={styles.exerciseDetailRow}>
-                    <Text style={styles.exerciseDetail}>{workout.sets} sets</Text>
-                    <Text style={styles.exerciseDetailSep}>{'\u00B7'}</Text>
-                    <Text style={styles.exerciseDetail}>{workout.volume}</Text>
-                    <Text style={styles.exerciseDetailSep}>{'\u00B7'}</Text>
-                    <Text style={styles.exerciseDetail}>{workout.duration}</Text>
-                  </View>
-                )}
-              </GlassCard>
-            );
-          })}
-
-          {/* Weekly Exercise Summary */}
-          <GlassCard style={styles.exerciseSummaryCard}>
-            <View style={styles.exerciseSummaryHeader}>
-              <Ionicons name="sparkles-outline" size={14} color={Colors.accent} />
-              <Text style={styles.exerciseSummaryTitle}>Weekly Summary</Text>
-            </View>
-            <View style={styles.exerciseSummaryGrid}>
-              <View style={styles.exerciseSummaryItem}>
-                <Text style={styles.exerciseSummaryValue}>{mockExerciseData.weeklyExerciseSummary.totalSessions}</Text>
-                <Text style={styles.exerciseSummaryLabel}>Sessions</Text>
-              </View>
-              <View style={styles.exerciseSummaryItem}>
-                <Text style={styles.exerciseSummaryValue}>{mockExerciseData.weeklyExerciseSummary.totalMinutes}</Text>
-                <Text style={styles.exerciseSummaryLabel}>Minutes</Text>
-              </View>
-              <View style={styles.exerciseSummaryItem}>
-                <Text style={styles.exerciseSummaryValue}>{mockExerciseData.weeklyExerciseSummary.avgRecoveryTime}</Text>
-                <Text style={styles.exerciseSummaryLabel}>Avg Recovery</Text>
-              </View>
-            </View>
-            <View style={styles.exerciseBestWorst}>
-              <View style={styles.exerciseBWItem}>
-                <Ionicons name="arrow-up-circle" size={14} color={Colors.accent} />
-                <Text style={styles.exerciseBWText}>{mockExerciseData.weeklyExerciseSummary.bestType}</Text>
-              </View>
-              <View style={styles.exerciseBWItem}>
-                <Ionicons name="arrow-down-circle" size={14} color={Colors.negative} />
-                <Text style={styles.exerciseBWText}>{mockExerciseData.weeklyExerciseSummary.worstType}</Text>
-              </View>
-            </View>
-            <View style={styles.exerciseAIRec}>
-              <Ionicons name="bulb-outline" size={14} color={Colors.accent} />
-              <Text style={styles.exerciseAIRecText}>{mockExerciseData.weeklyExerciseSummary.recommendation}</Text>
+          <GlassCard style={styles.exerciseCard}>
+            <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
+              <Ionicons name="barbell-outline" size={28} color={Colors.textMuted} />
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 }}>
+                Log workouts to see how exercise affects your HRV
+              </Text>
             </View>
           </GlassCard>
         </View>
@@ -469,22 +284,12 @@ export default function InsightsScreen() {
           </View>
 
           <GlassCard style={styles.sleepCard}>
-            <View style={styles.sleepTopRow}>
-              <View>
-                <Text style={styles.sleepSubLabel}>Last Night</Text>
-                <View style={styles.sleepValueRow}>
-                  <Text style={styles.sleepBigValue}>{mockSleepData.lastNightRmssd}</Text>
-                  <Text style={styles.sleepUnit}>ms avg</Text>
-                </View>
-              </View>
-              <View style={styles.scoreBox}>
-                <Text style={styles.scoreLabel}>Score</Text>
-                <Text style={styles.scoreValue}>{mockSleepData.sleepScore}</Text>
-              </View>
+            <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
+              <Ionicons name="moon-outline" size={28} color={Colors.textMuted} />
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 }}>
+                Connect a device to track sleep
+              </Text>
             </View>
-
-            <Text style={styles.trendLabel}>7-Day Trend</Text>
-            <SleepBarChart data={mockSleepData.weeklyTrend} labels={mockSleepData.weekLabels} />
           </GlassCard>
         </View>
 
@@ -492,14 +297,12 @@ export default function InsightsScreen() {
         <View style={styles.reportSection}>
           <Text style={styles.reportTitle}>Weekly Report</Text>
           <GlassCard style={styles.reportCard}>
-            <Text style={styles.reportNarrative}>{mockWeeklyReport.narrative}</Text>
-            {mockWeeklyReport.topHelpers.map((item, i) => (
-              <View key={i} style={styles.reportBullet}>
-                <Text style={styles.bulletDot}>{'\u2022'}</Text>
-                <Text style={styles.reportBulletText}>{item}</Text>
-              </View>
-            ))}
-            <Text style={styles.reportGenerated}>Generated {mockWeeklyReport.generatedDate}</Text>
+            <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
+              <Ionicons name="document-text-outline" size={28} color={Colors.textMuted} />
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 }}>
+                Your first weekly report will generate after 7 days of tracking
+              </Text>
+            </View>
           </GlassCard>
         </View>
 

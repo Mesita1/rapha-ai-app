@@ -50,23 +50,23 @@ const TREND_ARROW_MAP: Record<string, { symbol: string; color: string }> = {
 
 export default function DashboardScreen() {
   const [showRecommendation, setShowRecommendation] = useState(false);
-  const [showDemoData, setShowDemoData] = useState(true);
+  const [showDemoData, setShowDemoData] = useState(false);
   const verseOfTheDay = getVerseOfTheDay();
   const { isConnected, heartRate, rmssd, sdnn, rmssdHistory, connectedDevice } = useBLE();
 
   // Derive autonomic state from real or mock data
-  const liveRmssd = isConnected ? rmssd : mockCurrentHRV.rmssd;
-  const liveHR = isConnected ? heartRate : mockCurrentHRV.heartRate;
+  const liveRmssd = isConnected ? rmssd : null;
+  const liveHR = isConnected ? heartRate : null;
   const liveState = isConnected && rmssd > 0
     ? getAutonomicState(rmssd)
-    : mockCurrentHRV.autonomicState;
+    : null;
   const liveStateLabel = liveState === 'parasympathetic' ? 'Parasympathetic'
-    : liveState === 'sympathetic' ? 'Sympathetic' : 'Transitioning';
-  const sparkData = isConnected && rmssdHistory.length > 0 ? rmssdHistory : mockSparklineData;
+    : liveState === 'sympathetic' ? 'Sympathetic' : liveState ? 'Transitioning' : '--';
+  const sparkData = isConnected && rmssdHistory.length > 0 ? rmssdHistory : [];
 
   // Autonomic balance: count sympathetic vs parasympathetic hours for gauge position
-  const symCount = autonomicTimeline.filter((s) => s.state === 'sympathetic').length;
-  const paraCount = autonomicTimeline.filter((s) => s.state === 'parasympathetic').length;
+  const symCount = isConnected ? autonomicTimeline.filter((s) => s.state === 'sympathetic').length : 0;
+  const paraCount = isConnected ? autonomicTimeline.filter((s) => s.state === 'parasympathetic').length : 0;
   const totalBalance = symCount + paraCount;
   const gaugePosition = totalBalance > 0 ? paraCount / totalBalance : 0.5;
 
@@ -88,7 +88,14 @@ export default function DashboardScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>Hi, {mockUser.firstName}</Text>
+          <View>
+            <Text style={styles.greeting}>Hi, there</Text>
+            {!isConnected && (
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, marginTop: 2 }}>
+                Your healing journey begins here
+              </Text>
+            )}
+          </View>
           <TouchableOpacity
             style={styles.settingsButton}
             onPress={() => router.push('/(tabs)/settings')}
@@ -135,27 +142,44 @@ export default function DashboardScreen() {
         )}
 
         {/* Day-in-Review Card */}
-        {(isConnected || showDemoData) && (
-        <View style={styles.reviewWrapper}>
-          <LinearGradient
-            colors={['rgba(14,168,122,0.25)', 'rgba(108,92,231,0.25)', 'rgba(14,168,122,0.15)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.reviewGradientBorder}
-          >
-            <View style={styles.reviewInner}>
-              <View style={styles.reviewHeader}>
-                <Ionicons name="sparkles-outline" size={16} color={Colors.accent} />
-                <Text style={styles.reviewLabel}>Day in Review</Text>
+        {isConnected ? (
+          <View style={styles.reviewWrapper}>
+            <LinearGradient
+              colors={['rgba(14,168,122,0.25)', 'rgba(108,92,231,0.25)', 'rgba(14,168,122,0.15)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.reviewGradientBorder}
+            >
+              <View style={styles.reviewInner}>
+                <View style={styles.reviewHeader}>
+                  <Ionicons name="sparkles-outline" size={16} color={Colors.accent} />
+                  <Text style={styles.reviewLabel}>Day in Review</Text>
+                </View>
+                <Text style={styles.reviewText}>
+                  {`Live session in progress. Connected to ${connectedDevice?.name || 'device'}.`}
+                </Text>
               </View>
-              <Text style={styles.reviewText}>
-                {isConnected
-                  ? `Live session in progress. Connected to ${connectedDevice?.name || 'device'}.`
-                  : dayInReview}
-              </Text>
-            </View>
-          </LinearGradient>
-        </View>
+            </LinearGradient>
+          </View>
+        ) : (
+          <View style={styles.reviewWrapper}>
+            <LinearGradient
+              colors={['rgba(14,168,122,0.25)', 'rgba(108,92,231,0.25)', 'rgba(14,168,122,0.15)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.reviewGradientBorder}
+            >
+              <View style={styles.reviewInner}>
+                <View style={styles.reviewHeader}>
+                  <Ionicons name="sparkles-outline" size={16} color={Colors.accent} />
+                  <Text style={styles.reviewLabel}>Welcome to Rapha AI!</Text>
+                </View>
+                <Text style={styles.reviewText}>
+                  Connect a device or log your first intervention to get started. Your healing journey begins here.
+                </Text>
+              </View>
+            </LinearGradient>
+          </View>
         )}
 
         {/* Verse of the Day Card - always show */}
@@ -190,6 +214,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* Readiness Card */}
+        {isConnected && (
         <GlassCard style={styles.readinessCard}>
           <View style={styles.readinessRow}>
             <View style={styles.readinessScoreContainer}>
@@ -204,51 +229,64 @@ export default function DashboardScreen() {
             </View>
           </View>
         </GlassCard>
+        )}
 
         {/* Live HRV Card */}
-        {(isConnected || showDemoData) && (
         <GlassCard style={styles.hrvCard} glowColor={Colors.accent}>
           <View style={styles.hrvLabelRow}>
             <Ionicons name="heart" size={16} color={Colors.accent} />
-            <Text style={styles.liveHrvText}>{isConnected ? 'Live HRV' : 'HRV (Demo)'}</Text>
+            <Text style={styles.liveHrvText}>{isConnected ? 'Live HRV' : 'HRV'}</Text>
           </View>
-
           <View style={styles.hrvMain}>
-            <Text style={styles.hrvValue}>{isConnected ? (rmssd > 0 ? rmssd.toFixed(1) : '...') : mockCurrentHRV.rmssd}</Text>
+            <Text style={styles.hrvValue}>{isConnected && rmssd > 0 ? rmssd.toFixed(1) : '--'}</Text>
             <Text style={styles.hrvUnit}>ms</Text>
           </View>
-
           <View style={styles.hrvSecondary}>
-            <Text style={styles.bpmText}>{liveHR > 0 ? liveHR : '...'} bpm</Text>
-            <View style={[styles.parasymBadge, liveState === 'sympathetic' && { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
-              <Text style={[styles.parasymText, liveState === 'sympathetic' && { color: '#ef4444' }]}>{liveStateLabel}</Text>
-            </View>
+            <Text style={styles.bpmText}>{isConnected && heartRate > 0 ? `${heartRate} bpm` : '-- bpm'}</Text>
+            {isConnected ? (
+              <View style={[styles.parasymBadge, liveState === 'sympathetic' && { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
+                <Text style={[styles.parasymText, liveState === 'sympathetic' && { color: '#ef4444' }]}>{liveStateLabel}</Text>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={() => router.push('/(auth)/connect-device')} activeOpacity={0.7}>
+                <View style={styles.parasymBadge}>
+                  <Text style={styles.parasymText}>Connect a device</Text>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
         </GlassCard>
-        )}
 
         {/* Nervous System Timeline */}
         <GlassCard style={styles.timelineCard}>
           <Text style={styles.sectionTitle}>Nervous System Timeline</Text>
-          <View style={styles.timelineBar}>
-            {autonomicTimeline.map((segment) => (
-              <View
-                key={segment.hour}
-                style={[
-                  styles.timelineSegment,
-                  { backgroundColor: TIMELINE_COLORS[segment.state] },
-                ]}
-              />
-            ))}
-          </View>
-          <View style={styles.timelineLabels}>
-            <Text style={styles.timelineLabel}>12a</Text>
-            <Text style={styles.timelineLabel}>6a</Text>
-            <Text style={styles.timelineLabel}>12p</Text>
-            <Text style={styles.timelineLabel}>6p</Text>
-            <Text style={styles.timelineLabel}>Now</Text>
-          </View>
+          {isConnected ? (
+            <>
+              <View style={styles.timelineBar}>
+                {autonomicTimeline.map((segment) => (
+                  <View
+                    key={segment.hour}
+                    style={[styles.timelineSegment, { backgroundColor: TIMELINE_COLORS[segment.state] }]}
+                  />
+                ))}
+              </View>
+              <View style={styles.timelineLabels}>
+                <Text style={styles.timelineLabel}>12a</Text>
+                <Text style={styles.timelineLabel}>6a</Text>
+                <Text style={styles.timelineLabel}>12p</Text>
+                <Text style={styles.timelineLabel}>6p</Text>
+                <Text style={styles.timelineLabel}>Now</Text>
+              </View>
+            </>
+          ) : (
+            <View style={{ alignItems: 'center', paddingVertical: Spacing.lg }}>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center' }}>
+                Data will appear after your first session
+              </Text>
+            </View>
+          )}
           <View style={styles.timelineLegend}>
+            {/* Keep legend always */}
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: TIMELINE_COLORS.sympathetic }]} />
               <Text style={styles.legendText}>Sympathetic</Text>
@@ -265,7 +303,7 @@ export default function DashboardScreen() {
         </GlassCard>
 
         {/* HRV Trend Chart */}
-        {(isConnected || showDemoData) && (
+        {isConnected && rmssdHistory.length > 0 && (
         <GlassCard style={styles.chartCard}>
           <Text style={styles.chartLabel}>{isConnected ? 'Live RMSSD Trend' : 'Last 30 minutes'}</Text>
           <View style={styles.chartContainer}>
@@ -286,55 +324,61 @@ export default function DashboardScreen() {
             <View style={styles.summaryItem}>
               <Ionicons name="trending-up-outline" size={20} color={Colors.textMuted} />
               <Text style={styles.summaryLabel}>Avg RMSSD</Text>
-              <Text style={styles.summaryValue}>{mockTodaySummary.avgRmssd} ms</Text>
+              <Text style={styles.summaryValue}>--</Text>
             </View>
             <View style={styles.summaryItem}>
               <Ionicons name="flash-outline" size={20} color={Colors.textMuted} />
               <Text style={styles.summaryLabel}>Para Time</Text>
-              <Text style={styles.summaryValue}>{mockTodaySummary.paraTime}</Text>
+              <Text style={styles.summaryValue}>0m</Text>
             </View>
             <View style={styles.summaryItem}>
               <Ionicons name="clipboard-outline" size={20} color={Colors.textMuted} />
               <Text style={styles.summaryLabel}>Interventions</Text>
-              <Text style={styles.summaryValue}>{mockTodaySummary.interventionCount}</Text>
+              <Text style={styles.summaryValue}>0</Text>
             </View>
             <View style={styles.summaryItem}>
               <Ionicons name="moon-outline" size={20} color={Colors.textMuted} />
               <Text style={styles.summaryLabel}>Best</Text>
-              <Text style={styles.summaryValue}>{mockTodaySummary.bestIntervention}{'\n'}({mockTodaySummary.bestDelta})</Text>
+              <Text style={styles.summaryValue}>--</Text>
             </View>
           </View>
         </GlassCard>
 
         {/* Metrics Row with Trend Arrows */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.metricsRow}
-          style={styles.metricsScroll}
-        >
-          {mockMetrics.map((metric) => {
-            const trend = trendArrows[metric.label];
-            const arrow = trend ? TREND_ARROW_MAP[trend] : null;
-            return (
-              <TouchableOpacity key={metric.label} activeOpacity={0.7}>
-                <GlassCard style={styles.metricCard}>
-                  <Ionicons name={metric.icon} size={18} color={metric.color} />
-                  <View style={styles.metricValueRow}>
-                    <Text style={styles.metricValue}>
-                      {metric.value}
-                      {metric.unit ? <Text style={styles.metricUnit}>{metric.unit}</Text> : null}
-                    </Text>
-                    {arrow ? (
-                      <Text style={[styles.trendArrow, { color: arrow.color }]}>{arrow.symbol}</Text>
-                    ) : null}
-                  </View>
-                  <Text style={styles.metricLabel}>{metric.label}</Text>
-                </GlassCard>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        {isConnected ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.metricsRow}
+            style={styles.metricsScroll}
+          >
+            {mockMetrics.map((metric) => {
+              const trend = trendArrows[metric.label];
+              const arrow = trend ? TREND_ARROW_MAP[trend] : null;
+              return (
+                <TouchableOpacity key={metric.label} activeOpacity={0.7}>
+                  <GlassCard style={styles.metricCard}>
+                    <Ionicons name={metric.icon} size={18} color={metric.color} />
+                    <View style={styles.metricValueRow}>
+                      <Text style={styles.metricValue}>
+                        {metric.value}
+                        {metric.unit ? <Text style={styles.metricUnit}>{metric.unit}</Text> : null}
+                      </Text>
+                      {arrow ? (
+                        <Text style={[styles.trendArrow, { color: arrow.color }]}>{arrow.symbol}</Text>
+                      ) : null}
+                    </View>
+                    <Text style={styles.metricLabel}>{metric.label}</Text>
+                  </GlassCard>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <GlassCard style={{ marginBottom: Spacing.sm + 4, alignItems: 'center', paddingVertical: Spacing.md }}>
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted }}>Metrics appear when a device is connected</Text>
+          </GlassCard>
+        )}
 
         {/* Health Metrics */}
         <View style={styles.healthMetricsSection}>
@@ -346,98 +390,106 @@ export default function DashboardScreen() {
             </View>
           </View>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.healthMetricsRow}
-          style={styles.healthMetricsScroll}
-        >
-          {/* SpO2 */}
-          <TouchableOpacity activeOpacity={0.7}>
-            <GlassCard style={styles.healthMetricCard}>
-              <View style={styles.healthMetricTop}>
-                <View style={[styles.healthMetricDot, { backgroundColor: Colors.accent }]} />
-                <Text style={styles.healthMetricTag}>SpO2</Text>
-              </View>
-              <Text style={styles.healthMetricValue}>
-                {mockHealthMetrics.bloodOxygen.current}<Text style={styles.healthMetricUnit}>{mockHealthMetrics.bloodOxygen.unit}</Text>
-              </Text>
-              <Text style={styles.healthMetricLabel}>Blood Oxygen</Text>
-              <Text style={styles.healthMetricSource}>{mockHealthMetrics.bloodOxygen.source}</Text>
-            </GlassCard>
-          </TouchableOpacity>
+        {isConnected ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.healthMetricsRow}
+            style={styles.healthMetricsScroll}
+          >
+            {/* SpO2 */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <View style={[styles.healthMetricDot, { backgroundColor: Colors.accent }]} />
+                  <Text style={styles.healthMetricTag}>SpO2</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.bloodOxygen.current}<Text style={styles.healthMetricUnit}>{mockHealthMetrics.bloodOxygen.unit}</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Blood Oxygen</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.bloodOxygen.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
 
-          {/* Glucose */}
-          <TouchableOpacity activeOpacity={0.7}>
-            <GlassCard style={styles.healthMetricCard}>
-              <View style={styles.healthMetricTop}>
-                <Text style={[styles.healthMetricArrow, { color: '#f59e0b' }]}>{'\u2191'}</Text>
-                <Text style={styles.healthMetricTag}>CGM</Text>
-              </View>
-              <Text style={styles.healthMetricValue}>
-                {mockHealthMetrics.glucose.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.glucose.unit}</Text>
-              </Text>
-              <Text style={styles.healthMetricLabel}>Glucose</Text>
-              <Text style={styles.healthMetricSource}>{mockHealthMetrics.glucose.source}</Text>
-            </GlassCard>
-          </TouchableOpacity>
+            {/* Glucose */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <Text style={[styles.healthMetricArrow, { color: '#f59e0b' }]}>{'\u2191'}</Text>
+                  <Text style={styles.healthMetricTag}>CGM</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.glucose.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.glucose.unit}</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Glucose</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.glucose.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
 
-          {/* Resting HR */}
-          <TouchableOpacity activeOpacity={0.7}>
-            <GlassCard style={styles.healthMetricCard}>
-              <View style={styles.healthMetricTop}>
-                <Text style={[styles.healthMetricArrow, { color: Colors.accent }]}>{'\u2193'}</Text>
-              </View>
-              <Text style={styles.healthMetricValue}>
-                {mockHealthMetrics.restingHR.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.restingHR.unit}</Text>
-              </Text>
-              <Text style={styles.healthMetricLabel}>Resting HR</Text>
-              <Text style={styles.healthMetricSource}>{mockHealthMetrics.restingHR.source}</Text>
-            </GlassCard>
-          </TouchableOpacity>
+            {/* Resting HR */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <Text style={[styles.healthMetricArrow, { color: Colors.accent }]}>{'\u2193'}</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.restingHR.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.restingHR.unit}</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Resting HR</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.restingHR.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
 
-          {/* Body Temp */}
-          <TouchableOpacity activeOpacity={0.7}>
-            <GlassCard style={styles.healthMetricCard}>
-              <View style={styles.healthMetricTop}>
-                <Text style={[styles.healthMetricArrow, { color: Colors.textMuted }]}>{'\u2192'}</Text>
-              </View>
-              <Text style={styles.healthMetricValue}>
-                {mockHealthMetrics.bodyTemp.current}<Text style={styles.healthMetricUnit}>{mockHealthMetrics.bodyTemp.unit}</Text>
-              </Text>
-              <Text style={styles.healthMetricLabel}>Temp</Text>
-              <Text style={styles.healthMetricSource}>{mockHealthMetrics.bodyTemp.source}</Text>
-            </GlassCard>
-          </TouchableOpacity>
+            {/* Body Temp */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <Text style={[styles.healthMetricArrow, { color: Colors.textMuted }]}>{'\u2192'}</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.bodyTemp.current}<Text style={styles.healthMetricUnit}>{mockHealthMetrics.bodyTemp.unit}</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Temp</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.bodyTemp.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
 
-          {/* Respiratory Rate */}
-          <TouchableOpacity activeOpacity={0.7}>
-            <GlassCard style={styles.healthMetricCard}>
-              <View style={styles.healthMetricTop}>
-                <Text style={[styles.healthMetricArrow, { color: Colors.textMuted }]}>{'\u2192'}</Text>
-              </View>
-              <Text style={styles.healthMetricValue}>
-                {mockHealthMetrics.respiratoryRate.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.respiratoryRate.unit}</Text>
-              </Text>
-              <Text style={styles.healthMetricLabel}>Resp Rate</Text>
-              <Text style={styles.healthMetricSource}>{mockHealthMetrics.respiratoryRate.source}</Text>
-            </GlassCard>
-          </TouchableOpacity>
+            {/* Respiratory Rate */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <Text style={[styles.healthMetricArrow, { color: Colors.textMuted }]}>{'\u2192'}</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.respiratoryRate.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.respiratoryRate.unit}</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Resp Rate</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.respiratoryRate.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
 
-          {/* Steps */}
-          <TouchableOpacity activeOpacity={0.7}>
-            <GlassCard style={styles.healthMetricCard}>
-              <View style={styles.healthMetricTop}>
-                <Text style={[styles.healthMetricArrow, { color: Colors.accent }]}>{'\u2191'}</Text>
-              </View>
-              <Text style={styles.healthMetricValue}>
-                {mockHealthMetrics.steps.current.toLocaleString()}<Text style={styles.healthMetricUnit}> / {(mockHealthMetrics.steps.goal / 1000)}K</Text>
-              </Text>
-              <Text style={styles.healthMetricLabel}>Steps</Text>
-              <Text style={styles.healthMetricSource}>{mockHealthMetrics.steps.source}</Text>
-            </GlassCard>
-          </TouchableOpacity>
-        </ScrollView>
+            {/* Steps */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <Text style={[styles.healthMetricArrow, { color: Colors.accent }]}>{'\u2191'}</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.steps.current.toLocaleString()}<Text style={styles.healthMetricUnit}> / {(mockHealthMetrics.steps.goal / 1000)}K</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Steps</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.steps.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
+          </ScrollView>
+        ) : (
+          <GlassCard style={{ marginBottom: Spacing.sm + 4, alignItems: 'center', paddingVertical: Spacing.lg }}>
+            <Ionicons name="bluetooth-outline" size={24} color={Colors.textMuted} />
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, marginTop: 8 }}>No devices connected</Text>
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12, color: Colors.textDim, marginTop: 4 }}>All values: --</Text>
+          </GlassCard>
+        )}
 
         {/* Autonomic Balance Gauge */}
         <GlassCard style={styles.gaugeCard}>
@@ -451,12 +503,13 @@ export default function DashboardScreen() {
                 style={styles.gaugeGradient}
               />
               {/* Needle */}
-              <View style={[styles.gaugeNeedle, { left: `${gaugePosition * 100}%` }]}>
+              <View style={[styles.gaugeNeedle, { left: `${(isConnected ? gaugePosition : 0.5) * 100}%` }]}>
                 <View style={styles.needleDot} />
               </View>
             </View>
             <View style={styles.gaugeLabels}>
               <Text style={[styles.gaugeLabel, { color: '#ef4444' }]}>Sympathetic</Text>
+              {!isConnected && <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textDim }}>No data yet</Text>}
               <Text style={[styles.gaugeLabel, { color: '#00d68f' }]}>Parasympathetic</Text>
             </View>
           </View>
@@ -467,38 +520,48 @@ export default function DashboardScreen() {
           <View style={styles.batteryHeader}>
             <Text style={styles.sectionTitle}>Body Battery</Text>
             <View style={styles.batteryCurrentRow}>
-              <Text style={styles.batteryCurrentValue}>{currentBattery}</Text>
-              <Text style={styles.batteryCurrentUnit}>%</Text>
+              <Text style={styles.batteryCurrentValue}>{isConnected ? currentBattery : '--'}</Text>
+              <Text style={styles.batteryCurrentUnit}>{isConnected ? '%' : ''}</Text>
             </View>
           </View>
-          <View style={styles.batteryChartContainer}>
-            <Svg width={bbWidth} height={bbHeight + 10}>
-              <Polyline
-                points={bbPoints}
-                fill="none"
-                stroke={Colors.accent}
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              {/* Current point dot */}
-              {bodyBattery.length > 0 && (
-                <Circle
-                  cx={(bodyBattery.length - 1) / (bodyBattery.length - 1) * bbWidth}
-                  cy={bbHeight - (currentBattery / 100) * bbHeight}
-                  r={5}
-                  fill={Colors.accent}
-                />
-              )}
-            </Svg>
-          </View>
-          <View style={styles.batteryLabels}>
-            <Text style={styles.batteryLabel}>6a</Text>
-            <Text style={styles.batteryLabel}>9a</Text>
-            <Text style={styles.batteryLabel}>12p</Text>
-            <Text style={styles.batteryLabel}>3p</Text>
-            <Text style={styles.batteryLabel}>Now</Text>
-          </View>
+          {isConnected ? (
+            <>
+              <View style={styles.batteryChartContainer}>
+                <Svg width={bbWidth} height={bbHeight + 10}>
+                  <Polyline
+                    points={bbPoints}
+                    fill="none"
+                    stroke={Colors.accent}
+                    strokeWidth={2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {/* Current point dot */}
+                  {bodyBattery.length > 0 && (
+                    <Circle
+                      cx={(bodyBattery.length - 1) / (bodyBattery.length - 1) * bbWidth}
+                      cy={bbHeight - (currentBattery / 100) * bbHeight}
+                      r={5}
+                      fill={Colors.accent}
+                    />
+                  )}
+                </Svg>
+              </View>
+              <View style={styles.batteryLabels}>
+                <Text style={styles.batteryLabel}>6a</Text>
+                <Text style={styles.batteryLabel}>9a</Text>
+                <Text style={styles.batteryLabel}>12p</Text>
+                <Text style={styles.batteryLabel}>3p</Text>
+                <Text style={styles.batteryLabel}>Now</Text>
+              </View>
+            </>
+          ) : (
+            <View style={{ alignItems: 'center', paddingVertical: Spacing.lg }}>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center' }}>
+                Tracking starts when you connect a device
+              </Text>
+            </View>
+          )}
         </GlassCard>
 
         {/* "What Should I Do Right Now?" Button */}
@@ -562,25 +625,20 @@ export default function DashboardScreen() {
         {/* Recent Interventions */}
         <View style={styles.interventionsSection}>
           <Text style={styles.sectionTitle}>Recent Interventions</Text>
-          {mockRecentInterventions.map((item) => {
-            const isPositive = item.rmssdDelta >= 0;
-            return (
-              <GlassCard key={item.id} style={styles.interventionCard}>
-                <View style={styles.interventionRow}>
-                  <View style={styles.interventionInfo}>
-                    <View style={styles.interventionNameRow}>
-                      <Text style={styles.interventionName}>{item.name}</Text>
-                      <Text style={styles.interventionDose}>  {item.dose}</Text>
-                    </View>
-                    <Text style={styles.interventionTime}>{item.timestamp}</Text>
-                  </View>
-                  <Text style={[styles.interventionDelta, { color: isPositive ? Colors.positive : Colors.negative }]}>
-                    {isPositive ? '+' : ''}{item.rmssdDelta}ms
-                  </Text>
-                </View>
-              </GlassCard>
-            );
-          })}
+          <GlassCard style={{ alignItems: 'center', paddingVertical: Spacing.lg, gap: Spacing.sm }}>
+            <Ionicons name="clipboard-outline" size={24} color={Colors.textMuted} />
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center' }}>
+              Log your first intervention to see it here
+            </Text>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.accentLight, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full }}
+              onPress={() => router.push('/log-intervention')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="add-circle-outline" size={16} color={Colors.accent} />
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: Colors.accent }}>Log Intervention</Text>
+            </TouchableOpacity>
+          </GlassCard>
         </View>
 
         {/* Bottom spacing for tab bar + FAB */}

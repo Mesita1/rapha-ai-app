@@ -115,7 +115,7 @@ export default function WelcomeScreen() {
 
           <TouchableOpacity
             style={styles.signInButton}
-            onPress={() => router.push('/(tabs)')}
+            onPress={() => router.push('/(auth)/connect-device')}
             activeOpacity={0.7}
           >
             <Text style={styles.signInText}>I already have an account</Text>

@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
+import { useAuth } from '../../context/AuthContext';
 import { conditionsList } from '../../constants/mockData';
 
 const healthGoalOptions = [
@@ -24,6 +25,7 @@ const healthGoalOptions = [
 ];
 
 export default function ProfileSetupScreen() {
+  const { setIsOnboarded } = useAuth();
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
@@ -42,6 +44,7 @@ export default function ProfileSetupScreen() {
   };
 
   const handleStart = () => {
+    setIsOnboarded(true);
     router.replace('/(tabs)');
   };
 

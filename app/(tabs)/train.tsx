@@ -102,10 +102,10 @@ const BILATERAL_MODES = [
 ];
 
 const HUMMING_MODES = [
-  { key: 'om' as HummingMode, label: 'Om / Humming', desc: 'Sustained tone guide', howItWorks: 'Produce a steady humming sound. The vibration stimulates the vagus nerve directly through the throat. Hum for the full exhale, then inhale and repeat.' },
-  { key: 'bhramari' as HummingMode, label: 'Bee Breath (Bhramari)', desc: 'Bhramari pranayama', howItWorks: 'Cover ears with thumbs, close eyes. Inhale deeply, then exhale while making a buzzing/humming sound like a bee. The vibration + ear coverage amplifies vagal stimulation.' },
+  { key: 'om' as HummingMode, label: 'Humming', desc: 'Sustained tone guide', howItWorks: 'Produce a steady humming sound. The vibration stimulates the vagus nerve through the throat. Hum for the full exhale, then inhale and repeat.' },
+  { key: 'bhramari' as HummingMode, label: 'Buzzing', desc: 'Buzzing breath technique', howItWorks: 'Close your eyes. Inhale deeply, then exhale while making a buzzing sound. The vibration amplifies vagal stimulation.' },
   { key: 'gargling' as HummingMode, label: 'Gargling', desc: 'Vagal nerve activation', howItWorks: 'Gargle water vigorously for 30-60 seconds. This activates the muscles at the back of the throat connected to the vagus nerve. Simple but effective.' },
-  { key: 'bowl' as HummingMode, label: 'Singing Bowl', desc: 'Play tone, hum along', howItWorks: 'Listen to the tone and hum along at the same pitch. Matching the frequency creates resonance in your chest cavity that stimulates vagal tone.' },
+  { key: 'bowl' as HummingMode, label: 'Tone Matching', desc: 'Listen and hum along', howItWorks: 'Listen to a steady tone and hum along at the same pitch. Matching creates resonance that stimulates vagal tone.' },
 ];
 
 const EXERCISE_MODES: { key: ExerciseMode; label: string; desc: string; icon: string; howItWorks: string; durations: number[]; hrTarget?: string }[] = [
@@ -268,6 +268,8 @@ export default function TrainScreen() {
   const [selectedBilateralMode, setSelectedBilateralMode] = useState<BilateralMode>('butterfly');
   const [selectedHummingMode, setSelectedHummingMode] = useState<HummingMode>('om');
   const [sessionDuration, setSessionDuration] = useState(300); // 5 min default
+  const [showCustomDurationInput, setShowCustomDurationInput] = useState(false);
+  const [customDurationMinutes, setCustomDurationMinutes] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [breathPhase, setBreathPhase] = useState<string>('Inhale');
   const [breathPhaseDuration, setBreathPhaseDuration] = useState(4);
@@ -289,7 +291,17 @@ export default function TrainScreen() {
   const [scriptureRmssd, setScriptureRmssd] = useState(mockCurrentHRV.rmssd);
   const [scriptureSessionComplete, setScriptureSessionComplete] = useState(false);
   const [scriptureStartRmssd, setScriptureStartRmssd] = useState(mockCurrentHRV.rmssd);
+  const [reflectionPromptIndex, setReflectionPromptIndex] = useState(0);
   const scriptureIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [scriptureMode, setScriptureMode] = useState<'scripture' | 'prayer'>('scripture');
+  const [prayerDuration, setPrayerDuration] = useState(300);
+  const [prayerSessionActive, setPrayerSessionActive] = useState(false);
+  const [prayerElapsed, setPrayerElapsed] = useState(0);
+  const [prayerRmssd, setPrayerRmssd] = useState(mockCurrentHRV.rmssd);
+  const [prayerStartRmssd, setPrayerStartRmssd] = useState(mockCurrentHRV.rmssd);
+  const [prayerSessionComplete, setPrayerSessionComplete] = useState(false);
+  const prayerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prayerBreathAnimRef = useRef(new Animated.Value(0.7)).current;
   // Custom device state
   const [showCustomSetup, setShowCustomSetup] = useState(false);
   const [customDeviceName, setCustomDeviceName] = useState('');
@@ -320,6 +332,14 @@ export default function TrainScreen() {
 
   // BLE integration
   const { isConnected: bleConnected, rmssd: bleRmssd } = useBLE();
+
+  const REFLECTION_PROMPTS = [
+    'Think about this scripture...',
+    'How does this apply to your life?',
+    'What might God be saying to you here?',
+    'Read it slowly one more time...',
+    'Say it out loud if you can...',
+  ];
 
   // Get breathing pattern phases with labels and durations
   const getBreathingPhases = useCallback((mode: string): { label: string; duration: number }[] => {
@@ -446,6 +466,46 @@ export default function TrainScreen() {
     };
   }, [scriptureSessionActive]);
 
+  // Cycle reflection prompts every 30 seconds during scripture meditation
+  useEffect(() => {
+    if (!scriptureSessionActive) return;
+    const promptTimer = setInterval(() => {
+      setReflectionPromptIndex((prev) => (prev + 1) % REFLECTION_PROMPTS.length);
+    }, 30000);
+    return () => clearInterval(promptTimer);
+  }, [scriptureSessionActive]);
+
+  // Prayer session timer
+  useEffect(() => {
+    if (prayerSessionActive) {
+      const breathLoop = () => {
+        Animated.sequence([
+          Animated.timing(prayerBreathAnimRef, { toValue: 1, duration: 4000, useNativeDriver: true }),
+          Animated.timing(prayerBreathAnimRef, { toValue: 0.7, duration: 4000, useNativeDriver: true }),
+        ]).start(() => { if (prayerSessionActive) breathLoop(); });
+      };
+      breathLoop();
+
+      prayerIntervalRef.current = setInterval(() => {
+        setPrayerElapsed((prev) => {
+          if (prev + 1 >= prayerDuration) {
+            stopPrayerSession();
+            return prev;
+          }
+          return prev + 1;
+        });
+        if (bleConnected && bleRmssd > 0) {
+          setPrayerRmssd(bleRmssd);
+        } else {
+          setPrayerRmssd((prev) => prev + (Math.random() * 0.5 - 0.05));
+        }
+      }, 1000);
+    }
+    return () => {
+      if (prayerIntervalRef.current) clearInterval(prayerIntervalRef.current);
+    };
+  }, [prayerSessionActive]);
+
   const startScriptureSession = () => {
     const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : mockCurrentHRV.rmssd;
     setScriptureStartRmssd(startVal);
@@ -468,6 +528,28 @@ export default function TrainScreen() {
     setScriptureElapsed(0);
     setScriptureCategory('today');
     setSelectedVerse(getVerseOfTheDay());
+  };
+
+  const startPrayerSession = () => {
+    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : mockCurrentHRV.rmssd;
+    setPrayerStartRmssd(startVal);
+    setPrayerRmssd(startVal);
+    setPrayerElapsed(0);
+    setPrayerSessionActive(true);
+    setPrayerSessionComplete(false);
+  };
+
+  const stopPrayerSession = () => {
+    if (prayerIntervalRef.current) clearInterval(prayerIntervalRef.current);
+    setPrayerSessionActive(false);
+    setPrayerSessionComplete(true);
+  };
+
+  const resetPrayerSession = () => {
+    setPrayerSessionActive(false);
+    setPrayerSessionComplete(false);
+    setPrayerElapsed(0);
+    setScriptureMode('scripture');
   };
 
   // Custom device session timer
@@ -671,15 +753,38 @@ export default function TrainScreen() {
             {[180, 300, 600, 900].map((d) => (
               <TouchableOpacity
                 key={d}
-                style={[styles.durationPill, sessionDuration === d && { backgroundColor: typeInfo.borderColor }]}
-                onPress={() => setSessionDuration(d)}
+                style={[styles.durationPill, sessionDuration === d && !showCustomDurationInput && { backgroundColor: typeInfo.borderColor }]}
+                onPress={() => { setSessionDuration(d); setShowCustomDurationInput(false); }}
               >
-                <Text style={[styles.durationPillText, sessionDuration === d && { color: Colors.white }]}>
+                <Text style={[styles.durationPillText, sessionDuration === d && !showCustomDurationInput && { color: Colors.white }]}>
                   {d / 60}m
                 </Text>
               </TouchableOpacity>
             ))}
+            <TouchableOpacity
+              style={[styles.durationPill, showCustomDurationInput && { backgroundColor: typeInfo.borderColor }]}
+              onPress={() => setShowCustomDurationInput(true)}
+            >
+              <Text style={[styles.durationPillText, showCustomDurationInput && { color: Colors.white }]}>Custom</Text>
+            </TouchableOpacity>
           </View>
+          {showCustomDurationInput && (
+            <View style={styles.customInputContainer}>
+              <TextInput
+                style={styles.customInput}
+                placeholder="Minutes (1-480)"
+                placeholderTextColor={Colors.textDim}
+                value={customDurationMinutes}
+                onChangeText={(text) => {
+                  setCustomDurationMinutes(text);
+                  const mins = parseInt(text);
+                  if (mins >= 1 && mins <= 480) setSessionDuration(mins * 60);
+                }}
+                keyboardType="numeric"
+                maxLength={3}
+              />
+            </View>
+          )}
 
           <TouchableOpacity
             style={[styles.startButton, { backgroundColor: typeInfo.borderColor }]}
@@ -754,6 +859,9 @@ export default function TrainScreen() {
           <GlassCard style={styles.activeBanner}>
             <View style={{ alignItems: 'center', gap: Spacing.sm }}>
               <Ionicons name="checkmark-circle" size={40} color={Colors.accent} />
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: Colors.accent, textAlign: 'center', marginBottom: Spacing.xs }}>
+                {['Way to go!', 'Great job!', 'You showed up \u2014 that matters!', 'Your nervous system thanks you!', 'Keep it up!', 'Progress, not perfection!', "You're doing amazing!", 'Every session counts!'][Math.floor(Math.random() * 8)]}
+              </Text>
               <Text style={styles.activeBannerTitle}>Session Complete</Text>
               <View style={styles.activeBannerStats}>
                 <View style={styles.activeStat}>
@@ -949,7 +1057,7 @@ export default function TrainScreen() {
                   <View style={styles.customInputContainer}>
                     <TextInput
                       style={styles.customInput}
-                      placeholder="e.g., GB4000, Pulsetto, Apollo, FSM, rTMS..."
+                      placeholder="e.g., Pulsetto, Apollo Neuro, red light panel, TENS unit..."
                       placeholderTextColor={Colors.textDim}
                       value={customDeviceName}
                       onChangeText={setCustomDeviceName}
@@ -1004,15 +1112,38 @@ export default function TrainScreen() {
                     {[300, 600, 900, 1200, 1800, 3600].map((d) => (
                       <TouchableOpacity
                         key={d}
-                        style={[styles.durationPill, customDuration === d && { backgroundColor: '#8e8e93' }]}
-                        onPress={() => setCustomDuration(d)}
+                        style={[styles.durationPill, customDuration === d && !showCustomDurationInput && { backgroundColor: '#8e8e93' }]}
+                        onPress={() => { setCustomDuration(d); setShowCustomDurationInput(false); }}
                       >
-                        <Text style={[styles.durationPillText, customDuration === d && { color: Colors.white }]}>
+                        <Text style={[styles.durationPillText, customDuration === d && !showCustomDurationInput && { color: Colors.white }]}>
                           {d / 60}m
                         </Text>
                       </TouchableOpacity>
                     ))}
+                    <TouchableOpacity
+                      style={[styles.durationPill, showCustomDurationInput && { backgroundColor: '#8e8e93' }]}
+                      onPress={() => setShowCustomDurationInput(true)}
+                    >
+                      <Text style={[styles.durationPillText, showCustomDurationInput && { color: Colors.white }]}>Custom</Text>
+                    </TouchableOpacity>
                   </View>
+                  {showCustomDurationInput && (
+                    <View style={styles.customInputContainer}>
+                      <TextInput
+                        style={styles.customInput}
+                        placeholder="Minutes (1-480)"
+                        placeholderTextColor={Colors.textDim}
+                        value={customDurationMinutes}
+                        onChangeText={(text) => {
+                          setCustomDurationMinutes(text);
+                          const mins = parseInt(text);
+                          if (mins >= 1 && mins <= 480) setCustomDuration(mins * 60);
+                        }}
+                        keyboardType="numeric"
+                        maxLength={3}
+                      />
+                    </View>
+                  )}
 
                   {/* Start Button */}
                   <TouchableOpacity
@@ -1096,6 +1227,9 @@ export default function TrainScreen() {
               {customSessionComplete && (
                 <View style={styles.scripturePostSession}>
                   <Ionicons name="checkmark-circle" size={48} color={Colors.accent} />
+                  <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: Colors.accent, textAlign: 'center', marginBottom: Spacing.xs }}>
+                    {['Way to go!', 'Great job!', 'You showed up \u2014 that matters!', 'Your nervous system thanks you!', 'Keep it up!', 'Progress, not perfection!', "You're doing amazing!", 'Every session counts!'][Math.floor(Math.random() * 8)]}
+                  </Text>
                   <Text style={styles.scripturePostTitle}>Session Complete</Text>
                   <Text style={styles.customDeviceTitle}>{customDeviceName}</Text>
                   <Text style={styles.customDeviceCategory}>{customCategory}</Text>
@@ -1214,15 +1348,38 @@ export default function TrainScreen() {
                     {(EXERCISE_MODES.find(m => m.key === selectedExerciseMode)?.durations || []).map((d) => (
                       <TouchableOpacity
                         key={d}
-                        style={[styles.durationPill, exerciseDuration === d && { backgroundColor: '#00d68f' }]}
-                        onPress={() => setExerciseDuration(d)}
+                        style={[styles.durationPill, exerciseDuration === d && !showCustomDurationInput && { backgroundColor: '#00d68f' }]}
+                        onPress={() => { setExerciseDuration(d); setShowCustomDurationInput(false); }}
                       >
-                        <Text style={[styles.durationPillText, exerciseDuration === d && { color: Colors.white }]}>
+                        <Text style={[styles.durationPillText, exerciseDuration === d && !showCustomDurationInput && { color: Colors.white }]}>
                           {d >= 60 ? `${d / 60}m` : `${d}s`}
                         </Text>
                       </TouchableOpacity>
                     ))}
+                    <TouchableOpacity
+                      style={[styles.durationPill, showCustomDurationInput && { backgroundColor: '#00d68f' }]}
+                      onPress={() => setShowCustomDurationInput(true)}
+                    >
+                      <Text style={[styles.durationPillText, showCustomDurationInput && { color: Colors.white }]}>Custom</Text>
+                    </TouchableOpacity>
                   </View>
+                  {showCustomDurationInput && (
+                    <View style={styles.customInputContainer}>
+                      <TextInput
+                        style={styles.customInput}
+                        placeholder="Minutes (1-480)"
+                        placeholderTextColor={Colors.textDim}
+                        value={customDurationMinutes}
+                        onChangeText={(text) => {
+                          setCustomDurationMinutes(text);
+                          const mins = parseInt(text);
+                          if (mins >= 1 && mins <= 480) setExerciseDuration(mins * 60);
+                        }}
+                        keyboardType="numeric"
+                        maxLength={3}
+                      />
+                    </View>
+                  )}
 
                   {/* Start Button */}
                   <TouchableOpacity
@@ -1292,6 +1449,9 @@ export default function TrainScreen() {
                 return (
                   <View style={styles.scripturePostSession}>
                     <Ionicons name="checkmark-circle" size={48} color="#00d68f" />
+                    <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: Colors.accent, textAlign: 'center', marginBottom: Spacing.xs }}>
+                      {['Way to go!', 'Great job!', 'You showed up \u2014 that matters!', 'Your nervous system thanks you!', 'Keep it up!', 'Progress, not perfection!', "You're doing amazing!", 'Every session counts!'][Math.floor(Math.random() * 8)]}
+                    </Text>
                     <Text style={styles.scripturePostTitle}>Session Complete</Text>
                     <Text style={styles.exercisePostModeName}>{currentMode?.label}</Text>
 
@@ -1359,7 +1519,25 @@ export default function TrainScreen() {
                 </TouchableOpacity>
               </View>
 
-              {!scriptureSessionActive && !scriptureSessionComplete && (
+              {/* Scripture / Prayer mode tabs */}
+              {!scriptureSessionActive && !scriptureSessionComplete && !prayerSessionActive && !prayerSessionComplete && (
+                <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md }}>
+                  <TouchableOpacity
+                    style={[{ flex: 1, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: scriptureMode === 'scripture' ? '#d4a574' : Colors.surfaceBorder, backgroundColor: scriptureMode === 'scripture' ? 'rgba(212,165,116,0.12)' : 'transparent', alignItems: 'center' }]}
+                    onPress={() => setScriptureMode('scripture')}
+                  >
+                    <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: scriptureMode === 'scripture' ? '#d4a574' : Colors.textMuted }}>Scripture</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[{ flex: 1, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: scriptureMode === 'prayer' ? '#d4a574' : Colors.surfaceBorder, backgroundColor: scriptureMode === 'prayer' ? 'rgba(212,165,116,0.12)' : 'transparent', alignItems: 'center' }]}
+                    onPress={() => setScriptureMode('prayer')}
+                  >
+                    <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: scriptureMode === 'prayer' ? '#d4a574' : Colors.textMuted }}>Prayer</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {scriptureMode === 'scripture' && !scriptureSessionActive && !scriptureSessionComplete && (
                 <>
                   {/* How it works description */}
                   <Text style={styles.modeHowItWorks}>
@@ -1436,6 +1614,16 @@ export default function TrainScreen() {
                         <Text style={[styles.durationPillText, scriptureDuration === d && { color: Colors.white }]}>{d / 60}m</Text>
                       </TouchableOpacity>
                     ))}
+                    <TouchableOpacity
+                      style={[styles.durationPill, ![180, 300, 600].includes(scriptureDuration) && { backgroundColor: '#d4a574' }]}
+                      onPress={() => {
+                        const mins = parseInt(customDurationMinutes);
+                        if (mins >= 1 && mins <= 480) setScriptureDuration(mins * 60);
+                        else setShowCustomDurationInput(true);
+                      }}
+                    >
+                      <Text style={[styles.durationPillText, ![180, 300, 600].includes(scriptureDuration) && { color: Colors.white }]}>Custom</Text>
+                    </TouchableOpacity>
                   </View>
 
                   {/* Start Button */}
@@ -1446,6 +1634,101 @@ export default function TrainScreen() {
                 </>
               )}
 
+              {/* Prayer Mode Setup */}
+              {scriptureMode === 'prayer' && !prayerSessionActive && !prayerSessionComplete && (
+                <>
+                  <GlassCard style={{ backgroundColor: 'rgba(212,165,116,0.06)', borderWidth: 0, marginBottom: Spacing.md }}>
+                    <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: Colors.text, lineHeight: 22, textAlign: 'center' }}>
+                      Talk to God like He's your loving heavenly Father. You can bring all your problems, guilt, and shame. Come as you are — you are deeply loved.
+                    </Text>
+                  </GlassCard>
+
+                  <Text style={styles.durationLabel}>Duration</Text>
+                  <View style={styles.durationRow}>
+                    {[180, 300, 600, 900].map((d) => (
+                      <TouchableOpacity
+                        key={d}
+                        style={[styles.durationPill, prayerDuration === d && { backgroundColor: '#d4a574' }]}
+                        onPress={() => setPrayerDuration(d)}
+                      >
+                        <Text style={[styles.durationPillText, prayerDuration === d && { color: Colors.white }]}>{d / 60}m</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <TouchableOpacity style={styles.scriptureStartButton} onPress={startPrayerSession}>
+                    <Ionicons name="play" size={18} color={Colors.white} />
+                    <Text style={styles.startButtonText}>Begin Prayer</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {/* Active Prayer Session */}
+              {prayerSessionActive && (
+                <View style={styles.scriptureActiveSession}>
+                  <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 16, color: Colors.text, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.md, fontStyle: 'italic' }}>
+                    Be still and know that I am God...
+                  </Text>
+
+                  {/* Breathing Circle */}
+                  <View style={styles.scriptureBreathContainer}>
+                    <Animated.View style={[styles.scriptureBreathCircle, { transform: [{ scale: prayerBreathAnimRef }] }]}>
+                      <LinearGradient
+                        colors={['rgba(212,165,116,0.3)', 'rgba(212,165,116,0.08)']}
+                        style={styles.scriptureBreathGradient}
+                      >
+                        <Text style={styles.scriptureBreathText}>breathe</Text>
+                      </LinearGradient>
+                    </Animated.View>
+                  </View>
+
+                  <View style={styles.scriptureActiveStats}>
+                    <View style={styles.activeStat}>
+                      <Text style={styles.activeStatLabel}>Live RMSSD</Text>
+                      <Text style={styles.activeStatValue}>{prayerRmssd.toFixed(1)} ms</Text>
+                    </View>
+                    <View style={styles.activeStat}>
+                      <Text style={styles.activeStatLabel}>Timer</Text>
+                      <Text style={styles.activeStatValue}>{formatTime(prayerDuration - prayerElapsed)}</Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity style={styles.stopButton} onPress={stopPrayerSession}>
+                    <Ionicons name="stop-circle" size={18} color="#ef4444" />
+                    <Text style={styles.stopButtonText}>Stop</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Prayer Post-Session */}
+              {prayerSessionComplete && (
+                <View style={styles.scripturePostSession}>
+                  <Ionicons name="checkmark-circle" size={48} color={Colors.accent} />
+                  <Text style={styles.scripturePostTitle}>Prayer Complete</Text>
+
+                  <View style={styles.scripturePostStats}>
+                    <View style={styles.scripturePostStatItem}>
+                      <Text style={styles.scripturePostStatLabel}>HRV Change</Text>
+                      <Text style={[styles.scripturePostStatValue, { color: Colors.accent }]}>
+                        {(prayerRmssd - prayerStartRmssd) >= 0 ? '+' : ''}{(prayerRmssd - prayerStartRmssd).toFixed(1)} ms
+                      </Text>
+                    </View>
+                    <View style={styles.scripturePostStatItem}>
+                      <Text style={styles.scripturePostStatLabel}>Duration</Text>
+                      <Text style={styles.scripturePostStatValue}>{formatTime(prayerElapsed)}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.scripturePostInsight}>
+                    Your prayer session produced a {(prayerRmssd - prayerStartRmssd) >= 0 ? '+' : ''}{(prayerRmssd - prayerStartRmssd).toFixed(1)}ms shift in your HRV.
+                  </Text>
+
+                  <TouchableOpacity style={styles.scriptureStartButton} onPress={() => { resetPrayerSession(); setShowScriptureMeditation(false); }}>
+                    <Text style={styles.startButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {/* Active Scripture Session */}
               {scriptureSessionActive && (
                 <View style={styles.scriptureActiveSession}>
@@ -1453,6 +1736,11 @@ export default function TrainScreen() {
                   <TouchableOpacity onPress={() => Linking.openURL(selectedVerse.youversionUrl)}>
                     <Text style={[styles.scriptureActiveRef, { textDecorationLine: 'underline' }]}>{selectedVerse.reference}</Text>
                   </TouchableOpacity>
+
+                  {/* Reflection Prompt */}
+                  <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: Colors.textMuted, textAlign: 'center', fontStyle: 'italic', marginBottom: Spacing.md, paddingHorizontal: Spacing.md }}>
+                    {REFLECTION_PROMPTS[reflectionPromptIndex]}
+                  </Text>
 
                   {/* Breathing Circle */}
                   <View style={styles.scriptureBreathContainer}>
@@ -1489,6 +1777,9 @@ export default function TrainScreen() {
               {scriptureSessionComplete && (
                 <View style={styles.scripturePostSession}>
                   <Ionicons name="checkmark-circle" size={48} color={Colors.accent} />
+                  <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: Colors.accent, textAlign: 'center', marginBottom: Spacing.xs }}>
+                    {['Way to go!', 'Great job!', 'You showed up \u2014 that matters!', 'Your nervous system thanks you!', 'Keep it up!', 'Progress, not perfection!', "You're doing amazing!", 'Every session counts!'][Math.floor(Math.random() * 8)]}
+                  </Text>
                   <Text style={styles.scripturePostTitle}>Session Complete</Text>
                   <Text style={styles.scripturePostVerse}>"{selectedVerse.reference}"</Text>
 

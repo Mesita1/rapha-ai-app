@@ -11,11 +11,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import GlassCard from '../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius } from '../constants/theme';
-import { mockTopInterventions } from '../constants/mockData';
+import { useBLE } from '../context/BLEContext';
 
 export default function FlareScreen() {
   const [seconds, setSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { isConnected, rmssd: bleRmssd } = useBLE();
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
@@ -32,13 +33,10 @@ export default function FlareScreen() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Filter positive interventions as "what's helped before"
-  const helpedBefore = mockTopInterventions
-    .filter((i) => i.avgDelta > 0)
-    .sort((a, b) => b.avgDelta - a.avgDelta);
-
   const handleEndFlare = () => {
     if (timerRef.current) clearInterval(timerRef.current);
+    // Duration is recorded in `seconds` state
+    console.log(`Flare ended. Duration: ${formatTime(seconds)}`);
     router.back();
   };
 
@@ -61,28 +59,22 @@ export default function FlareScreen() {
         <GlassCard style={styles.hrvCard} glowColor="#ef4444">
           <Text style={styles.hrvLabel}>Current HRV</Text>
           <View style={styles.hrvRow}>
-            <Text style={styles.hrvValue}>34</Text>
+            <Text style={styles.hrvValue}>{isConnected && bleRmssd > 0 ? bleRmssd.toFixed(0) : '--'}</Text>
             <Text style={styles.hrvUnit}>ms</Text>
           </View>
-          <Text style={styles.hrvDrop}>-24ms from baseline</Text>
+          <Text style={styles.hrvDrop}>{isConnected ? 'Live reading' : 'Connect device for live data'}</Text>
         </GlassCard>
 
         {/* What's Helped Before */}
         <Text style={styles.sectionTitle}>What's Helped Before</Text>
-        {helpedBefore.map((item, i) => (
-          <GlassCard key={item.name} style={styles.helpCard}>
-            <View style={styles.helpRow}>
-              <View style={styles.helpRank}>
-                <Text style={styles.helpRankText}>{i + 1}</Text>
-              </View>
-              <View style={styles.helpInfo}>
-                <Text style={styles.helpName}>{item.name}</Text>
-                <Text style={styles.helpMeta}>{item.observations} times used</Text>
-              </View>
-              <Text style={styles.helpDelta}>+{item.avgDelta.toFixed(1)}ms</Text>
-            </View>
-          </GlassCard>
-        ))}
+        <GlassCard style={styles.helpCard}>
+          <View style={{ alignItems: 'center', paddingVertical: 20, gap: 8 }}>
+            <Ionicons name="bulb-outline" size={24} color={Colors.textMuted} />
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 }}>
+              You'll see your most effective interventions here as you track more
+            </Text>
+          </View>
+        </GlassCard>
 
         {/* Start Breathing Exercise */}
         <TouchableOpacity style={styles.breatheButton} activeOpacity={0.8}>

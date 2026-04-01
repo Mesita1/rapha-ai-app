@@ -124,14 +124,14 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="medkit-outline"
             label="My Conditions"
-            value="POTS, MCAS"
+            value="None set"
             iconColor="#f59e0b"
           />
           <View style={styles.separator} />
           <SettingsRow
             icon="warning-outline"
             label="Flare History"
-            value="4 events"
+            value="0 events"
             iconColor="#ef4444"
           />
           <View style={styles.separator} />
@@ -206,10 +206,10 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.subInfo}>
               <Text style={styles.subLabel}>Current Plan</Text>
-              <Text style={styles.subPrice}>$9.99/month · Renews Apr 15</Text>
+              <Text style={styles.subPrice}>Free plan</Text>
             </View>
             <View style={styles.premiumBadge}>
-              <Text style={styles.premiumBadgeText}>Premium</Text>
+              <Text style={styles.premiumBadgeText}>Free</Text>
             </View>
           </TouchableOpacity>
           <View style={styles.separator} />

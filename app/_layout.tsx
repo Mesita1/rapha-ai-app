@@ -11,6 +11,7 @@ import {
 } from '@expo-google-fonts/inter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '../context/AuthContext';
+import { BLEProvider } from '../context/BLEContext';
 import { Colors } from '../constants/theme';
 
 // Conditionally import native-only modules
@@ -54,6 +55,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.root}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <BLEProvider>
           <View style={styles.root}>
             <StatusBar style="light" />
             <Stack
@@ -109,6 +111,7 @@ export default function RootLayout() {
               />
             </Stack>
           </View>
+          </BLEProvider>
         </AuthProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>

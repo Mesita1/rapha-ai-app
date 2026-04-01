@@ -109,7 +109,7 @@ const HUMMING_MODES = [
 ];
 
 const EXERCISE_MODES: { key: ExerciseMode; label: string; desc: string; icon: string; howItWorks: string; durations: number[]; hrTarget?: string }[] = [
-  { key: 'zone2-walk', label: 'Zone 2 Walk', desc: 'Low-intensity aerobic walk', icon: 'leaf-outline', howItWorks: 'Walk at a comfortable pace where you can hold a conversation. Keep HR under 65% of max. The #1 exercise for HRV improvement — parasympathetic boost during and after.', durations: [900, 1200, 1800, 2700, 3600], hrTarget: 'Keep HR under 120 bpm' },
+  { key: 'zone2-walk', label: 'Zone 2 Walk', desc: 'Low-intensity aerobic walk', icon: 'leaf-outline', howItWorks: 'Walk at a conversational pace — you should be able to talk comfortably but not sing. Target heart rate: roughly 180 minus your age (\u00b15 bpm). For example, if you\'re 35, aim for 140-150 bpm. This is the #1 exercise for improving HRV — parasympathetic boost during and after. Walk for at least 20 minutes for full benefit.', durations: [900, 1200, 1800, 2700, 3600], hrTarget: 'Keep HR under 120 bpm' },
   { key: 'cold-exposure', label: 'Cold Exposure', desc: 'Dive reflex vagal activation', icon: 'snow-outline', howItWorks: 'Cold shower, plunge, or face immersion. Activates the dive reflex — one of the most powerful acute vagal stimulators. Start with 30 seconds, build to 2-3 minutes.', durations: [60, 120, 180, 300], hrTarget: 'Any pace' },
   { key: 'rucking', label: 'Rucking / Weighted Walk', desc: 'Weighted vest or backpack walk', icon: 'barbell-outline', howItWorks: 'Walk with a weighted vest or backpack (10-20% body weight). Increases cardiovascular load while staying in Zone 2. Studies show improved HRV and metabolic health. Start with 10-15 lbs.', durations: [900, 1200, 1800, 2700] },
   { key: 'mobility', label: 'Mobility / Stretching', desc: 'Reduce sympathetic tension', icon: 'resize-outline', howItWorks: 'Gentle stretching and foam rolling. Reduces muscle tension signaling to the brain, lowering sympathetic tone. Focus on hip flexors, thoracic spine, and neck.', durations: [300, 600, 900, 1200] },
@@ -176,13 +176,13 @@ function VisualTrackingDot({ active }: { active: boolean }) {
       Animated.sequence([
         Animated.timing(dotPosition, {
           toValue: 1,
-          duration: 1000,
+          duration: 1500,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(dotPosition, {
           toValue: 0,
-          duration: 1000,
+          duration: 1500,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
@@ -204,7 +204,7 @@ function VisualTrackingDot({ active }: { active: boolean }) {
 
   return (
     <View style={sessionStyles.visualTrackContainer}>
-      <Text style={sessionStyles.visualTrackInstruction}>Follow the dot with your eyes</Text>
+      <Text style={sessionStyles.visualTrackInstruction}>Hold your phone at arm's length. Follow the dot with your eyes only — keep your head still. The dot guides the rhythm of your eye movements across your full visual field. This bilateral visual stimulation helps calm the nervous system.</Text>
       <View style={sessionStyles.visualTrackLine}>
         <Animated.View
           style={[
@@ -330,6 +330,11 @@ export default function TrainScreen() {
 
   const breathAnimRef = useRef(new Animated.Value(0.7)).current;
 
+  // Gamification state for breathing sessions
+  const [breathGameAltitude, setBreathGameAltitude] = useState(0);
+  const [breathGameHasTriedFree, setBreathGameHasTriedFree] = useState(false);
+  const breathGameAnim = useRef(new Animated.Value(0)).current;
+
   // BLE integration
   const { isConnected: bleConnected, rmssd: bleRmssd } = useBLE();
 
@@ -371,6 +376,34 @@ export default function TrainScreen() {
         ];
     }
   }, []);
+
+  // Gamification: animate bird rising during breathing sessions
+  useEffect(() => {
+    if (!activeSession || activeSession.type !== 'breathing') return;
+    breathGameAnim.setValue(0);
+    setBreathGameAltitude(0);
+
+    const altitudeInterval = setInterval(() => {
+      setBreathGameAltitude((prev) => {
+        const rmssdBoost = sessionRmssd > 60 ? 1.5 : sessionRmssd > 45 ? 1.2 : 1;
+        return prev + (2 * rmssdBoost);
+      });
+    }, 1000);
+
+    // Slow continuous rise animation
+    const animateRise = () => {
+      Animated.timing(breathGameAnim, {
+        toValue: 1,
+        duration: 60000, // over 1 minute to full height
+        useNativeDriver: true,
+      }).start();
+    };
+    animateRise();
+
+    return () => {
+      clearInterval(altitudeInterval);
+    };
+  }, [activeSession]);
 
   // Breathing phase cycling with correct timing
   useEffect(() => {
@@ -822,7 +855,35 @@ export default function TrainScreen() {
 
             {/* Session Visualization */}
             {activeSession.type === 'breathing' && (
-              <BreathingCircle phase={breathPhase} phaseDuration={breathPhaseDuration} />
+              <>
+                <BreathingCircle phase={breathPhase} phaseDuration={breathPhaseDuration} />
+                {/* Gamification: Floating bird */}
+                <View style={sessionStyles.breathGameContainer}>
+                  <View style={sessionStyles.breathGameTrack}>
+                    <Animated.View
+                      style={[
+                        sessionStyles.breathGameBird,
+                        {
+                          transform: [{
+                            translateY: breathGameAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [80, 0],
+                            }),
+                          }],
+                        },
+                      ]}
+                    >
+                      <Text style={{ fontSize: 24 }}>{'\uD83D\uDD4A\uFE0F'}</Text>
+                    </Animated.View>
+                    <View style={sessionStyles.breathGameAltLabel}>
+                      <Text style={sessionStyles.breathGameAltText}>{Math.round(breathGameAltitude)}m</Text>
+                    </View>
+                  </View>
+                  <View style={sessionStyles.breathGameProBadge}>
+                    <Text style={sessionStyles.breathGameProText}>Pro</Text>
+                  </View>
+                </View>
+              </>
             )}
             {activeSession.type === 'bilateral' && activeSession.mode === 'visual-tracking' && (
               <VisualTrackingDot active={true} />
@@ -863,6 +924,17 @@ export default function TrainScreen() {
                 {['Way to go!', 'Great job!', 'You showed up \u2014 that matters!', 'Your nervous system thanks you!', 'Keep it up!', 'Progress, not perfection!', "You're doing amazing!", 'Every session counts!'][Math.floor(Math.random() * 8)]}
               </Text>
               <Text style={styles.activeBannerTitle}>Session Complete</Text>
+              {breathGameAltitude > 0 && (
+                <View style={sessionStyles.breathGameResult}>
+                  <Text style={{ fontSize: 28 }}>{'\uD83D\uDD4A\uFE0F'}</Text>
+                  <Text style={sessionStyles.breathGameResultText}>
+                    Your bird reached {Math.round(breathGameAltitude)}m altitude!
+                  </Text>
+                  <Text style={sessionStyles.breathGameResultDelta}>
+                    HRV: {(sessionRmssd - sessionStartRmssd) >= 0 ? '+' : ''}{(sessionRmssd - sessionStartRmssd).toFixed(1)} ms
+                  </Text>
+                </View>
+              )}
               <View style={styles.activeBannerStats}>
                 <View style={styles.activeStat}>
                   <Text style={styles.activeStatLabel}>Before</Text>
@@ -881,7 +953,7 @@ export default function TrainScreen() {
               </View>
               <TouchableOpacity
                 style={[styles.startButton, { backgroundColor: Colors.accent, width: '100%' }]}
-                onPress={() => setSessionComplete(false)}
+                onPress={() => { setSessionComplete(false); setBreathGameAltitude(0); }}
               >
                 <Text style={styles.startButtonText}>Done</Text>
               </TouchableOpacity>
@@ -1888,6 +1960,74 @@ const sessionStyles = StyleSheet.create({
     width: 8,
     borderRadius: 4,
   },
+  // Breathing game (gamification)
+  breathGameContainer: {
+    alignItems: 'flex-end',
+    marginRight: Spacing.md,
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  breathGameTrack: {
+    width: 60,
+    height: 100,
+    backgroundColor: 'rgba(14,168,122,0.06)',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(14,168,122,0.15)',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    paddingBottom: 4,
+  },
+  breathGameBird: {
+    alignItems: 'center',
+  },
+  breathGameAltLabel: {
+    position: 'absolute',
+    bottom: 4,
+    alignItems: 'center',
+  },
+  breathGameAltText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 10,
+    color: Colors.accent,
+  },
+  breathGameProBadge: {
+    backgroundColor: 'rgba(108,92,231,0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(108,92,231,0.3)',
+    marginTop: 4,
+    alignSelf: 'center',
+  },
+  breathGameProText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 8,
+    color: '#6C5CE7',
+  },
+  breathGameResult: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(14,168,122,0.08)',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    width: '100%',
+    gap: Spacing.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(14,168,122,0.2)',
+  },
+  breathGameResultText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  breathGameResultDelta: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.accent,
+  },
   // Visual tracking dot
   visualTrackContainer: {
     alignItems: 'center',
@@ -1896,8 +2036,11 @@ const sessionStyles = StyleSheet.create({
   },
   visualTrackInstruction: {
     fontFamily: 'Inter_500Medium',
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: Spacing.sm,
   },
   visualTrackLine: {
     width: SCREEN_WIDTH - 100,

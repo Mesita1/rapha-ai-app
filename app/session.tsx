@@ -17,6 +17,7 @@ import Svg, { Path, Circle } from 'react-native-svg';
 import GlassCard from '../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius } from '../constants/theme';
 import { mockCurrentHRV } from '../constants/mockData';
+import { startBinauralBeat, stopBinauralBeat, updateBeatFrequency } from '../lib/toneGenerator';
 
 let Haptics: any = null;
 try { Haptics = require('expo-haptics'); } catch {}
@@ -143,13 +144,15 @@ export default function SessionScreen() {
   const startRmssd = useRef(mockCurrentHRV.rmssd);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const freqShiftRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionStartTime = useRef<number>(0);
   const waveProgress = useRef(new Animated.Value(0)).current;
 
   const currentMode = modes.find((m) => m.key === selectedMode)!;
   const totalSeconds = selectedDuration * 60;
   const progress = totalSeconds > 0 ? elapsed / totalSeconds : 0;
 
-  const startSession = () => {
+  const startSession = async () => {
     try { Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
     setPhase('active');
     setElapsed(0);
@@ -158,18 +161,41 @@ export default function SessionScreen() {
     setCurrentRmssd(mockCurrentHRV.rmssd);
     setHrvHistory([mockCurrentHRV.rmssd]);
     setCurrentFreq(currentMode.startFreq);
+    sessionStartTime.current = Date.now();
+
+    // Start binaural beat audio
+    try {
+      await startBinauralBeat(200, currentMode.startFreq);
+    } catch (e) {
+      console.warn('Failed to start binaural beat:', e);
+    }
+
+    // Gradual frequency shift for Calm and Sleep Prep modes (every 30s, reduce by 0.5Hz)
+    if (currentMode.key === 'calm' || currentMode.key === 'sleep') {
+      freqShiftRef.current = setInterval(() => {
+        setCurrentFreq((prev) => {
+          const target = currentMode.endFreq;
+          if (Math.abs(prev - target) < 0.5) return target;
+          const newFreq = prev - 0.5;
+          updateBeatFrequency(newFreq);
+          return newFreq;
+        });
+      }, 30000);
+    }
 
     intervalRef.current = setInterval(() => {
-      setElapsed((prev) => {
-        const next = prev + 1;
-        if (next >= totalSeconds) {
+      setElapsed(() => {
+        const actualElapsed = Math.floor((Date.now() - sessionStartTime.current) / 1000);
+        if (actualElapsed >= totalSeconds) {
           clearInterval(intervalRef.current!);
+          if (freqShiftRef.current) clearInterval(freqShiftRef.current);
           setIsPlaying(false);
+          stopBinauralBeat();
           setPhase('summary');
           try { Haptics?.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
           return totalSeconds;
         }
-        return next;
+        return actualElapsed;
       });
 
       // Simulate HRV fluctuations — gradual improvement
@@ -181,18 +207,22 @@ export default function SessionScreen() {
         return newVal;
       });
 
-      // Simulate frequency approaching target
-      setCurrentFreq((prev) => {
-        const target = currentMode.endFreq;
-        const step = (target - prev) * 0.02;
-        return prev + step + (Math.random() - 0.5) * 0.3;
-      });
+      // Simulate frequency approaching target (for focus/recovery modes)
+      if (currentMode.key !== 'calm' && currentMode.key !== 'sleep') {
+        setCurrentFreq((prev) => {
+          const target = currentMode.endFreq;
+          const step = (target - prev) * 0.02;
+          return prev + step + (Math.random() - 0.5) * 0.3;
+        });
+      }
     }, 1000);
   };
 
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (freqShiftRef.current) clearInterval(freqShiftRef.current);
+      stopBinauralBeat();
     };
   }, []);
 
@@ -243,7 +273,7 @@ export default function SessionScreen() {
               </View>
               <View style={styles.summaryMetaItem}>
                 <Text style={styles.summaryMetaLabel}>Duration</Text>
-                <Text style={styles.summaryMetaValue}>{selectedDuration} min</Text>
+                <Text style={styles.summaryMetaValue}>{elapsed >= 60 ? `${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}` : `${elapsed}s`}</Text>
               </View>
               <View style={styles.summaryMetaItem}>
                 <Text style={styles.summaryMetaLabel}>Mode</Text>
@@ -302,6 +332,8 @@ export default function SessionScreen() {
             style={styles.closeBtnActive}
             onPress={() => {
               if (intervalRef.current) clearInterval(intervalRef.current);
+              if (freqShiftRef.current) clearInterval(freqShiftRef.current);
+              stopBinauralBeat();
               setIsPlaying(false);
               router.back();
             }}
@@ -378,18 +410,25 @@ export default function SessionScreen() {
               onPress={() => {
                 if (isPlaying) {
                   if (intervalRef.current) clearInterval(intervalRef.current);
+                  if (freqShiftRef.current) clearInterval(freqShiftRef.current);
+                  stopBinauralBeat();
                 } else {
-                  // Resume
+                  // Resume - adjust start time to account for already elapsed time
+                  sessionStartTime.current = Date.now() - elapsed * 1000;
+                  startBinauralBeat(200, currentFreq);
+
                   intervalRef.current = setInterval(() => {
-                    setElapsed((prev) => {
-                      const next = prev + 1;
-                      if (next >= totalSeconds) {
+                    setElapsed(() => {
+                      const actualElapsed = Math.floor((Date.now() - sessionStartTime.current) / 1000);
+                      if (actualElapsed >= totalSeconds) {
                         clearInterval(intervalRef.current!);
+                        if (freqShiftRef.current) clearInterval(freqShiftRef.current);
+                        stopBinauralBeat();
                         setIsPlaying(false);
                         setPhase('summary');
                         return totalSeconds;
                       }
-                      return next;
+                      return actualElapsed;
                     });
                     setCurrentRmssd((prev) => {
                       const drift = 0.05 + Math.random() * 0.15;
@@ -398,11 +437,13 @@ export default function SessionScreen() {
                       setHrvHistory((h) => [...h.slice(-30), newVal]);
                       return newVal;
                     });
-                    setCurrentFreq((prev) => {
-                      const target = currentMode.endFreq;
-                      const step = (target - prev) * 0.02;
-                      return prev + step + (Math.random() - 0.5) * 0.3;
-                    });
+                    if (currentMode.key !== 'calm' && currentMode.key !== 'sleep') {
+                      setCurrentFreq((prev) => {
+                        const target = currentMode.endFreq;
+                        const step = (target - prev) * 0.02;
+                        return prev + step + (Math.random() - 0.5) * 0.3;
+                      });
+                    }
                   }, 1000);
                 }
                 setIsPlaying(!isPlaying);
@@ -415,7 +456,12 @@ export default function SessionScreen() {
               style={[styles.controlBtn, styles.stopBtn]}
               onPress={() => {
                 if (intervalRef.current) clearInterval(intervalRef.current);
+                if (freqShiftRef.current) clearInterval(freqShiftRef.current);
+                stopBinauralBeat();
                 setIsPlaying(false);
+                // Track actual elapsed time on early stop
+                const actualElapsed = Math.floor((Date.now() - sessionStartTime.current) / 1000);
+                setElapsed(actualElapsed);
                 setPhase('summary');
               }}
             >

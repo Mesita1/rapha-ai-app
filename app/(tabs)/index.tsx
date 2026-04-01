@@ -48,11 +48,27 @@ const TREND_ARROW_MAP: Record<string, { symbol: string; color: string }> = {
   stable: { symbol: '\u2192', color: '#8e8e93' },
 };
 
+function getSignalQuality(rrIntervals: number[]): { label: string; color: string } {
+  if (rrIntervals.length < 2) return { label: 'Weak', color: '#ef4444' };
+  if (rrIntervals.length < 10) return { label: 'Moderate', color: '#f59e0b' };
+  return { label: 'Strong', color: '#00d68f' };
+}
+
+function calculatePNN50(rrIntervals: number[]): number | null {
+  if (rrIntervals.length < 3) return null;
+  let nn50Count = 0;
+  for (let i = 1; i < rrIntervals.length; i++) {
+    if (Math.abs(rrIntervals[i] - rrIntervals[i - 1]) > 50) nn50Count++;
+  }
+  return (nn50Count / (rrIntervals.length - 1)) * 100;
+}
+
 export default function DashboardScreen() {
   const [showRecommendation, setShowRecommendation] = useState(false);
   const [showDemoData, setShowDemoData] = useState(false);
+  const [showHrvDetails, setShowHrvDetails] = useState(false);
   const verseOfTheDay = getVerseOfTheDay();
-  const { isConnected, heartRate, rmssd, sdnn, rmssdHistory, connectedDevice } = useBLE();
+  const { isConnected, heartRate, rmssd, sdnn, rmssdHistory, rrIntervals, connectedDevice } = useBLE();
 
   // Derive autonomic state from real or mock data
   const liveRmssd = isConnected ? rmssd : null;
@@ -236,6 +252,15 @@ export default function DashboardScreen() {
           <View style={styles.hrvLabelRow}>
             <Ionicons name="heart" size={16} color={Colors.accent} />
             <Text style={styles.liveHrvText}>{isConnected ? 'Live HRV' : 'HRV'}</Text>
+            {isConnected && (() => {
+              const signal = getSignalQuality(rrIntervals);
+              return (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: signal.color }} />
+                  <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 11, color: signal.color }}>Signal</Text>
+                </View>
+              );
+            })()}
           </View>
           <View style={styles.hrvMain}>
             <Text style={styles.hrvValue}>{isConnected && rmssd > 0 ? rmssd.toFixed(1) : '--'}</Text>
@@ -255,6 +280,70 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             )}
           </View>
+          {isConnected && (
+            <>
+              <TouchableOpacity
+                style={{ alignItems: 'center', marginTop: Spacing.sm, paddingVertical: Spacing.xs }}
+                onPress={() => setShowHrvDetails(!showHrvDetails)}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 12, color: Colors.textMuted }}>
+                    {showHrvDetails ? 'Hide details' : 'Tap for details'}
+                  </Text>
+                  <Ionicons name={showHrvDetails ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.textMuted} />
+                </View>
+              </TouchableOpacity>
+              {showHrvDetails && (() => {
+                const signal = getSignalQuality(rrIntervals);
+                const pnn50 = calculatePNN50(rrIntervals);
+                return (
+                  <View style={{ marginTop: Spacing.sm, borderTopWidth: 0.5, borderTopColor: Colors.surfaceBorder, paddingTop: Spacing.sm }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>RMSSD</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: Colors.text }}>{rmssd > 0 ? rmssd.toFixed(1) : '--'}</Text>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 10, color: Colors.textDim }}>ms</Text>
+                      </View>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>SDNN</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: Colors.text }}>{sdnn > 0 ? sdnn.toFixed(1) : '--'}</Text>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 10, color: Colors.textDim }}>ms</Text>
+                      </View>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>pNN50</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: Colors.text }}>{pnn50 !== null ? `${pnn50.toFixed(0)}%` : '--'}</Text>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 10, color: Colors.textDim }}> </Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>LF Power</Text>
+                        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.textDim }}>--</Text>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>Requires 5+ min</Text>
+                      </View>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>HF Power</Text>
+                        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.textDim }}>--</Text>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>Requires 5+ min</Text>
+                      </View>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>LF/HF</Text>
+                        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.textDim }}>--</Text>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>Requires 5+ min</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, justifyContent: 'center' }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: signal.color }} />
+                      <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textDim }}>
+                        Signal quality affects accuracy
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })()}
+            </>
+          )}
         </GlassCard>
 
         {/* Nervous System Timeline */}

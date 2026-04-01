@@ -145,6 +145,18 @@ export default function SettingsScreen() {
           />
         </GlassCard>
 
+        {/* SOCIAL */}
+        <Text style={styles.sectionLabel}>SOCIAL</Text>
+        <GlassCard style={styles.sectionCard}>
+          <SettingsRow
+            icon="people-outline"
+            label="Social Hub"
+            subtitle="Friends, groups & community"
+            iconColor={Colors.accent}
+            onPress={() => router.push('/social' as any)}
+          />
+        </GlassCard>
+
         {/* PREFERENCES */}
         <Text style={styles.sectionLabel}>PREFERENCES</Text>
         <GlassCard style={styles.sectionCard}>

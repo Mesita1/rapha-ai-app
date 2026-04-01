@@ -14,7 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 import {
-  mockChatMessages,
   mockCurrentHRV,
   mockUser,
   mockRecentInterventions,
@@ -110,7 +109,14 @@ function ChatBubble({ message }: { message: { role: string; content: string; tim
 }
 
 export default function CoachScreen() {
-  const [messages, setMessages] = useState(mockChatMessages);
+  const [messages, setMessages] = useState<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: string }[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: "Welcome to Rapha AI! I'm your autonomic nervous system coach. Connect a heart rate device to get started with real-time HRV tracking, or log an intervention and I'll start learning what works for your body. How can I help?",
+      timestamp: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    },
+  ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);

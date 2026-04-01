@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,6 +9,7 @@ import {
   Animated,
   Linking,
   TextInput,
+  Easing,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +19,7 @@ import GlassCard from '../../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { mockTrainingHistory, mockComboProtocols, mockCurrentHRV } from '../../constants/mockData';
 import { getVerseOfTheDay, getVerseForState, scriptureVerses, ScriptureVerse } from '../../constants/scriptureData';
+import { useBLE } from '../../context/BLEContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -115,17 +117,18 @@ const EXERCISE_MODES: { key: ExerciseMode; label: string; desc: string; icon: st
   { key: 'swimming', label: 'Swimming / Water Immersion', desc: 'Dive reflex + easy movement', icon: 'water-outline', howItWorks: 'Water immersion activates the mammalian dive reflex, boosting parasympathetic tone. Even floating in cool water improves HRV. Swimming at easy pace combines cold + movement.', durations: [600, 900, 1200, 1800] },
 ];
 
-function BreathingCircle({ phase, progress }: { phase: string; progress: number }) {
+function BreathingCircle({ phase, phaseDuration }: { phase: string; phaseDuration: number }) {
   const scaleAnim = useRef(new Animated.Value(0.6)).current;
 
   useEffect(() => {
-    const targetScale = phase === 'inhale' ? 1 : phase === 'exhale' ? 0.6 : 0.8;
+    const targetScale = phase === 'Inhale' ? 1 : phase === 'Exhale' ? 0.6 : 0.8;
     Animated.timing(scaleAnim, {
       toValue: targetScale,
-      duration: 1000,
+      duration: phaseDuration * 1000,
+      easing: Easing.inOut(Easing.ease),
       useNativeDriver: true,
     }).start();
-  }, [phase]);
+  }, [phase, phaseDuration]);
 
   return (
     <View style={sessionStyles.breathCircleContainer}>
@@ -157,6 +160,58 @@ function BilateralDot({ side }: { side: 'left' | 'right' }) {
       <View style={[sessionStyles.bilateralSide, side === 'right' && sessionStyles.bilateralActive]}>
         <View style={[sessionStyles.bilateralDot, side === 'right' && sessionStyles.bilateralDotActive]} />
         <Text style={sessionStyles.bilateralLabel}>R</Text>
+      </View>
+    </View>
+  );
+}
+
+function VisualTrackingDot({ active }: { active: boolean }) {
+  const dotPosition = useRef(new Animated.Value(0)).current;
+  const trackWidth = SCREEN_WIDTH - 100; // padding
+
+  useEffect(() => {
+    if (!active) return;
+
+    const animate = () => {
+      Animated.sequence([
+        Animated.timing(dotPosition, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(dotPosition, {
+          toValue: 0,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        if (active) animate();
+      });
+    };
+    animate();
+
+    return () => {
+      dotPosition.setValue(0);
+    };
+  }, [active]);
+
+  const translateX = dotPosition.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, trackWidth],
+  });
+
+  return (
+    <View style={sessionStyles.visualTrackContainer}>
+      <Text style={sessionStyles.visualTrackInstruction}>Follow the dot with your eyes</Text>
+      <View style={sessionStyles.visualTrackLine}>
+        <Animated.View
+          style={[
+            sessionStyles.visualTrackDot,
+            { transform: [{ translateX }] },
+          ]}
+        />
       </View>
     </View>
   );
@@ -214,10 +269,15 @@ export default function TrainScreen() {
   const [selectedHummingMode, setSelectedHummingMode] = useState<HummingMode>('om');
   const [sessionDuration, setSessionDuration] = useState(300); // 5 min default
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [breathPhase, setBreathPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
+  const [breathPhase, setBreathPhase] = useState<string>('Inhale');
+  const [breathPhaseDuration, setBreathPhaseDuration] = useState(4);
   const [bilateralSide, setBilateralSide] = useState<'left' | 'right'>('left');
   const [sessionRmssd, setSessionRmssd] = useState(mockCurrentHRV.rmssd);
+  const [sessionStartRmssd, setSessionStartRmssd] = useState(mockCurrentHRV.rmssd);
+  const [sessionComplete, setSessionComplete] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const breathTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bilateralTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Scripture meditation state
   const [showScriptureMeditation, setShowScriptureMeditation] = useState(false);
@@ -258,6 +318,79 @@ export default function TrainScreen() {
 
   const breathAnimRef = useRef(new Animated.Value(0.7)).current;
 
+  // BLE integration
+  const { isConnected: bleConnected, rmssd: bleRmssd } = useBLE();
+
+  // Get breathing pattern phases with labels and durations
+  const getBreathingPhases = useCallback((mode: string): { label: string; duration: number }[] => {
+    switch (mode) {
+      case 'box':
+        return [
+          { label: 'Inhale', duration: 4 },
+          { label: 'Hold', duration: 4 },
+          { label: 'Exhale', duration: 4 },
+          { label: 'Hold', duration: 4 },
+        ];
+      case 'resonance':
+        return [
+          { label: 'Inhale', duration: 5.5 },
+          { label: 'Exhale', duration: 5.5 },
+        ];
+      case '478':
+        return [
+          { label: 'Inhale', duration: 4 },
+          { label: 'Hold', duration: 7 },
+          { label: 'Exhale', duration: 8 },
+        ];
+      default: // custom
+        return [
+          { label: 'Inhale', duration: 4 },
+          { label: 'Hold', duration: 4 },
+          { label: 'Exhale', duration: 4 },
+          { label: 'Hold', duration: 4 },
+        ];
+    }
+  }, []);
+
+  // Breathing phase cycling with correct timing
+  useEffect(() => {
+    if (!activeSession || activeSession.type !== 'breathing') return;
+
+    const phases = getBreathingPhases(activeSession.mode);
+    let phaseIndex = 0;
+    let cancelled = false;
+
+    const cyclePhase = () => {
+      if (cancelled) return;
+      const phase = phases[phaseIndex % phases.length];
+      setBreathPhase(phase.label);
+      setBreathPhaseDuration(phase.duration);
+      phaseIndex++;
+      breathTimerRef.current = setTimeout(cyclePhase, phase.duration * 1000);
+    };
+
+    cyclePhase();
+
+    return () => {
+      cancelled = true;
+      if (breathTimerRef.current) clearTimeout(breathTimerRef.current);
+    };
+  }, [activeSession, getBreathingPhases]);
+
+  // Bilateral side alternation (for non-visual-tracking modes)
+  useEffect(() => {
+    if (!activeSession || activeSession.type !== 'bilateral' || activeSession.mode === 'visual-tracking') return;
+
+    bilateralTimerRef.current = setInterval(() => {
+      setBilateralSide((prev) => prev === 'left' ? 'right' : 'left');
+    }, 1000);
+
+    return () => {
+      if (bilateralTimerRef.current) clearInterval(bilateralTimerRef.current);
+    };
+  }, [activeSession]);
+
+  // Main session timer (1s tick for elapsed time + HRV simulation)
   useEffect(() => {
     if (activeSession) {
       intervalRef.current = setInterval(() => {
@@ -268,18 +401,18 @@ export default function TrainScreen() {
           }
           return prev + 1;
         });
-        // Simulate HRV improvement
-        setSessionRmssd((prev) => prev + (Math.random() * 0.4 - 0.1));
-        // Cycle breath phases
-        setBreathPhase((prev) => prev === 'inhale' ? 'hold' : prev === 'hold' ? 'exhale' : 'inhale');
-        // Alternate bilateral sides
-        setBilateralSide((prev) => prev === 'left' ? 'right' : 'left');
+        // Use real BLE RMSSD if connected, otherwise simulate
+        if (bleConnected && bleRmssd > 0) {
+          setSessionRmssd(bleRmssd);
+        } else {
+          setSessionRmssd((prev) => prev + (Math.random() * 0.4 - 0.1));
+        }
       }, 1000);
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [activeSession]);
+  }, [activeSession, bleConnected, bleRmssd]);
 
   // Scripture meditation session timer
   useEffect(() => {
@@ -301,7 +434,11 @@ export default function TrainScreen() {
           }
           return prev + 1;
         });
-        setScriptureRmssd((prev) => prev + (Math.random() * 0.5 - 0.05));
+        if (bleConnected && bleRmssd > 0) {
+          setScriptureRmssd(bleRmssd);
+        } else {
+          setScriptureRmssd((prev) => prev + (Math.random() * 0.5 - 0.05));
+        }
       }, 1000);
     }
     return () => {
@@ -310,8 +447,9 @@ export default function TrainScreen() {
   }, [scriptureSessionActive]);
 
   const startScriptureSession = () => {
-    setScriptureStartRmssd(mockCurrentHRV.rmssd);
-    setScriptureRmssd(mockCurrentHRV.rmssd);
+    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : mockCurrentHRV.rmssd;
+    setScriptureStartRmssd(startVal);
+    setScriptureRmssd(startVal);
     setScriptureElapsed(0);
     setScriptureSessionActive(true);
     setScriptureSessionComplete(false);
@@ -343,17 +481,22 @@ export default function TrainScreen() {
           }
           return prev + 1;
         });
-        setCustomRmssd((prev) => prev + (Math.random() * 0.4 - 0.1));
+        if (bleConnected && bleRmssd > 0) {
+          setCustomRmssd(bleRmssd);
+        } else {
+          setCustomRmssd((prev) => prev + (Math.random() * 0.4 - 0.1));
+        }
       }, 1000);
     }
     return () => {
       if (customIntervalRef.current) clearInterval(customIntervalRef.current);
     };
-  }, [customSessionActive]);
+  }, [customSessionActive, bleConnected, bleRmssd]);
 
   const startCustomSession = () => {
-    setCustomStartRmssd(mockCurrentHRV.rmssd);
-    setCustomRmssd(mockCurrentHRV.rmssd);
+    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : mockCurrentHRV.rmssd;
+    setCustomStartRmssd(startVal);
+    setCustomRmssd(startVal);
     setCustomElapsed(0);
     setCustomMarkedEvents([]);
     setCustomSessionActive(true);
@@ -394,17 +537,22 @@ export default function TrainScreen() {
           }
           return prev + 1;
         });
-        setExerciseRmssd((prev) => prev + (Math.random() * 0.5 - 0.05));
+        if (bleConnected && bleRmssd > 0) {
+          setExerciseRmssd(bleRmssd);
+        } else {
+          setExerciseRmssd((prev) => prev + (Math.random() * 0.5 - 0.05));
+        }
       }, 1000);
     }
     return () => {
       if (exerciseIntervalRef.current) clearInterval(exerciseIntervalRef.current);
     };
-  }, [exerciseSessionActive]);
+  }, [exerciseSessionActive, bleConnected, bleRmssd]);
 
   const startExerciseSession = () => {
-    setExerciseStartRmssd(mockCurrentHRV.rmssd);
-    setExerciseRmssd(mockCurrentHRV.rmssd);
+    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : mockCurrentHRV.rmssd;
+    setExerciseStartRmssd(startVal);
+    setExerciseRmssd(startVal);
     setExerciseElapsed(0);
     setExerciseSessionActive(true);
     setExerciseSessionComplete(false);
@@ -427,22 +575,27 @@ export default function TrainScreen() {
   const CUSTOM_CATEGORIES = ['Frequency Device', 'Neurostimulator', 'Light Therapy', 'Sound Therapy', 'Neurofeedback', 'PEMF', 'Other'];
 
   const startSession = (type: SessionType, mode: string) => {
+    const startRmssd = bleConnected && bleRmssd > 0 ? bleRmssd : mockCurrentHRV.rmssd;
     setActiveSession({
       type,
       mode,
       startTime: Date.now(),
       durationSeconds: sessionDuration,
-      currentRmssd: mockCurrentHRV.rmssd,
+      currentRmssd: startRmssd,
     });
     setElapsedSeconds(0);
-    setSessionRmssd(mockCurrentHRV.rmssd);
+    setSessionRmssd(startRmssd);
+    setSessionStartRmssd(startRmssd);
+    setSessionComplete(false);
     setSelectedType(null);
   };
 
   const stopSession = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    if (breathTimerRef.current) clearTimeout(breathTimerRef.current);
+    if (bilateralTimerRef.current) clearInterval(bilateralTimerRef.current);
+    setSessionComplete(true);
     setActiveSession(null);
-    setElapsedSeconds(0);
   };
 
   const formatTime = (seconds: number) => {
@@ -564,9 +717,12 @@ export default function TrainScreen() {
 
             {/* Session Visualization */}
             {activeSession.type === 'breathing' && (
-              <BreathingCircle phase={breathPhase} progress={elapsedSeconds / activeSession.durationSeconds} />
+              <BreathingCircle phase={breathPhase} phaseDuration={breathPhaseDuration} />
             )}
-            {activeSession.type === 'bilateral' && (
+            {activeSession.type === 'bilateral' && activeSession.mode === 'visual-tracking' && (
+              <VisualTrackingDot active={true} />
+            )}
+            {activeSession.type === 'bilateral' && activeSession.mode !== 'visual-tracking' && (
               <BilateralDot side={bilateralSide} />
             )}
             {activeSession.type === 'humming' && (
@@ -580,8 +736,8 @@ export default function TrainScreen() {
               </View>
               <View style={styles.activeStat}>
                 <Text style={styles.activeStatLabel}>Change</Text>
-                <Text style={[styles.activeStatValue, { color: Colors.accent }]}>
-                  +{(sessionRmssd - mockCurrentHRV.rmssd).toFixed(1)} ms
+                <Text style={[styles.activeStatValue, { color: (sessionRmssd - sessionStartRmssd) >= 0 ? Colors.accent : '#ef4444' }]}>
+                  {(sessionRmssd - sessionStartRmssd) >= 0 ? '+' : ''}{(sessionRmssd - sessionStartRmssd).toFixed(1)} ms
                 </Text>
               </View>
             </View>
@@ -590,6 +746,38 @@ export default function TrainScreen() {
               <Ionicons name="stop-circle" size={18} color="#ef4444" />
               <Text style={styles.stopButtonText}>Stop</Text>
             </TouchableOpacity>
+          </GlassCard>
+        )}
+
+        {/* Post-Session Summary */}
+        {sessionComplete && !activeSession && (
+          <GlassCard style={styles.activeBanner}>
+            <View style={{ alignItems: 'center', gap: Spacing.sm }}>
+              <Ionicons name="checkmark-circle" size={40} color={Colors.accent} />
+              <Text style={styles.activeBannerTitle}>Session Complete</Text>
+              <View style={styles.activeBannerStats}>
+                <View style={styles.activeStat}>
+                  <Text style={styles.activeStatLabel}>Before</Text>
+                  <Text style={styles.activeStatValue}>{sessionStartRmssd.toFixed(1)} ms</Text>
+                </View>
+                <View style={styles.activeStat}>
+                  <Text style={styles.activeStatLabel}>After</Text>
+                  <Text style={styles.activeStatValue}>{sessionRmssd.toFixed(1)} ms</Text>
+                </View>
+                <View style={styles.activeStat}>
+                  <Text style={styles.activeStatLabel}>Delta</Text>
+                  <Text style={[styles.activeStatValue, { color: (sessionRmssd - sessionStartRmssd) >= 0 ? Colors.accent : '#ef4444' }]}>
+                    {(sessionRmssd - sessionStartRmssd) >= 0 ? '+' : ''}{(sessionRmssd - sessionStartRmssd).toFixed(1)} ms
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[styles.startButton, { backgroundColor: Colors.accent, width: '100%' }]}
+                onPress={() => setSessionComplete(false)}
+              >
+                <Text style={styles.startButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
           </GlassCard>
         )}
 
@@ -1408,6 +1596,35 @@ const sessionStyles = StyleSheet.create({
   waveBar: {
     width: 8,
     borderRadius: 4,
+  },
+  // Visual tracking dot
+  visualTrackContainer: {
+    alignItems: 'center',
+    marginVertical: Spacing.md,
+    gap: Spacing.md,
+  },
+  visualTrackInstruction: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+  },
+  visualTrackLine: {
+    width: SCREEN_WIDTH - 100,
+    height: 40,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(14,168,122,0.06)',
+    borderRadius: 20,
+  },
+  visualTrackDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.accent,
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });
 

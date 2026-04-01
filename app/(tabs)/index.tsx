@@ -31,6 +31,8 @@ import {
   mockHealthMetrics,
 } from '../../constants/mockData';
 import { getVerseOfTheDay } from '../../constants/scriptureData';
+import { useBLE } from '../../context/BLEContext';
+import { getAutonomicState } from '../../lib/bluetooth';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -48,7 +50,19 @@ const TREND_ARROW_MAP: Record<string, { symbol: string; color: string }> = {
 
 export default function DashboardScreen() {
   const [showRecommendation, setShowRecommendation] = useState(false);
+  const [showDemoData, setShowDemoData] = useState(true);
   const verseOfTheDay = getVerseOfTheDay();
+  const { isConnected, heartRate, rmssd, sdnn, rmssdHistory, connectedDevice } = useBLE();
+
+  // Derive autonomic state from real or mock data
+  const liveRmssd = isConnected ? rmssd : mockCurrentHRV.rmssd;
+  const liveHR = isConnected ? heartRate : mockCurrentHRV.heartRate;
+  const liveState = isConnected && rmssd > 0
+    ? getAutonomicState(rmssd)
+    : mockCurrentHRV.autonomicState;
+  const liveStateLabel = liveState === 'parasympathetic' ? 'Parasympathetic'
+    : liveState === 'sympathetic' ? 'Sympathetic' : 'Transitioning';
+  const sparkData = isConnected && rmssdHistory.length > 0 ? rmssdHistory : mockSparklineData;
 
   // Autonomic balance: count sympathetic vs parasympathetic hours for gauge position
   const symCount = autonomicTimeline.filter((s) => s.state === 'sympathetic').length;
@@ -83,7 +97,45 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Get Started Card (when not connected and not showing demo) */}
+        {!isConnected && !showDemoData && (
+          <GlassCard style={styles.getStartedCard}>
+            <Ionicons name="heart-circle-outline" size={40} color={Colors.accent} />
+            <Text style={styles.getStartedTitle}>Get Started</Text>
+            <Text style={styles.getStartedText}>
+              Connect a device to see your live HRV data
+            </Text>
+            <TouchableOpacity
+              style={styles.getStartedScanButton}
+              onPress={() => router.push('/(auth)/connect-device')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="bluetooth-outline" size={18} color={Colors.background} />
+              <Text style={styles.getStartedScanText}>Scan for Devices</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowDemoData(true)} activeOpacity={0.7}>
+              <Text style={styles.getStartedDemoToggle}>Explore with demo data</Text>
+            </TouchableOpacity>
+          </GlassCard>
+        )}
+
+        {/* Demo Data Badge */}
+        {!isConnected && showDemoData && (
+          <TouchableOpacity
+            style={styles.demoBadge}
+            onPress={() => router.push('/(auth)/connect-device')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.demoBadgeInner}>
+              <Ionicons name="information-circle-outline" size={14} color="#f59e0b" />
+              <Text style={styles.demoBadgeText}>Demo Data</Text>
+              <Text style={styles.demoBadgeLink}>Connect a device</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* Day-in-Review Card */}
+        {(isConnected || showDemoData) && (
         <View style={styles.reviewWrapper}>
           <LinearGradient
             colors={['rgba(14,168,122,0.25)', 'rgba(108,92,231,0.25)', 'rgba(14,168,122,0.15)']}
@@ -96,12 +148,17 @@ export default function DashboardScreen() {
                 <Ionicons name="sparkles-outline" size={16} color={Colors.accent} />
                 <Text style={styles.reviewLabel}>Day in Review</Text>
               </View>
-              <Text style={styles.reviewText}>{dayInReview}</Text>
+              <Text style={styles.reviewText}>
+                {isConnected
+                  ? `Live session in progress. Connected to ${connectedDevice?.name || 'device'}.`
+                  : dayInReview}
+              </Text>
             </View>
           </LinearGradient>
         </View>
+        )}
 
-        {/* Verse of the Day Card */}
+        {/* Verse of the Day Card - always show */}
         <View style={styles.verseCard}>
           <View style={styles.verseLeftBorder} />
           <View style={styles.verseContent}>
@@ -149,24 +206,26 @@ export default function DashboardScreen() {
         </GlassCard>
 
         {/* Live HRV Card */}
+        {(isConnected || showDemoData) && (
         <GlassCard style={styles.hrvCard} glowColor={Colors.accent}>
           <View style={styles.hrvLabelRow}>
             <Ionicons name="heart" size={16} color={Colors.accent} />
-            <Text style={styles.liveHrvText}>Live HRV</Text>
+            <Text style={styles.liveHrvText}>{isConnected ? 'Live HRV' : 'HRV (Demo)'}</Text>
           </View>
 
           <View style={styles.hrvMain}>
-            <Text style={styles.hrvValue}>{mockCurrentHRV.rmssd}</Text>
+            <Text style={styles.hrvValue}>{isConnected ? (rmssd > 0 ? rmssd.toFixed(1) : '...') : mockCurrentHRV.rmssd}</Text>
             <Text style={styles.hrvUnit}>ms</Text>
           </View>
 
           <View style={styles.hrvSecondary}>
-            <Text style={styles.bpmText}>{mockCurrentHRV.heartRate} bpm</Text>
-            <View style={styles.parasymBadge}>
-              <Text style={styles.parasymText}>Parasympathetic</Text>
+            <Text style={styles.bpmText}>{liveHR > 0 ? liveHR : '...'} bpm</Text>
+            <View style={[styles.parasymBadge, liveState === 'sympathetic' && { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
+              <Text style={[styles.parasymText, liveState === 'sympathetic' && { color: '#ef4444' }]}>{liveStateLabel}</Text>
             </View>
           </View>
         </GlassCard>
+        )}
 
         {/* Nervous System Timeline */}
         <GlassCard style={styles.timelineCard}>
@@ -206,17 +265,19 @@ export default function DashboardScreen() {
         </GlassCard>
 
         {/* HRV Trend Chart */}
+        {(isConnected || showDemoData) && (
         <GlassCard style={styles.chartCard}>
-          <Text style={styles.chartLabel}>Last 30 minutes</Text>
+          <Text style={styles.chartLabel}>{isConnected ? 'Live RMSSD Trend' : 'Last 30 minutes'}</Text>
           <View style={styles.chartContainer}>
             <SparklineChart
-              data={mockSparklineData}
+              data={sparkData}
               width={SCREEN_WIDTH - 80}
               height={80}
               color={Colors.accent}
             />
           </View>
         </GlassCard>
+        )}
 
         {/* Today's Summary */}
         <GlassCard style={styles.summaryCard}>
@@ -1213,6 +1274,77 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.sm,
     color: Colors.accent,
+  },
+  // Get Started Card
+  getStartedCard: {
+    alignItems: 'center' as const,
+    paddingVertical: Spacing.xl,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  getStartedTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.xl,
+    color: Colors.text,
+    marginTop: Spacing.sm,
+  },
+  getStartedText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.md,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  getStartedScanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.accent,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    marginTop: Spacing.sm,
+  },
+  getStartedScanText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.md,
+    color: Colors.background,
+  },
+  getStartedDemoToggle: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    textDecorationLine: 'underline' as const,
+    marginTop: Spacing.sm,
+  },
+  // Demo Badge
+  demoBadge: {
+    marginBottom: Spacing.sm,
+  },
+  demoBadgeInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.25)',
+  },
+  demoBadgeText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.xs,
+    color: '#f59e0b',
+  },
+  demoBadgeLink: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.accent,
+    textDecorationLine: 'underline' as const,
+    marginLeft: Spacing.sm,
   },
   // FAB
   fab: {

@@ -12,7 +12,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import GlassCard from '../../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
-import { mockUser, achievements } from '../../constants/mockData';
+import { achievements } from '../../constants/mockData';
+import { useAuth } from '../../context/AuthContext';
+import { useBLE } from '../../context/BLEContext';
 
 interface SettingsRowProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -77,9 +79,15 @@ function SettingsRow({
 }
 
 export default function SettingsScreen() {
+  const { user } = useAuth();
+  const { isConnected, connectedDevice } = useBLE();
   const [darkMode, setDarkMode] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [communityInsights, setCommunityInsights] = useState(false);
+
+  const userEmail = user?.email || 'Not signed in';
+  const deviceCount = isConnected && connectedDevice ? 1 : 0;
+  const deviceLabel = deviceCount > 0 ? `${deviceCount} connected` : 'No devices';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -102,14 +110,14 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="person-outline"
             label="Profile"
-            subtitle={mockUser.email}
+            subtitle={userEmail}
             iconColor="#6C5CE7"
           />
           <View style={styles.separator} />
           <SettingsRow
             icon="watch-outline"
             label="My Devices"
-            subtitle="2 connected"
+            subtitle={deviceLabel}
             iconColor="#0ea87a"
           />
           <View style={styles.separator} />

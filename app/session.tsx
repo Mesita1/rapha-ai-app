@@ -9,7 +9,6 @@ import {
   ScrollView,
   TextInput,
   Linking,
-  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -135,7 +134,7 @@ export default function SessionScreen() {
   const [selectedDuration, setSelectedDuration] = useState(10);
   const [elapsed, setElapsed] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [musicMode, setMusicMode] = useState<'none' | 'own_music' | 'builtin'>('none');
   const [feeling, setFeeling] = useState<string | null>(null);
   const [showCustomDuration, setShowCustomDuration] = useState(false);
   const [customDurationInput, setCustomDurationInput] = useState('');
@@ -168,9 +167,10 @@ export default function SessionScreen() {
     setCurrentFreq(currentMode.startFreq);
     sessionStartTime.current = Date.now();
 
-    // Start binaural beat audio
+    // Start binaural beat audio — use low volume for music overlay mode
+    const beatVolume = musicMode === 'own_music' ? 0.1 : 0.3;
     try {
-      await startBinauralBeat(200, currentMode.startFreq);
+      await startBinauralBeat(200, currentMode.startFreq, beatVolume);
     } catch (e) {
       console.warn('Failed to start binaural beat:', e);
     }
@@ -417,7 +417,7 @@ export default function SessionScreen() {
                 } else {
                   // Resume - adjust start time to account for already elapsed time
                   sessionStartTime.current = Date.now() - elapsed * 1000;
-                  startBinauralBeat(200, currentFreq);
+                  startBinauralBeat(200, currentFreq, musicMode === 'own_music' ? 0.1 : 0.3);
 
                   intervalRef.current = setInterval(() => {
                     setElapsed(() => {
@@ -567,80 +567,107 @@ export default function SessionScreen() {
           </View>
         )}
 
-        {/* Your Music Section */}
+        {/* Music + Binaural Overlay Section */}
         <View style={styles.musicSection}>
           <View style={styles.musicHeaderRow}>
-            <Text style={styles.sectionLabel}>YOUR MUSIC</Text>
+            <Text style={styles.sectionLabel}>MUSIC + BINAURAL OVERLAY</Text>
             <View style={styles.proBadge}>
               <Text style={styles.proBadgeText}>Pro</Text>
             </View>
           </View>
-          <GlassCard style={styles.musicCard}>
-            <View style={styles.youtubeRow}>
-              <TextInput
-                style={styles.youtubeInput}
-                placeholder="Paste YouTube URL..."
-                placeholderTextColor={Colors.textDim}
-                value={youtubeUrl}
-                onChangeText={setYoutubeUrl}
-              />
-              <TouchableOpacity
-                style={styles.pasteBtn}
-                onPress={() => {
-                  if (youtubeUrl.trim()) {
-                    Linking.openURL(youtubeUrl.trim()).catch(() =>
-                      Alert.alert('Invalid URL', 'Please paste a valid YouTube URL.')
-                    );
-                  }
-                }}
-              >
-                <Ionicons name="play-outline" size={18} color={Colors.purple} />
-              </TouchableOpacity>
+
+          <Text style={styles.musicExplanation}>
+            Play music from any app (Spotify, Apple Music, YouTube). Rapha AI generates a subtle binaural beat frequency underneath your music. You won't hear the beat directly — it works subliminally while you enjoy your music.
+          </Text>
+
+          {/* Option A: Play own music */}
+          <TouchableOpacity
+            style={[styles.musicModeCard, musicMode === 'own_music' && styles.musicModeCardSelected]}
+            onPress={() => setMusicMode(musicMode === 'own_music' ? 'none' : 'own_music')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.musicModeHeader}>
+              <View style={[styles.musicModeRadio, musicMode === 'own_music' && styles.musicModeRadioSelected]}>
+                {musicMode === 'own_music' && <View style={styles.musicModeRadioDot} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.musicModeTitle, musicMode === 'own_music' && styles.musicModeTitleSelected]}>
+                  I'll play my own music
+                </Text>
+                <Text style={styles.musicModeDesc}>
+                  Binaural beat overlay at very low volume (subliminal)
+                </Text>
+              </View>
+              <Ionicons name="musical-notes-outline" size={22} color={musicMode === 'own_music' ? Colors.accent : Colors.textDim} />
             </View>
-            {youtubeUrl.trim() ? (
-              <Text style={[styles.musicNote, { color: Colors.accent }]}>
-                Play your YouTube audio, then return to Rapha AI to continue HRV tracking.
+          </TouchableOpacity>
+
+          {musicMode === 'own_music' && (
+            <GlassCard style={styles.musicOverlayInfo}>
+              <View style={styles.overlayStatusRow}>
+                <View style={styles.overlayDot} />
+                <Text style={styles.overlayStatusText}>
+                  Binaural overlay will activate at {currentMode.startFreq} Hz when session starts
+                </Text>
+              </View>
+              <Text style={styles.overlayHint}>
+                Open your music app and press play. The binaural beat runs subtly underneath.
               </Text>
-            ) : null}
-            <View style={styles.musicBtnRow}>
-              <TouchableOpacity
-                style={styles.musicOptionBtn}
-                onPress={() => {
-                  Linking.openURL('music://').catch(() =>
-                    Alert.alert('Music', 'Open your music app, start playing, then return here. Rapha AI will continue tracking your HRV.')
-                  );
-                }}
-              >
-                <Ionicons name="phone-portrait-outline" size={16} color={Colors.textMuted} />
-                <Text style={styles.musicOptionText}>Device Library</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.musicOptionBtn}
-                onPress={() => {
-                  Linking.openURL('spotify://').catch(() =>
-                    Linking.openURL('https://open.spotify.com').catch(() => {})
-                  );
-                }}
-              >
-                <Ionicons name="musical-notes-outline" size={16} color={Colors.textMuted} />
-                <Text style={styles.musicOptionText}>Spotify</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.musicOptionBtn}
-                onPress={() => {
-                  Linking.openURL('music://').catch(() =>
-                    Alert.alert('Apple Music', 'Could not open Apple Music. Please open it manually.')
-                  );
-                }}
-              >
-                <Ionicons name="musical-note-outline" size={16} color={Colors.textMuted} />
-                <Text style={styles.musicOptionText}>Apple Music</Text>
-              </TouchableOpacity>
+              <View style={styles.quickLaunchRow}>
+                <TouchableOpacity
+                  style={styles.quickLaunchBtn}
+                  onPress={() => {
+                    Linking.openURL('spotify://').catch(() =>
+                      Linking.openURL('https://open.spotify.com').catch(() => {})
+                    );
+                  }}
+                >
+                  <Ionicons name="musical-notes-outline" size={16} color={Colors.purple} />
+                  <Text style={styles.quickLaunchText}>Spotify</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.quickLaunchBtn}
+                  onPress={() => {
+                    Linking.openURL('music://').catch(() => {});
+                  }}
+                >
+                  <Ionicons name="musical-note-outline" size={16} color={Colors.purple} />
+                  <Text style={styles.quickLaunchText}>Apple Music</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.quickLaunchBtn}
+                  onPress={() => {
+                    Linking.openURL('https://youtube.com').catch(() => {});
+                  }}
+                >
+                  <Ionicons name="logo-youtube" size={16} color={Colors.purple} />
+                  <Text style={styles.quickLaunchText}>YouTube</Text>
+                </TouchableOpacity>
+              </View>
+            </GlassCard>
+          )}
+
+          {/* Option B: Built-in tones only */}
+          <TouchableOpacity
+            style={[styles.musicModeCard, musicMode === 'builtin' && styles.musicModeCardSelected]}
+            onPress={() => setMusicMode(musicMode === 'builtin' ? 'none' : 'builtin')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.musicModeHeader}>
+              <View style={[styles.musicModeRadio, musicMode === 'builtin' && styles.musicModeRadioSelected]}>
+                {musicMode === 'builtin' && <View style={styles.musicModeRadioDot} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.musicModeTitle, musicMode === 'builtin' && styles.musicModeTitleSelected]}>
+                  Use built-in tones only
+                </Text>
+                <Text style={styles.musicModeDesc}>
+                  Binaural beat at normal volume, no external music
+                </Text>
+              </View>
+              <Ionicons name="headset-outline" size={22} color={musicMode === 'builtin' ? Colors.purple : Colors.textDim} />
             </View>
-            <Text style={styles.musicNote}>
-              Play your music externally, then return here. Rapha AI continues HRV tracking in the background.
-            </Text>
-          </GlassCard>
+          </TouchableOpacity>
         </View>
 
         {/* Start Session Button */}
@@ -770,7 +797,7 @@ const styles = StyleSheet.create({
   durationTextSelected: {
     color: Colors.accent,
   },
-  // Music Section
+  // Music + Binaural Overlay Section
   musicSection: {
     marginBottom: Spacing.xl,
   },
@@ -793,41 +820,95 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: Colors.purple,
   },
-  musicCard: {
-    gap: Spacing.sm,
-  },
-  youtubeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  youtubeInput: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    borderColor: Colors.surfaceBorder,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
+  musicExplanation: {
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.sm,
-    color: Colors.text,
+    color: Colors.textMuted,
+    lineHeight: 20,
+    marginBottom: Spacing.md,
   },
-  pasteBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.purpleLight,
+  musicModeCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  musicModeCardSelected: {
+    borderColor: 'rgba(14, 168, 122, 0.5)',
+    backgroundColor: 'rgba(14, 168, 122, 0.06)',
+  },
+  musicModeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  musicModeRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: Colors.textDim,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(108, 92, 231, 0.2)',
   },
-  musicBtnRow: {
+  musicModeRadioSelected: {
+    borderColor: Colors.accent,
+  },
+  musicModeRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.accent,
+  },
+  musicModeTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.textMuted,
+  },
+  musicModeTitleSelected: {
+    color: Colors.text,
+  },
+  musicModeDesc: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+    marginTop: 2,
+  },
+  musicOverlayInfo: {
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  overlayStatusRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm,
   },
-  musicOptionBtn: {
+  overlayDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.accent,
+  },
+  overlayStatusText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.accent,
+    flex: 1,
+  },
+  overlayHint: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    lineHeight: 17,
+  },
+  quickLaunchRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  quickLaunchBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -835,21 +916,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: Spacing.sm + 2,
     borderRadius: BorderRadius.sm,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: Colors.purpleLight,
     borderWidth: 1,
-    borderColor: Colors.surfaceBorder,
+    borderColor: 'rgba(108, 92, 231, 0.2)',
   },
-  musicOptionText: {
+  quickLaunchText: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.xs,
-    color: Colors.textMuted,
-  },
-  musicNote: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: FontSize.xs,
-    color: Colors.textDim,
-    textAlign: 'center',
-    lineHeight: 17,
+    color: Colors.purple,
   },
   // Start Button
   startBtn: {

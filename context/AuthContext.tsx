@@ -11,6 +11,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   isOnboarded: boolean;
   setIsOnboarded: (val: boolean) => void;
+  displayName: string;
+  setDisplayName: (name: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,12 +24,15 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   isOnboarded: false,
   setIsOnboarded: () => {},
+  displayName: '',
+  setDisplayName: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnboarded, setIsOnboarded] = useState(false);
+  const [displayName, setDisplayName] = useState('');
 
   useEffect(() => {
     // Gracefully handle Supabase connection failures (e.g. missing credentials)
@@ -98,6 +103,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         isOnboarded,
         setIsOnboarded,
+        displayName,
+        setDisplayName,
       }}
     >
       {children}

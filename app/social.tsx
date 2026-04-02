@@ -20,6 +20,9 @@ type SocialTab = 'friends' | 'groups' | 'community';
 export default function SocialScreen() {
   const [activeTab, setActiveTab] = useState<SocialTab>('friends');
   const [groupCode, setGroupCode] = useState('');
+  const [searchEmail, setSearchEmail] = useState('');
+  const [emailSearchResult, setEmailSearchResult] = useState<'none' | 'not_found' | null>(null);
+  const [showContactsInfo, setShowContactsInfo] = useState(false);
 
   const handleInviteFriends = async () => {
     try {
@@ -31,6 +34,13 @@ export default function SocialScreen() {
 
   const handleSendEncouragement = () => {
     // Placeholder - would send push notification
+  };
+
+  const handleFindByEmail = () => {
+    const trimmed = searchEmail.trim().toLowerCase();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return;
+    // Placeholder — when backend is connected, this will search the users table
+    setEmailSearchResult('not_found');
   };
 
   return (
@@ -63,6 +73,85 @@ export default function SocialScreen() {
         {/* Friends Tab */}
         {activeTab === 'friends' && (
           <>
+            {/* Find Friends from Contacts */}
+            <GlassCard style={styles.findFriendsCard}>
+              <View style={styles.findFriendsRow}>
+                <View style={styles.findFriendsIcon}>
+                  <Ionicons name="people-outline" size={22} color={Colors.accent} />
+                </View>
+                <View style={styles.findFriendsInfo}>
+                  <Text style={styles.findFriendsTitle}>Find Friends from Contacts</Text>
+                  <Text style={styles.findFriendsDesc}>
+                    See which of your contacts are already on Rapha AI
+                  </Text>
+                </View>
+              </View>
+              {!showContactsInfo ? (
+                <TouchableOpacity
+                  style={styles.findFriendsBtn}
+                  onPress={() => setShowContactsInfo(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="search-outline" size={16} color={Colors.accent} />
+                  <Text style={styles.findFriendsBtnText}>Check Contacts</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.contactsInfoBox}>
+                  <Ionicons name="information-circle-outline" size={18} color={Colors.accent} />
+                  <Text style={styles.contactsInfoText}>
+                    Contact sync coming soon! In the meantime, invite friends directly.
+                  </Text>
+                </View>
+              )}
+              <Text style={styles.contactsPrivacy}>
+                Rapha AI can check your contacts to find friends already using the app. We never store or upload your contacts.
+              </Text>
+            </GlassCard>
+
+            {/* Find by Email */}
+            <GlassCard style={styles.findByEmailCard}>
+              <View style={styles.findFriendsRow}>
+                <View style={[styles.findFriendsIcon, { backgroundColor: Colors.purpleLight }]}>
+                  <Ionicons name="mail-outline" size={22} color={Colors.purple} />
+                </View>
+                <View style={styles.findFriendsInfo}>
+                  <Text style={styles.findFriendsTitle}>Find by Email</Text>
+                  <Text style={styles.findFriendsDesc}>
+                    Search for a friend by their email address
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.emailSearchRow}>
+                <TextInput
+                  style={styles.emailSearchInput}
+                  placeholder="Enter friend's email"
+                  placeholderTextColor={Colors.textDim}
+                  value={searchEmail}
+                  onChangeText={(text) => {
+                    setSearchEmail(text);
+                    setEmailSearchResult(null);
+                  }}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+                <TouchableOpacity style={styles.emailSearchBtn} onPress={handleFindByEmail}>
+                  <Text style={styles.emailSearchBtnText}>Search</Text>
+                </TouchableOpacity>
+              </View>
+              {emailSearchResult === 'not_found' && (
+                <View style={styles.emailNotFound}>
+                  <Text style={styles.emailNotFoundText}>
+                    No user found — invite them to Rapha AI!
+                  </Text>
+                  <TouchableOpacity style={styles.emailInviteBtn} onPress={handleInviteFriends}>
+                    <Ionicons name="share-outline" size={14} color={Colors.accent} />
+                    <Text style={styles.emailInviteBtnText}>Send Invite</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </GlassCard>
+
+            {/* Invite Friends */}
             <TouchableOpacity style={styles.primaryButton} onPress={handleInviteFriends} activeOpacity={0.8}>
               <Ionicons name="person-add-outline" size={18} color={Colors.white} />
               <Text style={styles.primaryButtonText}>Invite Friends</Text>
@@ -390,6 +479,136 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textDim,
     fontStyle: 'italic',
+  },
+  // Find Friends
+  findFriendsCard: {
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  findFriendsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  findFriendsIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(14,168,122,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  findFriendsInfo: {
+    flex: 1,
+  },
+  findFriendsTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  findFriendsDesc: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  findFriendsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(14,168,122,0.12)',
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(14,168,122,0.25)',
+  },
+  findFriendsBtnText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.accent,
+  },
+  contactsInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(14,168,122,0.08)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.md,
+  },
+  contactsInfoText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.accent,
+    flex: 1,
+    lineHeight: 18,
+  },
+  contactsPrivacy: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs - 1,
+    color: Colors.textDim,
+    lineHeight: 15,
+    textAlign: 'center',
+  },
+  findByEmailCard: {
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  emailSearchRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  emailSearchInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  emailSearchBtn: {
+    backgroundColor: Colors.purple,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emailSearchBtnText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.white,
+  },
+  emailNotFound: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  emailNotFoundText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+  emailInviteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(14,168,122,0.12)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(14,168,122,0.25)',
+  },
+  emailInviteBtnText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.accent,
   },
   // Groups
   groupButtonRow: {

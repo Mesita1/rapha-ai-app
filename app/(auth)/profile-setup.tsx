@@ -25,8 +25,8 @@ const healthGoalOptions = [
 ];
 
 export default function ProfileSetupScreen() {
-  const { setIsOnboarded } = useAuth();
-  const [name, setName] = useState('');
+  const { setIsOnboarded, displayName, setDisplayName } = useAuth();
+  const [name, setName] = useState(displayName || '');
   const [age, setAge] = useState('');
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
@@ -44,6 +44,9 @@ export default function ProfileSetupScreen() {
   };
 
   const handleStart = () => {
+    if (!name.trim()) return;
+    // Persist the display name so greeting can use it
+    setDisplayName(name.trim());
     setIsOnboarded(true);
     router.replace('/(tabs)');
   };

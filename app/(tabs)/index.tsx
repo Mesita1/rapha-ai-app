@@ -31,6 +31,7 @@ import {
 } from '../../constants/mockData';
 import { getVerseOfTheDay } from '../../constants/scriptureData';
 import { useBLE } from '../../context/BLEContext';
+import { useAuth } from '../../context/AuthContext';
 import { useInterventions } from '../../context/InterventionContext';
 import { getAutonomicState } from '../../lib/bluetooth';
 
@@ -69,6 +70,7 @@ export default function DashboardScreen() {
   const [showHrvDetails, setShowHrvDetails] = useState(false);
   const verseOfTheDay = getVerseOfTheDay();
   const { interventions } = useInterventions();
+  const { displayName } = useAuth();
   const { isConnected, heartRate, rmssd, sdnn, rmssdHistory, rrIntervals, connectedDevice } = useBLE();
 
   // Derive autonomic state from real or mock data
@@ -106,7 +108,7 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hi, there</Text>
+            <Text style={styles.greeting}>Hi, {displayName || 'there'}</Text>
             {!isConnected && (
               <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, marginTop: 2 }}>
                 Your healing journey begins here

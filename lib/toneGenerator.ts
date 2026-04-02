@@ -9,6 +9,7 @@ let baseFreq = 200;
 export async function startBinauralBeat(
   baseFrequency: number,
   beatFrequency: number,
+  volume: number = 0.3,
 ): Promise<void> {
   baseFreq = baseFrequency;
 
@@ -25,7 +26,7 @@ export async function startBinauralBeat(
       webOscLeft.frequency.value = baseFrequency;
       webOscLeft.type = 'sine';
       const gainLeft = webAudioCtx.createGain();
-      gainLeft.gain.value = 0.3;
+      gainLeft.gain.value = volume;
       webOscLeft.connect(gainLeft);
       gainLeft.connect(merger, 0, 0);
 
@@ -34,7 +35,7 @@ export async function startBinauralBeat(
       webOscRight.frequency.value = baseFrequency + beatFrequency;
       webOscRight.type = 'sine';
       const gainRight = webAudioCtx.createGain();
-      gainRight.gain.value = 0.3;
+      gainRight.gain.value = volume;
       webOscRight.connect(gainRight);
       gainRight.connect(merger, 0, 1);
 
@@ -80,8 +81,8 @@ export async function startBinauralBeat(
       // Generate stereo sine waves
       for (let i = 0; i < numSamples; i++) {
         const t = i / sampleRate;
-        const leftSample = Math.sin(2 * Math.PI * baseFrequency * t) * 0.3;
-        const rightSample = Math.sin(2 * Math.PI * (baseFrequency + beatFrequency) * t) * 0.3;
+        const leftSample = Math.sin(2 * Math.PI * baseFrequency * t) * volume;
+        const rightSample = Math.sin(2 * Math.PI * (baseFrequency + beatFrequency) * t) * volume;
 
         view.setInt16(44 + i * 4, leftSample * 32767, true);
         view.setInt16(44 + i * 4 + 2, rightSample * 32767, true);
@@ -97,7 +98,7 @@ export async function startBinauralBeat(
       const uri = `data:audio/wav;base64,${base64}`;
 
       sound = new Audio.Sound();
-      await sound.loadAsync({ uri }, { isLooping: true, volume: 0.5 });
+      await sound.loadAsync({ uri }, { isLooping: true, volume: Math.min(volume * 1.7, 1.0) });
       await sound.playAsync();
     } catch (e) {
       console.warn('Binaural audio failed:', e);

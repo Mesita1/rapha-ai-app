@@ -22,7 +22,6 @@ import {
   mockSparklineData,
   mockMetrics,
   mockTodaySummary,
-  mockRecentInterventions,
   dayInReview,
   autonomicTimeline,
   bodyBattery,
@@ -32,6 +31,7 @@ import {
 } from '../../constants/mockData';
 import { getVerseOfTheDay } from '../../constants/scriptureData';
 import { useBLE } from '../../context/BLEContext';
+import { useInterventions } from '../../context/InterventionContext';
 import { getAutonomicState } from '../../lib/bluetooth';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -68,6 +68,7 @@ export default function DashboardScreen() {
   const [showDemoData, setShowDemoData] = useState(false);
   const [showHrvDetails, setShowHrvDetails] = useState(false);
   const verseOfTheDay = getVerseOfTheDay();
+  const { interventions } = useInterventions();
   const { isConnected, heartRate, rmssd, sdnn, rmssdHistory, rrIntervals, connectedDevice } = useBLE();
 
   // Derive autonomic state from real or mock data
@@ -423,7 +424,7 @@ export default function DashboardScreen() {
             <View style={styles.summaryItem}>
               <Ionicons name="clipboard-outline" size={20} color={Colors.textMuted} />
               <Text style={styles.summaryLabel}>Interventions</Text>
-              <Text style={styles.summaryValue}>0</Text>
+              <Text style={styles.summaryValue}>{interventions.filter(i => new Date(i.timestamp).toDateString() === new Date().toDateString()).length}</Text>
             </View>
             <View style={styles.summaryItem}>
               <Ionicons name="moon-outline" size={20} color={Colors.textMuted} />
@@ -711,23 +712,55 @@ export default function DashboardScreen() {
           </GlassCard>
         </TouchableOpacity>
 
+        {/* Community Card */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => router.push('/social')}
+        >
+          <GlassCard style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.sm + 4 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.purpleLight, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="people-outline" size={22} color={Colors.purple} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: Colors.text }}>Rapha Community</Text>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12, color: Colors.textMuted }}>Connect with friends and groups</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textDim} />
+          </GlassCard>
+        </TouchableOpacity>
+
         {/* Recent Interventions */}
         <View style={styles.interventionsSection}>
           <Text style={styles.sectionTitle}>Recent Interventions</Text>
-          <GlassCard style={{ alignItems: 'center', paddingVertical: Spacing.lg, gap: Spacing.sm }}>
-            <Ionicons name="clipboard-outline" size={24} color={Colors.textMuted} />
-            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center' }}>
-              Log your first intervention to see it here
-            </Text>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.accentLight, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full }}
-              onPress={() => router.push('/log-intervention')}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="add-circle-outline" size={16} color={Colors.accent} />
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: Colors.accent }}>Log Intervention</Text>
-            </TouchableOpacity>
-          </GlassCard>
+          {interventions.length > 0 ? (
+            <GlassCard style={{ gap: Spacing.sm }}>
+              {interventions.slice(0, 5).map((item) => (
+                <View key={item.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: Colors.surfaceBorder }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 14, color: Colors.text }}>{item.name}</Text>
+                    <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12, color: Colors.textMuted }}>
+                      {item.category} · {new Date(item.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </GlassCard>
+          ) : (
+            <GlassCard style={{ alignItems: 'center', paddingVertical: Spacing.lg, gap: Spacing.sm }}>
+              <Ionicons name="clipboard-outline" size={24} color={Colors.textMuted} />
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center' }}>
+                Log your first intervention to see it here
+              </Text>
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.accentLight, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full }}
+                onPress={() => router.push('/log-intervention')}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="add-circle-outline" size={16} color={Colors.accent} />
+                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: Colors.accent }}>Log Intervention</Text>
+              </TouchableOpacity>
+            </GlassCard>
+          )}
         </View>
 
         {/* Bottom spacing for tab bar + FAB */}

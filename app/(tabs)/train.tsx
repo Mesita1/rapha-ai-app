@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import GlassCard from '../../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius, Shadows } from '../../constants/theme';
-import { mockTrainingHistory, mockComboProtocols, mockCurrentHRV } from '../../constants/mockData';
+import { mockTrainingHistory, mockComboProtocols } from '../../constants/mockData';
 import { getVerseOfTheDay, getVerseForState, scriptureVerses, ScriptureVerse } from '../../constants/scriptureData';
 import { useBLE } from '../../context/BLEContext';
 
@@ -248,7 +248,7 @@ const SCRIPTURE_CATEGORIES: { key: ScriptureCategory; label: string; icon: strin
 
 function getVersesForCategory(category: ScriptureCategory): ScriptureVerse[] {
   if (category === 'today') return [getVerseOfTheDay()];
-  if (category === 'forMyState') return [getVerseForState(mockCurrentHRV.autonomicState)];
+  if (category === 'forMyState') return [getVerseForState('balanced')];
   const tagMap: Record<string, string[]> = {
     peace: ['peace', 'stillness', 'rest', 'calm'],
     healing: ['healing', 'wounds', 'comfort'],
@@ -274,8 +274,8 @@ export default function TrainScreen() {
   const [breathPhase, setBreathPhase] = useState<string>('Inhale');
   const [breathPhaseDuration, setBreathPhaseDuration] = useState(4);
   const [bilateralSide, setBilateralSide] = useState<'left' | 'right'>('left');
-  const [sessionRmssd, setSessionRmssd] = useState(mockCurrentHRV.rmssd);
-  const [sessionStartRmssd, setSessionStartRmssd] = useState(mockCurrentHRV.rmssd);
+  const [sessionRmssd, setSessionRmssd] = useState(0);
+  const [sessionStartRmssd, setSessionStartRmssd] = useState(0);
   const [sessionComplete, setSessionComplete] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const breathTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -288,17 +288,17 @@ export default function TrainScreen() {
   const [scriptureDuration, setScriptureDuration] = useState(300);
   const [scriptureSessionActive, setScriptureSessionActive] = useState(false);
   const [scriptureElapsed, setScriptureElapsed] = useState(0);
-  const [scriptureRmssd, setScriptureRmssd] = useState(mockCurrentHRV.rmssd);
+  const [scriptureRmssd, setScriptureRmssd] = useState(0);
   const [scriptureSessionComplete, setScriptureSessionComplete] = useState(false);
-  const [scriptureStartRmssd, setScriptureStartRmssd] = useState(mockCurrentHRV.rmssd);
+  const [scriptureStartRmssd, setScriptureStartRmssd] = useState(0);
   const [reflectionPromptIndex, setReflectionPromptIndex] = useState(0);
   const scriptureIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [scriptureMode, setScriptureMode] = useState<'scripture' | 'prayer'>('scripture');
   const [prayerDuration, setPrayerDuration] = useState(300);
   const [prayerSessionActive, setPrayerSessionActive] = useState(false);
   const [prayerElapsed, setPrayerElapsed] = useState(0);
-  const [prayerRmssd, setPrayerRmssd] = useState(mockCurrentHRV.rmssd);
-  const [prayerStartRmssd, setPrayerStartRmssd] = useState(mockCurrentHRV.rmssd);
+  const [prayerRmssd, setPrayerRmssd] = useState(0);
+  const [prayerStartRmssd, setPrayerStartRmssd] = useState(0);
   const [prayerSessionComplete, setPrayerSessionComplete] = useState(false);
   const prayerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prayerBreathAnimRef = useRef(new Animated.Value(0.7)).current;
@@ -311,8 +311,8 @@ export default function TrainScreen() {
   const [customDuration, setCustomDuration] = useState(600);
   const [customSessionActive, setCustomSessionActive] = useState(false);
   const [customElapsed, setCustomElapsed] = useState(0);
-  const [customRmssd, setCustomRmssd] = useState(mockCurrentHRV.rmssd);
-  const [customStartRmssd, setCustomStartRmssd] = useState(mockCurrentHRV.rmssd);
+  const [customRmssd, setCustomRmssd] = useState(0);
+  const [customStartRmssd, setCustomStartRmssd] = useState(0);
   const [customSessionComplete, setCustomSessionComplete] = useState(false);
   const [customMarkedEvents, setCustomMarkedEvents] = useState<{ time: number; note: string }[]>([]);
   const customIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -323,8 +323,8 @@ export default function TrainScreen() {
   const [exerciseDuration, setExerciseDuration] = useState(1800);
   const [exerciseSessionActive, setExerciseSessionActive] = useState(false);
   const [exerciseElapsed, setExerciseElapsed] = useState(0);
-  const [exerciseRmssd, setExerciseRmssd] = useState(mockCurrentHRV.rmssd);
-  const [exerciseStartRmssd, setExerciseStartRmssd] = useState(mockCurrentHRV.rmssd);
+  const [exerciseRmssd, setExerciseRmssd] = useState(0);
+  const [exerciseStartRmssd, setExerciseStartRmssd] = useState(0);
   const [exerciseSessionComplete, setExerciseSessionComplete] = useState(false);
   const exerciseIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -454,11 +454,9 @@ export default function TrainScreen() {
           }
           return prev + 1;
         });
-        // Use real BLE RMSSD if connected, otherwise simulate
+        // Use real BLE RMSSD if connected
         if (bleConnected && bleRmssd > 0) {
           setSessionRmssd(bleRmssd);
-        } else {
-          setSessionRmssd((prev) => prev + (Math.random() * 0.4 - 0.1));
         }
       }, 1000);
     }
@@ -489,8 +487,6 @@ export default function TrainScreen() {
         });
         if (bleConnected && bleRmssd > 0) {
           setScriptureRmssd(bleRmssd);
-        } else {
-          setScriptureRmssd((prev) => prev + (Math.random() * 0.5 - 0.05));
         }
       }, 1000);
     }
@@ -529,8 +525,6 @@ export default function TrainScreen() {
         });
         if (bleConnected && bleRmssd > 0) {
           setPrayerRmssd(bleRmssd);
-        } else {
-          setPrayerRmssd((prev) => prev + (Math.random() * 0.5 - 0.05));
         }
       }, 1000);
     }
@@ -540,7 +534,7 @@ export default function TrainScreen() {
   }, [prayerSessionActive]);
 
   const startScriptureSession = () => {
-    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : mockCurrentHRV.rmssd;
+    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : 0;
     setScriptureStartRmssd(startVal);
     setScriptureRmssd(startVal);
     setScriptureElapsed(0);
@@ -564,7 +558,7 @@ export default function TrainScreen() {
   };
 
   const startPrayerSession = () => {
-    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : mockCurrentHRV.rmssd;
+    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : 0;
     setPrayerStartRmssd(startVal);
     setPrayerRmssd(startVal);
     setPrayerElapsed(0);
@@ -598,8 +592,6 @@ export default function TrainScreen() {
         });
         if (bleConnected && bleRmssd > 0) {
           setCustomRmssd(bleRmssd);
-        } else {
-          setCustomRmssd((prev) => prev + (Math.random() * 0.4 - 0.1));
         }
       }, 1000);
     }
@@ -609,7 +601,7 @@ export default function TrainScreen() {
   }, [customSessionActive, bleConnected, bleRmssd]);
 
   const startCustomSession = () => {
-    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : mockCurrentHRV.rmssd;
+    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : 0;
     setCustomStartRmssd(startVal);
     setCustomRmssd(startVal);
     setCustomElapsed(0);
@@ -654,8 +646,6 @@ export default function TrainScreen() {
         });
         if (bleConnected && bleRmssd > 0) {
           setExerciseRmssd(bleRmssd);
-        } else {
-          setExerciseRmssd((prev) => prev + (Math.random() * 0.5 - 0.05));
         }
       }, 1000);
     }
@@ -665,7 +655,7 @@ export default function TrainScreen() {
   }, [exerciseSessionActive, bleConnected, bleRmssd]);
 
   const startExerciseSession = () => {
-    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : mockCurrentHRV.rmssd;
+    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : 0;
     setExerciseStartRmssd(startVal);
     setExerciseRmssd(startVal);
     setExerciseElapsed(0);
@@ -690,7 +680,7 @@ export default function TrainScreen() {
   const CUSTOM_CATEGORIES = ['Frequency Device', 'Neurostimulator', 'Light Therapy', 'Sound Therapy', 'Neurofeedback', 'PEMF', 'Other'];
 
   const startSession = (type: SessionType, mode: string) => {
-    const startRmssd = bleConnected && bleRmssd > 0 ? bleRmssd : mockCurrentHRV.rmssd;
+    const startRmssd = bleConnected && bleRmssd > 0 ? bleRmssd : 0;
     setActiveSession({
       type,
       mode,
@@ -1711,7 +1701,7 @@ export default function TrainScreen() {
                 <>
                   <GlassCard style={{ backgroundColor: 'rgba(212,165,116,0.06)', borderWidth: 0, marginBottom: Spacing.md }}>
                     <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: Colors.text, lineHeight: 22, textAlign: 'center' }}>
-                      Talk to God like He's your loving heavenly Father. You can bring all your problems, guilt, and shame. Come as you are — you are deeply loved.
+                      Talk to God like He's your loving heavenly Father. Bring everything to Him — your worries, your hopes, your gratitude. Come as you are. You are deeply loved.
                     </Text>
                   </GlassCard>
 

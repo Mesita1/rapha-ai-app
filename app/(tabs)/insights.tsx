@@ -14,8 +14,8 @@ import {
   communityDiscoveries,
   interventionStacks,
   mockPopularSupplements,
-  mockAthleteInsights,
 } from '../../constants/mockData';
+import { useInterventions } from '../../context/InterventionContext';
 
 function SupplementRow({
   item,
@@ -87,6 +87,7 @@ export default function InsightsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState('This Week');
   const [expandedSupplement, setExpandedSupplement] = useState<string | null>(null);
   const topStack = interventionStacks[0];
+  const { interventions } = useInterventions();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -110,12 +111,25 @@ export default function InsightsScreen() {
           </View>
 
           <GlassCard style={styles.interventionsCard}>
-            <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
-              <Ionicons name="bar-chart-outline" size={28} color={Colors.textMuted} />
-              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 }}>
-                Start tracking interventions to see your patterns here
-              </Text>
-            </View>
+            {interventions.length > 0 ? (
+              <View style={{ gap: 8 }}>
+                {interventions.slice(0, 5).map((item) => (
+                  <View key={item.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: Colors.surfaceBorder }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.text }}>{item.name}</Text>
+                      <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>{item.category} · {new Date(item.timestamp).toLocaleDateString()}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
+                <Ionicons name="bar-chart-outline" size={28} color={Colors.textMuted} />
+                <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 }}>
+                  Start tracking to see your patterns
+                </Text>
+              </View>
+            )}
           </GlassCard>
         </View>
 
@@ -130,7 +144,7 @@ export default function InsightsScreen() {
             <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
               <Ionicons name="barbell-outline" size={28} color={Colors.textMuted} />
               <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 }}>
-                Log workouts to see how exercise affects your HRV
+                Log workouts to see exercise effects
               </Text>
             </View>
           </GlassCard>
@@ -180,21 +194,12 @@ export default function InsightsScreen() {
           </View>
 
           <GlassCard style={styles.stackAnalysisCard}>
-            <Text style={styles.stackAnalysisSubtitle}>Top synergistic combinations</Text>
-            {mockAthleteInsights.stackAnalysis.map((stack) => {
-              const isPositive = stack.netDelta >= 0;
-              return (
-                <View key={stack.stack} style={styles.stackAnalysisRow}>
-                  <View style={styles.stackAnalysisInfo}>
-                    <Text style={styles.stackAnalysisName}>{stack.stack}</Text>
-                    <Text style={styles.stackAnalysisNote}>{stack.note}</Text>
-                  </View>
-                  <Text style={[styles.stackAnalysisDelta, { color: isPositive ? Colors.accent : Colors.negative }]}>
-                    {isPositive ? '+' : ''}{stack.netDelta}ms
-                  </Text>
-                </View>
-              );
-            })}
+            <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
+              <Ionicons name="git-merge-outline" size={28} color={Colors.textMuted} />
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 }}>
+                Log multiple interventions to discover synergistic combinations
+              </Text>
+            </View>
           </GlassCard>
         </View>
 

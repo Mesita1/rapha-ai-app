@@ -13,7 +13,9 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, BorderRadius } from '../constants/theme';
-import { interventionCategories, prayerSubcategories, mockCurrentHRV } from '../constants/mockData';
+import { interventionCategories, prayerSubcategories } from '../constants/mockData';
+import { useBLE } from '../context/BLEContext';
+import { useInterventions } from '../context/InterventionContext';
 
 let Haptics: any = null;
 try { Haptics = require('expo-haptics'); } catch {}
@@ -23,9 +25,17 @@ export default function LogInterventionScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPrayerSub, setSelectedPrayerSub] = useState<string | null>(null);
   const [isLogged, setIsLogged] = useState(false);
+  const { isConnected, rmssd } = useBLE();
+  const { addIntervention } = useInterventions();
 
   const handleLog = () => {
     if (!text.trim()) return;
+    addIntervention({
+      name: text.trim(),
+      category: selectedCategory || 'other',
+      subcategory: selectedPrayerSub || undefined,
+      preRmssd: isConnected && rmssd > 0 ? rmssd : undefined,
+    });
     try { Haptics?.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
     setIsLogged(true);
     setTimeout(() => router.back(), 1500);
@@ -38,7 +48,9 @@ export default function LogInterventionScreen() {
           <Ionicons name="checkmark-circle" size={64} color={Colors.accent} />
           <Text style={styles.successTitle}>Logged!</Text>
           <Text style={styles.successSubtitle}>
-            Current RMSSD: {mockCurrentHRV.rmssd}ms — I'll track how your system responds.
+            {isConnected && rmssd > 0
+              ? `Current RMSSD: ${rmssd.toFixed(1)}ms — I'll track how your system responds.`
+              : "Logged! I'll track how your system responds once a device is connected."}
           </Text>
         </View>
       </SafeAreaView>

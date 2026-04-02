@@ -12,6 +12,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '../context/AuthContext';
 import { BLEProvider } from '../context/BLEContext';
+import { InterventionProvider } from '../context/InterventionContext';
 import { Colors } from '../constants/theme';
 
 // Conditionally import native-only modules
@@ -56,6 +57,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <BLEProvider>
+          <InterventionProvider>
           <View style={styles.root}>
             <StatusBar style="light" />
             <Stack
@@ -118,6 +120,7 @@ export default function RootLayout() {
               />
             </Stack>
           </View>
+          </InterventionProvider>
           </BLEProvider>
         </AuthProvider>
       </QueryClientProvider>

@@ -8,6 +8,8 @@ import {
   Dimensions,
   ScrollView,
   TextInput,
+  Linking,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,8 +18,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Circle } from 'react-native-svg';
 import GlassCard from '../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius } from '../constants/theme';
-import { mockCurrentHRV } from '../constants/mockData';
 import { startBinauralBeat, stopBinauralBeat, updateBeatFrequency } from '../lib/toneGenerator';
+import { useBLE } from '../context/BLEContext';
 
 let Haptics: any = null;
 try { Haptics = require('expo-haptics'); } catch {}
@@ -127,6 +129,7 @@ function HrvSparkline({ data }: { data: number[] }) {
 }
 
 export default function SessionScreen() {
+  const { isConnected: bleConnected, rmssd: bleRmssd } = useBLE();
   const [phase, setPhase] = useState<SessionPhase>('selection');
   const [selectedMode, setSelectedMode] = useState('calm');
   const [selectedDuration, setSelectedDuration] = useState(10);
@@ -137,11 +140,12 @@ export default function SessionScreen() {
   const [showCustomDuration, setShowCustomDuration] = useState(false);
   const [customDurationInput, setCustomDurationInput] = useState('');
 
-  // Simulated HRV values during session
-  const [currentRmssd, setCurrentRmssd] = useState(mockCurrentHRV.rmssd);
+  // HRV values during session — use real BLE data when connected, show '--' otherwise
+  const initialRmssd = bleConnected && bleRmssd > 0 ? bleRmssd : 0;
+  const [currentRmssd, setCurrentRmssd] = useState(initialRmssd);
   const [currentFreq, setCurrentFreq] = useState(9.2);
-  const [hrvHistory, setHrvHistory] = useState<number[]>([mockCurrentHRV.rmssd]);
-  const startRmssd = useRef(mockCurrentHRV.rmssd);
+  const [hrvHistory, setHrvHistory] = useState<number[]>(initialRmssd > 0 ? [initialRmssd] : []);
+  const startRmssd = useRef(initialRmssd);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const freqShiftRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -157,9 +161,10 @@ export default function SessionScreen() {
     setPhase('active');
     setElapsed(0);
     setIsPlaying(true);
-    startRmssd.current = mockCurrentHRV.rmssd;
-    setCurrentRmssd(mockCurrentHRV.rmssd);
-    setHrvHistory([mockCurrentHRV.rmssd]);
+    const startVal = bleConnected && bleRmssd > 0 ? bleRmssd : 0;
+    startRmssd.current = startVal;
+    setCurrentRmssd(startVal);
+    setHrvHistory(startVal > 0 ? [startVal] : []);
     setCurrentFreq(currentMode.startFreq);
     sessionStartTime.current = Date.now();
 
@@ -198,21 +203,18 @@ export default function SessionScreen() {
         return actualElapsed;
       });
 
-      // Simulate HRV fluctuations — gradual improvement
-      setCurrentRmssd((prev) => {
-        const drift = 0.05 + Math.random() * 0.15;
-        const noise = (Math.random() - 0.45) * 1.2;
-        const newVal = prev + drift + noise;
-        setHrvHistory((h) => [...h.slice(-30), newVal]);
-        return newVal;
-      });
+      // Use real BLE RMSSD if connected, otherwise keep at 0 (will show --)
+      if (bleConnected && bleRmssd > 0) {
+        setCurrentRmssd(bleRmssd);
+        setHrvHistory((h) => [...h.slice(-30), bleRmssd]);
+      }
 
-      // Simulate frequency approaching target (for focus/recovery modes)
+      // Frequency approaching target (for focus/recovery modes)
       if (currentMode.key !== 'calm' && currentMode.key !== 'sleep') {
         setCurrentFreq((prev) => {
           const target = currentMode.endFreq;
           const step = (target - prev) * 0.02;
-          return prev + step + (Math.random() - 0.5) * 0.3;
+          return prev + step;
         });
       }
     }, 1000);
@@ -233,7 +235,7 @@ export default function SessionScreen() {
   };
 
   const endRmssd = currentRmssd;
-  const changePercent = ((endRmssd - startRmssd.current) / startRmssd.current * 100).toFixed(1);
+  const changePercent = startRmssd.current > 0 ? ((endRmssd - startRmssd.current) / startRmssd.current * 100).toFixed(1) : '0.0';
 
   // ==================== SUMMARY VIEW ====================
   if (phase === 'summary') {
@@ -256,13 +258,13 @@ export default function SessionScreen() {
             <View style={styles.statRow}>
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Starting HRV</Text>
-                <Text style={styles.statValue}>{startRmssd.current.toFixed(1)}</Text>
+                <Text style={styles.statValue}>{startRmssd.current > 0 ? startRmssd.current.toFixed(1) : '--'}</Text>
                 <Text style={styles.statUnit}>ms</Text>
               </View>
               <Ionicons name="arrow-forward" size={20} color={Colors.accent} />
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Ending HRV</Text>
-                <Text style={[styles.statValue, { color: Colors.accent }]}>{endRmssd.toFixed(1)}</Text>
+                <Text style={[styles.statValue, { color: Colors.accent }]}>{endRmssd > 0 ? endRmssd.toFixed(1) : '--'}</Text>
                 <Text style={styles.statUnit}>ms</Text>
               </View>
             </View>
@@ -375,7 +377,7 @@ export default function SessionScreen() {
               />
             </Svg>
             <View style={styles.rmssdOverlay}>
-              <Text style={styles.rmssdBig}>{currentRmssd.toFixed(1)}</Text>
+              <Text style={styles.rmssdBig}>{currentRmssd > 0 ? currentRmssd.toFixed(1) : '--'}</Text>
               <View style={styles.rmssdLabelRow}>
                 <Text style={styles.rmssdUnit}>ms</Text>
                 <View style={styles.liveDot} />
@@ -430,18 +432,15 @@ export default function SessionScreen() {
                       }
                       return actualElapsed;
                     });
-                    setCurrentRmssd((prev) => {
-                      const drift = 0.05 + Math.random() * 0.15;
-                      const noise = (Math.random() - 0.45) * 1.2;
-                      const newVal = prev + drift + noise;
-                      setHrvHistory((h) => [...h.slice(-30), newVal]);
-                      return newVal;
-                    });
+                    if (bleConnected && bleRmssd > 0) {
+                      setCurrentRmssd(bleRmssd);
+                      setHrvHistory((h) => [...h.slice(-30), bleRmssd]);
+                    }
                     if (currentMode.key !== 'calm' && currentMode.key !== 'sleep') {
                       setCurrentFreq((prev) => {
                         const target = currentMode.endFreq;
                         const step = (target - prev) * 0.02;
-                        return prev + step + (Math.random() - 0.5) * 0.3;
+                        return prev + step;
                       });
                     }
                   }, 1000);
@@ -585,22 +584,61 @@ export default function SessionScreen() {
                 value={youtubeUrl}
                 onChangeText={setYoutubeUrl}
               />
-              <TouchableOpacity style={styles.pasteBtn}>
-                <Ionicons name="clipboard-outline" size={18} color={Colors.purple} />
+              <TouchableOpacity
+                style={styles.pasteBtn}
+                onPress={() => {
+                  if (youtubeUrl.trim()) {
+                    Linking.openURL(youtubeUrl.trim()).catch(() =>
+                      Alert.alert('Invalid URL', 'Please paste a valid YouTube URL.')
+                    );
+                  }
+                }}
+              >
+                <Ionicons name="play-outline" size={18} color={Colors.purple} />
               </TouchableOpacity>
             </View>
+            {youtubeUrl.trim() ? (
+              <Text style={[styles.musicNote, { color: Colors.accent }]}>
+                Play your YouTube audio, then return to Rapha AI to continue HRV tracking.
+              </Text>
+            ) : null}
             <View style={styles.musicBtnRow}>
-              <TouchableOpacity style={styles.musicOptionBtn}>
+              <TouchableOpacity
+                style={styles.musicOptionBtn}
+                onPress={() => {
+                  Linking.openURL('music://').catch(() =>
+                    Alert.alert('Music', 'Open your music app, start playing, then return here. Rapha AI will continue tracking your HRV.')
+                  );
+                }}
+              >
                 <Ionicons name="phone-portrait-outline" size={16} color={Colors.textMuted} />
                 <Text style={styles.musicOptionText}>Device Library</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.musicOptionBtn}>
+              <TouchableOpacity
+                style={styles.musicOptionBtn}
+                onPress={() => {
+                  Linking.openURL('spotify://').catch(() =>
+                    Linking.openURL('https://open.spotify.com').catch(() => {})
+                  );
+                }}
+              >
                 <Ionicons name="musical-notes-outline" size={16} color={Colors.textMuted} />
-                <Text style={styles.musicOptionText}>Spotify / Apple Music</Text>
+                <Text style={styles.musicOptionText}>Spotify</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.musicOptionBtn}
+                onPress={() => {
+                  Linking.openURL('music://').catch(() =>
+                    Alert.alert('Apple Music', 'Could not open Apple Music. Please open it manually.')
+                  );
+                }}
+              >
+                <Ionicons name="musical-note-outline" size={16} color={Colors.textMuted} />
+                <Text style={styles.musicOptionText}>Apple Music</Text>
               </TouchableOpacity>
             </View>
             <Text style={styles.musicNote}>
-              Rapha AI overlays subtle binaural beats and tracks HRV in real-time
+              Play your music externally, then return here. Rapha AI continues HRV tracking in the background.
             </Text>
           </GlassCard>
         </View>

@@ -49,8 +49,8 @@ export default function LogInterventionScreen() {
           <Text style={styles.successTitle}>Logged!</Text>
           <Text style={styles.successSubtitle}>
             {isConnected && rmssd > 0
-              ? `Current RMSSD: ${rmssd.toFixed(1)}ms — I'll track how your system responds.`
-              : "Logged! I'll track how your system responds once a device is connected."}
+              ? `Current RMSSD: ${rmssd.toFixed(1)}ms — We'll track your HRV response.`
+              : "Logged! We'll track your HRV response."}
           </Text>
         </View>
       </SafeAreaView>

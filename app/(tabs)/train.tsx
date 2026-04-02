@@ -20,6 +20,7 @@ import { Colors, FontSize, Spacing, BorderRadius, Shadows } from '../../constant
 import { mockTrainingHistory, mockComboProtocols } from '../../constants/mockData';
 import { getVerseOfTheDay, getVerseForState, scriptureVerses, ScriptureVerse } from '../../constants/scriptureData';
 import { useBLE } from '../../context/BLEContext';
+import { useInterventions } from '../../context/InterventionContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -217,18 +218,63 @@ function VisualTrackingDot({ active }: { active: boolean }) {
   );
 }
 
-function WaveAnimation() {
+function HummingGuide({ phase, phaseDuration, instruction }: { phase: string; phaseDuration: number; instruction: string }) {
+  const scaleAnim = useRef(new Animated.Value(0.7)).current;
+
+  useEffect(() => {
+    // Inhale phases: expand. Hum/Buzz/Gargle phases: pulse. Rest: shrink.
+    const isInhale = phase.toLowerCase().includes('breathe') || phase.toLowerCase().includes('listen') || phase.toLowerCase().includes('sip');
+    const isRest = phase.toLowerCase().includes('rest');
+
+    if (isInhale) {
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: phaseDuration * 1000,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    } else if (isRest) {
+      Animated.timing(scaleAnim, {
+        toValue: 0.6,
+        duration: phaseDuration * 1000,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    } else {
+      // Active phase (hum/buzz/gargle) — pulsing animation
+      const pulse = () => {
+        Animated.sequence([
+          Animated.timing(scaleAnim, { toValue: 0.95, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(scaleAnim, { toValue: 0.85, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ]).start(() => pulse());
+      };
+      scaleAnim.setValue(0.9);
+      pulse();
+    }
+
+    return () => {
+      scaleAnim.stopAnimation();
+    };
+  }, [phase, phaseDuration]);
+
   return (
-    <View style={sessionStyles.waveContainer}>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <View
-          key={i}
-          style={[
-            sessionStyles.waveBar,
-            { height: 20 + Math.sin(Date.now() / 300 + i) * 15, backgroundColor: `rgba(245,158,11,${0.3 + i * 0.15})` },
-          ]}
-        />
-      ))}
+    <View style={sessionStyles.hummingGuideContainer}>
+      <Animated.View
+        style={[
+          sessionStyles.hummingCircle,
+          { transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        <LinearGradient
+          colors={['rgba(245,158,11,0.4)', 'rgba(245,158,11,0.1)']}
+          style={sessionStyles.hummingCircleGradient}
+        >
+          <Text style={sessionStyles.hummingPhaseText}>{phase}</Text>
+        </LinearGradient>
+      </Animated.View>
+      {instruction ? (
+        <Text style={sessionStyles.hummingInstructionText}>{instruction}</Text>
+      ) : null}
     </View>
   );
 }
@@ -277,9 +323,12 @@ export default function TrainScreen() {
   const [sessionRmssd, setSessionRmssd] = useState(0);
   const [sessionStartRmssd, setSessionStartRmssd] = useState(0);
   const [sessionComplete, setSessionComplete] = useState(false);
+  const [hummingPhase, setHummingPhase] = useState<string>('Inhale');
+  const [hummingPhaseDuration, setHummingPhaseDuration] = useState(4);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const breathTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bilateralTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hummingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Scripture meditation state
   const [showScriptureMeditation, setShowScriptureMeditation] = useState(false);
@@ -330,13 +379,41 @@ export default function TrainScreen() {
 
   const breathAnimRef = useRef(new Animated.Value(0.7)).current;
 
-  // Gamification state for breathing sessions
-  const [breathGameAltitude, setBreathGameAltitude] = useState(0);
-  const [breathGameHasTriedFree, setBreathGameHasTriedFree] = useState(false);
-  const breathGameAnim = useRef(new Animated.Value(0)).current;
-
   // BLE integration
   const { isConnected: bleConnected, rmssd: bleRmssd } = useBLE();
+  const { addIntervention } = useInterventions();
+
+  const [interventionLogged, setInterventionLogged] = useState(false);
+
+  const mapSessionToCategory = (type: string): string => {
+    switch (type) {
+      case 'breathing':
+      case 'bilateral':
+      case 'humming':
+        return 'therapy';
+      case 'scripture':
+      case 'prayer':
+        return 'prayer';
+      case 'exercise':
+        return 'activity';
+      default:
+        return 'other';
+    }
+  };
+
+  const logSessionAsIntervention = (sessionType: string, modeName: string, durationSeconds: number, preRmssd: number, postRmssd: number) => {
+    const elapsedMinutes = Math.max(1, Math.round(durationSeconds / 60));
+    addIntervention({
+      name: `${sessionType} - ${modeName}`,
+      category: mapSessionToCategory(sessionType),
+      subcategory: modeName,
+      dose: `${elapsedMinutes} min`,
+      notes: '',
+      preRmssd: preRmssd > 0 ? preRmssd : undefined,
+      postRmssd: postRmssd > 0 ? postRmssd : undefined,
+    });
+    setInterventionLogged(true);
+  };
 
   const REFLECTION_PROMPTS = [
     'Think about this scripture...',
@@ -377,34 +454,6 @@ export default function TrainScreen() {
     }
   }, []);
 
-  // Gamification: animate bird rising during breathing sessions
-  useEffect(() => {
-    if (!activeSession || activeSession.type !== 'breathing') return;
-    breathGameAnim.setValue(0);
-    setBreathGameAltitude(0);
-
-    const altitudeInterval = setInterval(() => {
-      setBreathGameAltitude((prev) => {
-        const rmssdBoost = sessionRmssd > 60 ? 1.5 : sessionRmssd > 45 ? 1.2 : 1;
-        return prev + (2 * rmssdBoost);
-      });
-    }, 1000);
-
-    // Slow continuous rise animation
-    const animateRise = () => {
-      Animated.timing(breathGameAnim, {
-        toValue: 1,
-        duration: 60000, // over 1 minute to full height
-        useNativeDriver: true,
-      }).start();
-    };
-    animateRise();
-
-    return () => {
-      clearInterval(altitudeInterval);
-    };
-  }, [activeSession]);
-
   // Breathing phase cycling with correct timing
   useEffect(() => {
     if (!activeSession || activeSession.type !== 'breathing') return;
@@ -442,6 +491,65 @@ export default function TrainScreen() {
       if (bilateralTimerRef.current) clearInterval(bilateralTimerRef.current);
     };
   }, [activeSession]);
+
+  // Humming phase cycling
+  const getHummingPhases = useCallback((mode: string): { label: string; duration: number; instruction: string }[] => {
+    switch (mode) {
+      case 'om': // Humming
+        return [
+          { label: 'Breathe In', duration: 4, instruction: '' },
+          { label: 'Hum Steadily', duration: 8, instruction: "Make a steady 'hmmmmm' sound as you exhale. Feel the vibration in your chest and throat." },
+        ];
+      case 'bhramari': // Buzzing
+        return [
+          { label: 'Breathe In Deeply', duration: 4, instruction: '' },
+          { label: 'Buzz Like a Bee', duration: 8, instruction: "Close your eyes. Make a buzzing 'zzzz' sound as you exhale. Feel it vibrate in your head." },
+        ];
+      case 'gargling':
+        return [
+          { label: 'Take a Sip of Water', duration: 3, instruction: '' },
+          { label: 'Gargle Vigorously', duration: 30, instruction: 'Gargle as strongly as you can. This activates the vagus nerve through the throat muscles.' },
+          { label: 'Rest', duration: 10, instruction: '' },
+        ];
+      case 'bowl': // Tone Matching
+        return [
+          { label: 'Listen to the Tone', duration: 3, instruction: '' },
+          { label: 'Hum Along at the Same Pitch', duration: 8, instruction: 'Match the pitch as closely as you can. The resonance in your chest stimulates vagal tone.' },
+        ];
+      default:
+        return [
+          { label: 'Breathe In', duration: 4, instruction: '' },
+          { label: 'Hum Steadily', duration: 8, instruction: "Make a steady 'hmmmmm' sound as you exhale." },
+        ];
+    }
+  }, []);
+
+  const [hummingInstruction, setHummingInstruction] = useState('');
+
+  useEffect(() => {
+    if (!activeSession || activeSession.type !== 'humming') return;
+
+    const phases = getHummingPhases(activeSession.mode);
+    let phaseIndex = 0;
+    let cancelled = false;
+
+    const cyclePhase = () => {
+      if (cancelled) return;
+      const phase = phases[phaseIndex % phases.length];
+      setHummingPhase(phase.label);
+      setHummingPhaseDuration(phase.duration);
+      setHummingInstruction(phase.instruction);
+      phaseIndex++;
+      hummingTimerRef.current = setTimeout(cyclePhase, phase.duration * 1000);
+    };
+
+    cyclePhase();
+
+    return () => {
+      cancelled = true;
+      if (hummingTimerRef.current) clearTimeout(hummingTimerRef.current);
+    };
+  }, [activeSession, getHummingPhases]);
 
   // Main session timer (1s tick for elapsed time + HRV simulation)
   useEffect(() => {
@@ -544,6 +652,7 @@ export default function TrainScreen() {
 
   const stopScriptureSession = () => {
     if (scriptureIntervalRef.current) clearInterval(scriptureIntervalRef.current);
+    logSessionAsIntervention('scripture', `Scripture Meditation - ${selectedVerse.reference}`, scriptureElapsed, scriptureStartRmssd, scriptureRmssd);
     setScriptureSessionActive(false);
     setScriptureSessionComplete(true);
   };
@@ -568,6 +677,7 @@ export default function TrainScreen() {
 
   const stopPrayerSession = () => {
     if (prayerIntervalRef.current) clearInterval(prayerIntervalRef.current);
+    logSessionAsIntervention('prayer', 'Prayer', prayerElapsed, prayerStartRmssd, prayerRmssd);
     setPrayerSessionActive(false);
     setPrayerSessionComplete(true);
   };
@@ -612,6 +722,7 @@ export default function TrainScreen() {
 
   const stopCustomSession = () => {
     if (customIntervalRef.current) clearInterval(customIntervalRef.current);
+    logSessionAsIntervention('custom', customDeviceName || 'Custom Device', customElapsed, customStartRmssd, customRmssd);
     setCustomSessionActive(false);
     setCustomSessionComplete(true);
   };
@@ -665,6 +776,8 @@ export default function TrainScreen() {
 
   const stopExerciseSession = () => {
     if (exerciseIntervalRef.current) clearInterval(exerciseIntervalRef.current);
+    const modeName = EXERCISE_MODES.find(m => m.key === selectedExerciseMode)?.label || 'Exercise';
+    logSessionAsIntervention('exercise', modeName, exerciseElapsed, exerciseStartRmssd, exerciseRmssd);
     setExerciseSessionActive(false);
     setExerciseSessionComplete(true);
   };
@@ -699,6 +812,12 @@ export default function TrainScreen() {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (breathTimerRef.current) clearTimeout(breathTimerRef.current);
     if (bilateralTimerRef.current) clearInterval(bilateralTimerRef.current);
+    if (hummingTimerRef.current) clearTimeout(hummingTimerRef.current);
+    // Auto-log as intervention
+    if (activeSession) {
+      const modeName = getModeLabel(activeSession);
+      logSessionAsIntervention(activeSession.type, modeName, elapsedSeconds, sessionStartRmssd, sessionRmssd);
+    }
     setSessionComplete(true);
     setActiveSession(null);
   };
@@ -845,35 +964,7 @@ export default function TrainScreen() {
 
             {/* Session Visualization */}
             {activeSession.type === 'breathing' && (
-              <>
-                <BreathingCircle phase={breathPhase} phaseDuration={breathPhaseDuration} />
-                {/* Gamification: Floating bird */}
-                <View style={sessionStyles.breathGameContainer}>
-                  <View style={sessionStyles.breathGameTrack}>
-                    <Animated.View
-                      style={[
-                        sessionStyles.breathGameBird,
-                        {
-                          transform: [{
-                            translateY: breathGameAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [80, 0],
-                            }),
-                          }],
-                        },
-                      ]}
-                    >
-                      <Text style={{ fontSize: 24 }}>{'\uD83D\uDD4A\uFE0F'}</Text>
-                    </Animated.View>
-                    <View style={sessionStyles.breathGameAltLabel}>
-                      <Text style={sessionStyles.breathGameAltText}>{Math.round(breathGameAltitude)}m</Text>
-                    </View>
-                  </View>
-                  <View style={sessionStyles.breathGameProBadge}>
-                    <Text style={sessionStyles.breathGameProText}>Pro</Text>
-                  </View>
-                </View>
-              </>
+              <BreathingCircle phase={breathPhase} phaseDuration={breathPhaseDuration} />
             )}
             {activeSession.type === 'bilateral' && activeSession.mode === 'visual-tracking' && (
               <VisualTrackingDot active={true} />
@@ -882,7 +973,7 @@ export default function TrainScreen() {
               <BilateralDot side={bilateralSide} />
             )}
             {activeSession.type === 'humming' && (
-              <WaveAnimation />
+              <HummingGuide phase={hummingPhase} phaseDuration={hummingPhaseDuration} instruction={hummingInstruction} />
             )}
 
             <View style={styles.activeBannerStats}>
@@ -914,17 +1005,6 @@ export default function TrainScreen() {
                 {['Way to go!', 'Great job!', 'You showed up \u2014 that matters!', 'Your nervous system thanks you!', 'Keep it up!', 'Progress, not perfection!', "You're doing amazing!", 'Every session counts!'][Math.floor(Math.random() * 8)]}
               </Text>
               <Text style={styles.activeBannerTitle}>Session Complete</Text>
-              {breathGameAltitude > 0 && (
-                <View style={sessionStyles.breathGameResult}>
-                  <Text style={{ fontSize: 28 }}>{'\uD83D\uDD4A\uFE0F'}</Text>
-                  <Text style={sessionStyles.breathGameResultText}>
-                    Your bird reached {Math.round(breathGameAltitude)}m altitude!
-                  </Text>
-                  <Text style={sessionStyles.breathGameResultDelta}>
-                    HRV: {(sessionRmssd - sessionStartRmssd) >= 0 ? '+' : ''}{(sessionRmssd - sessionStartRmssd).toFixed(1)} ms
-                  </Text>
-                </View>
-              )}
               <View style={styles.activeBannerStats}>
                 <View style={styles.activeStat}>
                   <Text style={styles.activeStatLabel}>Before</Text>
@@ -941,9 +1021,15 @@ export default function TrainScreen() {
                   </Text>
                 </View>
               </View>
+              {interventionLogged && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: Spacing.sm }}>
+                  <Ionicons name="checkmark-circle" size={16} color={Colors.accent} />
+                  <Text style={{ fontFamily: 'Inter_500Medium', fontSize: FontSize.sm, color: Colors.accent }}>Logged to your interventions</Text>
+                </View>
+              )}
               <TouchableOpacity
                 style={[styles.startButton, { backgroundColor: Colors.accent, width: '100%' }]}
-                onPress={() => { setSessionComplete(false); setBreathGameAltitude(0); }}
+                onPress={() => { setSessionComplete(false); setInterventionLogged(false); }}
               >
                 <Text style={styles.startButtonText}>Done</Text>
               </TouchableOpacity>
@@ -1337,19 +1423,18 @@ export default function TrainScreen() {
                     </View>
                   )}
 
-                  <TouchableOpacity
-                    style={[styles.startButton, { backgroundColor: Colors.accent, marginTop: Spacing.md }]}
-                    onPress={resetCustomSession}
-                  >
-                    <Ionicons name="save-outline" size={18} color={Colors.white} />
-                    <Text style={styles.startButtonText}>Save to Interventions</Text>
-                  </TouchableOpacity>
+                  {interventionLogged && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing.md }}>
+                      <Ionicons name="checkmark-circle" size={16} color={Colors.accent} />
+                      <Text style={{ fontFamily: 'Inter_500Medium', fontSize: FontSize.sm, color: Colors.accent }}>Logged to your interventions</Text>
+                    </View>
+                  )}
 
                   <TouchableOpacity
-                    style={[styles.stopButton, { marginTop: Spacing.sm }]}
-                    onPress={resetCustomSession}
+                    style={[styles.startButton, { backgroundColor: Colors.accent, marginTop: Spacing.md }]}
+                    onPress={() => { resetCustomSession(); setInterventionLogged(false); }}
                   >
-                    <Text style={styles.stopButtonText}>Done</Text>
+                    <Text style={styles.startButtonText}>Done</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -1545,19 +1630,18 @@ export default function TrainScreen() {
                       {currentMode?.label} is your 2nd best HRV exercise, averaging +7.2ms across 8 sessions.
                     </Text>
 
-                    <TouchableOpacity
-                      style={[styles.startButton, { backgroundColor: '#00d68f', marginTop: Spacing.sm }]}
-                      onPress={resetExerciseSession}
-                    >
-                      <Ionicons name="save-outline" size={18} color={Colors.white} />
-                      <Text style={styles.startButtonText}>Save</Text>
-                    </TouchableOpacity>
+                    {interventionLogged && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: Spacing.sm }}>
+                        <Ionicons name="checkmark-circle" size={16} color={Colors.accent} />
+                        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: FontSize.sm, color: Colors.accent }}>Logged to your interventions</Text>
+                      </View>
+                    )}
 
                     <TouchableOpacity
-                      style={[styles.stopButton, { marginTop: Spacing.sm }]}
-                      onPress={resetExerciseSession}
+                      style={[styles.startButton, { backgroundColor: '#00d68f', marginTop: Spacing.sm }]}
+                      onPress={() => { resetExerciseSession(); setInterventionLogged(false); }}
                     >
-                      <Text style={styles.stopButtonText}>Done</Text>
+                      <Text style={styles.startButtonText}>Done</Text>
                     </TouchableOpacity>
                   </View>
                 );
@@ -1785,7 +1869,14 @@ export default function TrainScreen() {
                     Your prayer session produced a {(prayerRmssd - prayerStartRmssd) >= 0 ? '+' : ''}{(prayerRmssd - prayerStartRmssd).toFixed(1)}ms shift in your HRV.
                   </Text>
 
-                  <TouchableOpacity style={styles.scriptureStartButton} onPress={() => { resetPrayerSession(); setShowScriptureMeditation(false); }}>
+                  {interventionLogged && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: Spacing.sm }}>
+                      <Ionicons name="checkmark-circle" size={16} color={Colors.accent} />
+                      <Text style={{ fontFamily: 'Inter_500Medium', fontSize: FontSize.sm, color: Colors.accent }}>Logged to your interventions</Text>
+                    </View>
+                  )}
+
+                  <TouchableOpacity style={styles.scriptureStartButton} onPress={() => { resetPrayerSession(); setShowScriptureMeditation(false); setInterventionLogged(false); }}>
                     <Text style={styles.startButtonText}>Done</Text>
                   </TouchableOpacity>
                 </View>
@@ -1862,7 +1953,14 @@ export default function TrainScreen() {
                     This verse produced a +{(scriptureRmssd - scriptureStartRmssd).toFixed(1)}ms shift in your HRV.
                   </Text>
 
-                  <TouchableOpacity style={styles.scriptureStartButton} onPress={resetScriptureMeditation}>
+                  {interventionLogged && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: Spacing.sm }}>
+                      <Ionicons name="checkmark-circle" size={16} color={Colors.accent} />
+                      <Text style={{ fontFamily: 'Inter_500Medium', fontSize: FontSize.sm, color: Colors.accent }}>Logged to your interventions</Text>
+                    </View>
+                  )}
+
+                  <TouchableOpacity style={styles.scriptureStartButton} onPress={() => { resetScriptureMeditation(); setInterventionLogged(false); }}>
                     <Text style={styles.startButtonText}>Done</Text>
                   </TouchableOpacity>
                 </View>
@@ -1938,85 +2036,39 @@ const sessionStyles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textMuted,
   },
-  waveContainer: {
-    flexDirection: 'row',
+  // Humming guide
+  hummingGuideContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 80,
     marginVertical: Spacing.md,
-    gap: 6,
+    gap: Spacing.sm,
   },
-  waveBar: {
-    width: 8,
-    borderRadius: 4,
-  },
-  // Breathing game (gamification)
-  breathGameContainer: {
-    alignItems: 'flex-end',
-    marginRight: Spacing.md,
-    marginTop: -Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  breathGameTrack: {
-    width: 60,
-    height: 100,
-    backgroundColor: 'rgba(14,168,122,0.06)',
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(14,168,122,0.15)',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+  hummingCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     overflow: 'hidden',
-    paddingBottom: 4,
   },
-  breathGameBird: {
+  hummingCircleGradient: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 60,
   },
-  breathGameAltLabel: {
-    position: 'absolute',
-    bottom: 4,
-    alignItems: 'center',
-  },
-  breathGameAltText: {
+  hummingPhaseText: {
     fontFamily: 'Inter_600SemiBold',
-    fontSize: 10,
-    color: Colors.accent,
-  },
-  breathGameProBadge: {
-    backgroundColor: 'rgba(108,92,231,0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: 'rgba(108,92,231,0.3)',
-    marginTop: 4,
-    alignSelf: 'center',
-  },
-  breathGameProText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 8,
-    color: '#6C5CE7',
-  },
-  breathGameResult: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(14,168,122,0.08)',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    width: '100%',
-    gap: Spacing.xs,
-    borderWidth: 1,
-    borderColor: 'rgba(14,168,122,0.2)',
-  },
-  breathGameResultText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: FontSize.sm,
-    color: Colors.text,
+    fontSize: FontSize.md,
+    color: '#f59e0b',
     textAlign: 'center',
   },
-  breathGameResultDelta: {
-    fontFamily: 'Inter_500Medium',
+  hummingInstructionText: {
+    fontFamily: 'Inter_400Regular',
     fontSize: FontSize.xs,
-    color: Colors.accent,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: Spacing.lg,
+    maxWidth: 280,
   },
   // Visual tracking dot
   visualTrackContainer: {

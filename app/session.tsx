@@ -19,6 +19,7 @@ import GlassCard from '../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius } from '../constants/theme';
 import { startBinauralBeat, stopBinauralBeat, updateBeatFrequency } from '../lib/toneGenerator';
 import { useBLE } from '../context/BLEContext';
+import { useInterventions } from '../context/InterventionContext';
 
 let Haptics: any = null;
 try { Haptics = require('expo-haptics'); } catch {}
@@ -129,6 +130,8 @@ function HrvSparkline({ data }: { data: number[] }) {
 
 export default function SessionScreen() {
   const { isConnected: bleConnected, rmssd: bleRmssd } = useBLE();
+  const { addIntervention } = useInterventions();
+  const [interventionLogged, setInterventionLogged] = useState(false);
   const [phase, setPhase] = useState<SessionPhase>('selection');
   const [selectedMode, setSelectedMode] = useState('calm');
   const [selectedDuration, setSelectedDuration] = useState(10);
@@ -196,6 +199,15 @@ export default function SessionScreen() {
           if (freqShiftRef.current) clearInterval(freqShiftRef.current);
           setIsPlaying(false);
           stopBinauralBeat();
+          addIntervention({
+            name: `Binaural Beats - ${currentMode.label}`,
+            category: 'therapy',
+            subcategory: currentMode.label,
+            dose: `${selectedDuration} min`,
+            preRmssd: startRmssd.current > 0 ? startRmssd.current : undefined,
+            postRmssd: bleConnected && bleRmssd > 0 ? bleRmssd : undefined,
+          });
+          setInterventionLogged(true);
           setPhase('summary');
           try { Haptics?.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
           return totalSeconds;
@@ -307,6 +319,13 @@ export default function SessionScreen() {
               ))}
             </View>
           </GlassCard>
+
+          {interventionLogged && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 12 }}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.accent} />
+              <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 14, color: Colors.accent }}>Logged to your interventions</Text>
+            </View>
+          )}
 
           <TouchableOpacity style={styles.saveCloseBtn} onPress={() => router.back()}>
             <Text style={styles.saveCloseText}>Save & Close</Text>
@@ -427,6 +446,15 @@ export default function SessionScreen() {
                         if (freqShiftRef.current) clearInterval(freqShiftRef.current);
                         stopBinauralBeat();
                         setIsPlaying(false);
+                        addIntervention({
+                          name: `Binaural Beats - ${currentMode.label}`,
+                          category: 'therapy',
+                          subcategory: currentMode.label,
+                          dose: `${selectedDuration} min`,
+                          preRmssd: startRmssd.current > 0 ? startRmssd.current : undefined,
+                          postRmssd: bleConnected && bleRmssd > 0 ? bleRmssd : undefined,
+                        });
+                        setInterventionLogged(true);
                         setPhase('summary');
                         return totalSeconds;
                       }
@@ -461,6 +489,15 @@ export default function SessionScreen() {
                 // Track actual elapsed time on early stop
                 const actualElapsed = Math.floor((Date.now() - sessionStartTime.current) / 1000);
                 setElapsed(actualElapsed);
+                addIntervention({
+                  name: `Binaural Beats - ${currentMode.label}`,
+                  category: 'therapy',
+                  subcategory: currentMode.label,
+                  dose: `${Math.max(1, Math.round(actualElapsed / 60))} min`,
+                  preRmssd: startRmssd.current > 0 ? startRmssd.current : undefined,
+                  postRmssd: currentRmssd > 0 ? currentRmssd : undefined,
+                });
+                setInterventionLogged(true);
                 setPhase('summary');
               }}
             >

@@ -17,7 +17,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LoginScreen() {
-  const { signIn, setIsOnboarded } = useAuth();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -53,7 +53,7 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (authError) {
-      setError(authError.message || 'Login failed. Please check your credentials.');
+      setError(typeof authError === 'string' ? authError : 'Login failed. Please check your credentials.');
       return;
     }
 

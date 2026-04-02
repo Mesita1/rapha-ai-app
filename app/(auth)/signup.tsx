@@ -17,7 +17,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 
 export default function SignUpScreen() {
-  const { signUp, setDisplayName } = useAuth();
+  const { signUp } = useAuth();
   const [displayName, setDisplayNameLocal] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -64,16 +64,13 @@ export default function SignUpScreen() {
     }
 
     setIsLoading(true);
-    const { error: authError } = await signUp(trimmedEmail, password);
+    const { error: authError } = await signUp(trimmedEmail, password, trimmedName);
     setIsLoading(false);
 
     if (authError) {
-      setError(authError.message || 'Sign up failed. Please try again.');
+      setError(typeof authError === 'string' ? authError : 'Sign up failed. Please try again.');
       return;
     }
-
-    // Store display name in context so profile-setup can use it
-    setDisplayName(trimmedName);
     router.push('/(auth)/connect-device');
   };
 

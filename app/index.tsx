@@ -1,30 +1,26 @@
-import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
+import { View, ActivityIndicator } from 'react-native';
 import { Colors } from '../constants/theme';
 
 export default function Index() {
-  const { session, isLoading, isOnboarded } = useAuth();
+  const { isLoggedIn, isOnboarded, isLoading } = useAuth();
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color={Colors.accent} />
       </View>
     );
   }
 
-  // Not logged in → go to welcome
-  if (!session) {
-    return <Redirect href="/(auth)/welcome" />;
+  if (isLoggedIn && isOnboarded) {
+    return <Redirect href="/(tabs)" />;
   }
 
-  // Logged in but not onboarded → go to onboarding
-  if (!isOnboarded) {
+  if (isLoggedIn && !isOnboarded) {
     return <Redirect href="/(auth)/connect-device" />;
   }
 
-  // Logged in and onboarded → go to main app
-  return <Redirect href="/(tabs)" />;
+  return <Redirect href="/(auth)/welcome" />;
 }

@@ -70,7 +70,7 @@ export default function DashboardScreen() {
   const [showHrvDetails, setShowHrvDetails] = useState(false);
   const verseOfTheDay = getVerseOfTheDay();
   const { interventions } = useInterventions();
-  const { displayName } = useAuth();
+  const { user: authUser } = useAuth();
   const { isConnected, heartRate, rmssd, sdnn, rmssdHistory, rrIntervals, connectedDevice } = useBLE();
 
   // Derive autonomic state from real or mock data
@@ -108,7 +108,7 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hi, {displayName || 'there'}</Text>
+            <Text style={styles.greeting}>Hi, {authUser?.displayName?.split(' ')[0] || 'there'}</Text>
             {!isConnected && (
               <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, marginTop: 2 }}>
                 Your healing journey begins here

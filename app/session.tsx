@@ -604,108 +604,21 @@ export default function SessionScreen() {
           </View>
         )}
 
-        {/* Music + Binaural Overlay Section */}
-        <View style={styles.musicSection}>
-          <View style={styles.musicHeaderRow}>
-            <Text style={styles.sectionLabel}>MUSIC + BINAURAL OVERLAY</Text>
-            <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>Pro</Text>
+        {/* Music Integration — Coming Soon */}
+        <GlassCard style={{ padding: Spacing.md, marginBottom: Spacing.md }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="musical-notes-outline" size={20} color={Colors.purple} />
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: Colors.text }}>Your Music + Binaural</Text>
+            </View>
+            <View style={{ backgroundColor: 'rgba(108,92,231,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: Colors.purple }}>Coming Soon</Text>
             </View>
           </View>
-
-          <Text style={styles.musicExplanation}>
-            Play music from any app (Spotify, Apple Music, YouTube). Rapha AI generates a subtle binaural beat frequency underneath your music. You won't hear the beat directly — it works subliminally while you enjoy your music.
+          <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, marginTop: 8, lineHeight: 19 }}>
+            Smart binaural embedding — we'll weave the therapeutic frequency directly into your music from Spotify, Apple Music, or YouTube. No two audio streams, just your music with the binaural beat built in.
           </Text>
-
-          {/* Option A: Play own music */}
-          <TouchableOpacity
-            style={[styles.musicModeCard, musicMode === 'own_music' && styles.musicModeCardSelected]}
-            onPress={() => setMusicMode(musicMode === 'own_music' ? 'none' : 'own_music')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.musicModeHeader}>
-              <View style={[styles.musicModeRadio, musicMode === 'own_music' && styles.musicModeRadioSelected]}>
-                {musicMode === 'own_music' && <View style={styles.musicModeRadioDot} />}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.musicModeTitle, musicMode === 'own_music' && styles.musicModeTitleSelected]}>
-                  I'll play my own music
-                </Text>
-                <Text style={styles.musicModeDesc}>
-                  Binaural beat overlay at very low volume (subliminal)
-                </Text>
-              </View>
-              <Ionicons name="musical-notes-outline" size={22} color={musicMode === 'own_music' ? Colors.accent : Colors.textDim} />
-            </View>
-          </TouchableOpacity>
-
-          {musicMode === 'own_music' && (
-            <GlassCard style={styles.musicOverlayInfo}>
-              <View style={styles.overlayStatusRow}>
-                <View style={styles.overlayDot} />
-                <Text style={styles.overlayStatusText}>
-                  Binaural overlay will activate at {currentMode.startFreq} Hz when session starts
-                </Text>
-              </View>
-              <Text style={styles.overlayHint}>
-                Open your music app and press play. The binaural beat runs subtly underneath.
-              </Text>
-              <View style={styles.quickLaunchRow}>
-                <TouchableOpacity
-                  style={styles.quickLaunchBtn}
-                  onPress={() => {
-                    Linking.openURL('spotify://').catch(() =>
-                      Linking.openURL('https://open.spotify.com').catch(() => {})
-                    );
-                  }}
-                >
-                  <Ionicons name="musical-notes-outline" size={16} color={Colors.purple} />
-                  <Text style={styles.quickLaunchText}>Spotify</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.quickLaunchBtn}
-                  onPress={() => {
-                    Linking.openURL('music://').catch(() => {});
-                  }}
-                >
-                  <Ionicons name="musical-note-outline" size={16} color={Colors.purple} />
-                  <Text style={styles.quickLaunchText}>Apple Music</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.quickLaunchBtn}
-                  onPress={() => {
-                    Linking.openURL('https://youtube.com').catch(() => {});
-                  }}
-                >
-                  <Ionicons name="logo-youtube" size={16} color={Colors.purple} />
-                  <Text style={styles.quickLaunchText}>YouTube</Text>
-                </TouchableOpacity>
-              </View>
-            </GlassCard>
-          )}
-
-          {/* Option B: Built-in tones only */}
-          <TouchableOpacity
-            style={[styles.musicModeCard, musicMode === 'builtin' && styles.musicModeCardSelected]}
-            onPress={() => setMusicMode(musicMode === 'builtin' ? 'none' : 'builtin')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.musicModeHeader}>
-              <View style={[styles.musicModeRadio, musicMode === 'builtin' && styles.musicModeRadioSelected]}>
-                {musicMode === 'builtin' && <View style={styles.musicModeRadioDot} />}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.musicModeTitle, musicMode === 'builtin' && styles.musicModeTitleSelected]}>
-                  Use built-in tones only
-                </Text>
-                <Text style={styles.musicModeDesc}>
-                  Binaural beat at normal volume, no external music
-                </Text>
-              </View>
-              <Ionicons name="headset-outline" size={22} color={musicMode === 'builtin' ? Colors.purple : Colors.textDim} />
-            </View>
-          </TouchableOpacity>
-        </View>
+        </GlassCard>
 
         {/* Start Session Button */}
         <TouchableOpacity style={styles.startBtn} onPress={startSession} activeOpacity={0.8}>

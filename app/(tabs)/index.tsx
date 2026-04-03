@@ -32,6 +32,7 @@ import {
 import { getVerseOfTheDay } from '../../constants/scriptureData';
 import { useBLE } from '../../context/BLEContext';
 import { useAuth } from '../../context/AuthContext';
+import { useHRVTracker } from '../../context/HRVTrackerContext';
 import { useInterventions } from '../../context/InterventionContext';
 import { getAutonomicState } from '../../lib/bluetooth';
 
@@ -71,6 +72,7 @@ export default function DashboardScreen() {
   const verseOfTheDay = getVerseOfTheDay();
   const { interventions } = useInterventions();
   const { user: authUser } = useAuth();
+  const { activeTrackers: hrvTrackers, notifications: hrvNotifications, dismissNotification, getNextCheck, getSummary } = useHRVTracker();
   const { isConnected, heartRate, rmssd, sdnn, rmssdHistory, rrIntervals, connectedDevice } = useBLE();
 
   // Derive autonomic state from real or mock data
@@ -730,6 +732,75 @@ export default function DashboardScreen() {
             <Ionicons name="chevron-forward" size={18} color={Colors.textDim} />
           </GlassCard>
         </TouchableOpacity>
+
+        {/* Active HRV Tracking */}
+        {hrvTrackers.length > 0 && (
+          <View style={{ marginBottom: Spacing.md }}>
+            <Text style={styles.sectionTitle}>Tracking HRV Response</Text>
+            {hrvTrackers.map((tracker) => (
+              <GlassCard key={tracker.interventionId} style={{ marginBottom: Spacing.sm, padding: Spacing.md }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: Colors.text }}>{tracker.interventionName}</Text>
+                  <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12, color: Colors.accent }}>
+                    {getNextCheck(tracker) ? `Next: ${getNextCheck(tracker)}` : 'Complete'}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', marginTop: 10, gap: 6, alignItems: 'center' }}>
+                  {['baseline', '2min', '5min', '10min', '30min', '1hr', '2hr'].map((label) => {
+                    const snap = tracker.snapshots.find(s => s.label === label);
+                    const isPending = tracker.pendingChecks.includes(label);
+                    return (
+                      <View key={label} style={{ alignItems: 'center', flex: 1 }}>
+                        <View style={{
+                          width: 10, height: 10, borderRadius: 5,
+                          backgroundColor: snap ? Colors.accent : isPending ? 'transparent' : Colors.surfaceBorder,
+                          borderWidth: isPending ? 1.5 : 0,
+                          borderColor: isPending ? Colors.textDim : 'transparent',
+                        }} />
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim, marginTop: 3 }}>
+                          {label === 'baseline' ? 'Now' : label}
+                        </Text>
+                        {snap && tracker.baselineRmssd ? (
+                          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 9, color: snap.rmssd >= tracker.baselineRmssd ? '#00d68f' : '#ef4444', marginTop: 1 }}>
+                            {snap.rmssd >= tracker.baselineRmssd ? '+' : ''}{(snap.rmssd - tracker.baselineRmssd).toFixed(1)}
+                          </Text>
+                        ) : null}
+                      </View>
+                    );
+                  })}
+                </View>
+                {tracker.snapshots.length >= 2 && (
+                  <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12, color: Colors.textMuted, marginTop: 8 }}>
+                    {getSummary(tracker)}
+                  </Text>
+                )}
+              </GlassCard>
+            ))}
+          </View>
+        )}
+
+        {/* Notification Toasts */}
+        {hrvNotifications.length > 0 && (
+          <View style={{ position: 'absolute', top: 60, left: 16, right: 16, zIndex: 100 }}>
+            {hrvNotifications.map((notif) => (
+              <TouchableOpacity
+                key={notif.id}
+                onPress={() => dismissNotification(notif.id)}
+                style={{ backgroundColor: '#12121a', borderWidth: 1, borderColor: Colors.accent, borderRadius: 12, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10 }}
+              >
+                <Text style={{ fontSize: 18 }}>📊</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: Colors.text }}>
+                    {notif.interventionName} — {notif.label} check
+                  </Text>
+                  <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: notif.delta >= 0 ? '#00d68f' : '#ef4444' }}>
+                    {notif.delta >= 0 ? '+' : ''}{notif.delta}ms from baseline ({notif.rmssd.toFixed(1)}ms)
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Recent Interventions */}
         <View style={styles.interventionsSection}>

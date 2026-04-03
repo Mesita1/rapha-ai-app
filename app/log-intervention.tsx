@@ -16,6 +16,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from '../constants/theme';
 import { interventionCategories, prayerSubcategories } from '../constants/mockData';
 import { useBLE } from '../context/BLEContext';
 import { useInterventions } from '../context/InterventionContext';
+import { useHRVTracker } from '../context/HRVTrackerContext';
 
 let Haptics: any = null;
 try { Haptics = require('expo-haptics'); } catch {}
@@ -27,15 +28,19 @@ export default function LogInterventionScreen() {
   const [isLogged, setIsLogged] = useState(false);
   const { isConnected, rmssd } = useBLE();
   const { addIntervention } = useInterventions();
+  const { trackIntervention } = useHRVTracker();
 
   const handleLog = () => {
     if (!text.trim()) return;
+    const interventionId = Date.now().toString();
     addIntervention({
       name: text.trim(),
       category: selectedCategory || 'other',
       subcategory: selectedPrayerSub || undefined,
       preRmssd: isConnected && rmssd > 0 ? rmssd : undefined,
     });
+    // Start auto-tracking HRV snapshots at 2min, 5min, 10min, 30min, 1hr, 2hr
+    trackIntervention(interventionId, text.trim(), selectedCategory || 'other');
     try { Haptics?.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
     setIsLogged(true);
     setTimeout(() => router.back(), 1500);

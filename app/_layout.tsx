@@ -12,6 +12,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '../context/AuthContext';
 import { BLEProvider } from '../context/BLEContext';
+import { HRVTrackerProvider } from '../context/HRVTrackerContext';
 import { InterventionProvider } from '../context/InterventionContext';
 import { Colors } from '../constants/theme';
 
@@ -57,6 +58,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <BLEProvider>
+          <HRVTrackerProvider>
           <InterventionProvider>
           <View style={styles.root}>
             <StatusBar style="light" />
@@ -121,6 +123,7 @@ export default function RootLayout() {
             </Stack>
           </View>
           </InterventionProvider>
+          </HRVTrackerProvider>
           </BLEProvider>
         </AuthProvider>
       </QueryClientProvider>

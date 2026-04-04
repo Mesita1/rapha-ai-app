@@ -8,6 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +31,7 @@ export default function ProfileSetupScreen() {
   const [age, setAge] = useState('');
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   const toggleGoal = (goal: string) => {
     setSelectedGoals((prev) =>
@@ -147,10 +149,40 @@ export default function ProfileSetupScreen() {
             </View>
           </View>
 
+          {/* Disclaimer Acceptance */}
+          <View style={styles.disclaimerSection}>
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setDisclaimerAccepted(!disclaimerAccepted)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, disclaimerAccepted && styles.checkboxChecked]}>
+                {disclaimerAccepted && <Ionicons name="checkmark" size={14} color={Colors.white} />}
+              </View>
+              <Text style={styles.checkboxLabel}>
+                I have read and agree to the{' '}
+                <Text
+                  style={styles.checkboxLink}
+                  onPress={() => router.push('/disclaimer' as any)}
+                >
+                  Health Disclaimer
+                </Text>
+                {' '}and{' '}
+                <Text
+                  style={styles.checkboxLink}
+                  onPress={() => router.push('/privacy' as any)}
+                >
+                  Privacy Policy
+                </Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity
-            style={styles.startButton}
+            style={[styles.startButton, !disclaimerAccepted && styles.startButtonDisabled]}
             onPress={handleStart}
             activeOpacity={0.8}
+            disabled={!disclaimerAccepted}
           >
             <Text style={styles.startButtonText}>Start Tracking</Text>
             <Ionicons name="arrow-forward" size={20} color={Colors.background} />
@@ -250,6 +282,41 @@ const styles = StyleSheet.create({
   conditionChipTextSelected: {
     color: Colors.purple,
   },
+  disclaimerSection: {
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm + 2,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Colors.surfaceBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  checkboxLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    lineHeight: 20,
+    flex: 1,
+  },
+  checkboxLink: {
+    color: Colors.accent,
+    textDecorationLine: 'underline',
+  },
   startButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -264,6 +331,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
+  },
+  startButtonDisabled: {
+    opacity: 0.4,
   },
   startButtonText: {
     fontFamily: 'Inter_700Bold',

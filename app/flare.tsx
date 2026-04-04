@@ -77,7 +77,7 @@ export default function FlareScreen() {
         </GlassCard>
 
         {/* Start Breathing Exercise */}
-        <TouchableOpacity style={styles.breatheButton} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.breatheButton} activeOpacity={0.8} onPress={() => router.push('/session')}>
           <Ionicons name="cloud-outline" size={22} color={Colors.white} />
           <Text style={styles.breatheText}>Start Breathing Exercise</Text>
         </TouchableOpacity>

@@ -8,6 +8,7 @@ import {
   TextInput,
   Share,
   Linking,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,20 +28,38 @@ export default function SocialScreen() {
   const handleInviteFriends = async () => {
     try {
       await Share.share({
-        message: 'Join me on Rapha AI! Track your HRV, train your nervous system, and heal together. Download here: https://rapha.ai/invite',
+        message: 'Join me on Rapha AI \u2014 track your HRV and discover what helps your nervous system. Download: https://raphaai.com',
+        title: 'Rapha AI',
       });
     } catch {}
   };
 
   const handleSendEncouragement = () => {
-    // Placeholder - would send push notification
+    Alert.alert('Coming Soon', 'Encouragement messages will be available when friends are connected.');
   };
 
   const handleFindByEmail = () => {
     const trimmed = searchEmail.trim().toLowerCase();
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return;
-    // Placeholder — when backend is connected, this will search the users table
     setEmailSearchResult('not_found');
+  };
+
+  const handleCreateGroup = () => {
+    Alert.alert(
+      'Coming Soon',
+      "Group creation coming soon! You'll be able to create accountability groups for your church, clinic, or friends."
+    );
+  };
+
+  const handleJoinGroup = () => {
+    if (!groupCode.trim()) {
+      Alert.alert('Enter Code', 'Please enter an invite code to join a group.');
+      return;
+    }
+    Alert.alert(
+      'Group Not Found',
+      'Invalid code or group not found. Check with your group leader.'
+    );
   };
 
   return (
@@ -217,7 +236,7 @@ export default function SocialScreen() {
         {activeTab === 'groups' && (
           <>
             <View style={styles.groupButtonRow}>
-              <TouchableOpacity style={styles.groupButton} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.groupButton} activeOpacity={0.8} onPress={handleCreateGroup}>
                 <Ionicons name="add-circle-outline" size={20} color={Colors.accent} />
                 <Text style={styles.groupButtonText}>Create a Group</Text>
               </TouchableOpacity>
@@ -234,7 +253,7 @@ export default function SocialScreen() {
                   onChangeText={setGroupCode}
                   maxLength={20}
                 />
-                <TouchableOpacity style={styles.joinGroupBtn}>
+                <TouchableOpacity style={styles.joinGroupBtn} onPress={handleJoinGroup}>
                   <Text style={styles.joinGroupBtnText}>Join</Text>
                 </TouchableOpacity>
               </View>
@@ -281,7 +300,7 @@ export default function SocialScreen() {
               </Text>
               <TouchableOpacity
                 style={styles.communityButton}
-                onPress={() => Linking.openURL('https://rapha.ai/community')}
+                onPress={() => Linking.openURL('https://raphaai.com')}
                 activeOpacity={0.8}
               >
                 <Ionicons name="open-outline" size={16} color={Colors.white} />

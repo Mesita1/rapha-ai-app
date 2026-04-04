@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,15 +6,19 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import GlassCard from '../../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 import { achievements } from '../../constants/mockData';
 import { useAuth } from '../../context/AuthContext';
 import { useBLE } from '../../context/BLEContext';
+
+const COMMUNITY_INSIGHTS_KEY = 'rapha_community_insights';
 
 interface SettingsRowProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -79,15 +83,49 @@ function SettingsRow({
 }
 
 export default function SettingsScreen() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { isConnected, connectedDevice } = useBLE();
   const [darkMode, setDarkMode] = useState(true);
-  const [notifications, setNotifications] = useState(true);
   const [communityInsights, setCommunityInsights] = useState(false);
 
   const userEmail = user?.email || 'Not signed in';
   const deviceCount = isConnected && connectedDevice ? 1 : 0;
   const deviceLabel = deviceCount > 0 ? `${deviceCount} connected` : 'No devices';
+
+  // Load community insights preference
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(COMMUNITY_INSIGHTS_KEY);
+        if (saved === 'true') setCommunityInsights(true);
+      } catch {}
+    })();
+  }, []);
+
+  const handleCommunityInsightsToggle = async (val: boolean) => {
+    setCommunityInsights(val);
+    try {
+      await AsyncStorage.setItem(COMMUNITY_INSIGHTS_KEY, val ? 'true' : 'false');
+    } catch {}
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out? Your local data will be cleared.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            router.replace('/(auth)/welcome');
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -112,6 +150,7 @@ export default function SettingsScreen() {
             label="Profile"
             subtitle={userEmail}
             iconColor="#6C5CE7"
+            onPress={() => router.push('/profile' as any)}
           />
           <View style={styles.separator} />
           <SettingsRow
@@ -119,6 +158,7 @@ export default function SettingsScreen() {
             label="My Devices"
             subtitle={deviceLabel}
             iconColor="#0ea87a"
+            onPress={() => router.push('/(auth)/connect-device')}
           />
           <View style={styles.separator} />
           <SettingsRow
@@ -126,6 +166,7 @@ export default function SettingsScreen() {
             label="My Conditions"
             value="None set"
             iconColor="#f59e0b"
+            onPress={() => router.push('/(auth)/profile-setup')}
           />
           <View style={styles.separator} />
           <SettingsRow
@@ -133,6 +174,7 @@ export default function SettingsScreen() {
             label="Flare History"
             value="0 events"
             iconColor="#ef4444"
+            onPress={() => router.push('/flare' as any)}
           />
           <View style={styles.separator} />
           <SettingsRow
@@ -173,6 +215,12 @@ export default function SettingsScreen() {
             icon="notifications-outline"
             label="Notifications"
             iconColor="#ffd93d"
+            onPress={() =>
+              Alert.alert(
+                'Notifications',
+                'Push notifications will be enabled after App Store launch.'
+              )
+            }
           />
           <View style={styles.separator} />
           <SettingsRow
@@ -180,6 +228,12 @@ export default function SettingsScreen() {
             label="HRV Check Intervals"
             value="Custom"
             iconColor="#8e8e93"
+            onPress={() =>
+              Alert.alert(
+                'HRV Check Intervals',
+                'Custom intervals available with Plus subscription.'
+              )
+            }
           />
           <View style={styles.separator} />
           <SettingsRow
@@ -187,7 +241,7 @@ export default function SettingsScreen() {
             label="Community Insights"
             isToggle
             toggleValue={communityInsights}
-            onToggle={setCommunityInsights}
+            onToggle={handleCommunityInsightsToggle}
             iconColor="#0ea87a"
           />
         </GlassCard>
@@ -199,6 +253,12 @@ export default function SettingsScreen() {
             icon="download-outline"
             label="Export Data (CSV)"
             iconColor="#0ea87a"
+            onPress={() =>
+              Alert.alert(
+                'Export Data',
+                'Export will be available once you have recorded data. Connect a device and start tracking.'
+              )
+            }
           />
           <View style={styles.separator} />
           <SettingsRow
@@ -206,13 +266,23 @@ export default function SettingsScreen() {
             label="Share with Practitioner"
             subtitle="Generate a read-only link"
             iconColor="#6C5CE7"
+            onPress={() =>
+              Alert.alert(
+                'Share with Practitioner',
+                'Generate a read-only link for your practitioner. Coming in the next update.'
+              )
+            }
           />
         </GlassCard>
 
         {/* SUBSCRIPTION */}
         <Text style={styles.sectionLabel}>SUBSCRIPTION</Text>
         <GlassCard style={styles.sectionCard}>
-          <TouchableOpacity style={styles.subRow}>
+          <TouchableOpacity
+            style={styles.subRow}
+            onPress={() => router.push('/upgrade' as any)}
+            activeOpacity={0.7}
+          >
             <View style={styles.subIcon}>
               <Ionicons name="card-outline" size={20} color={Colors.purple} />
             </View>
@@ -240,20 +310,32 @@ export default function SettingsScreen() {
             icon="shield-checkmark-outline"
             label="Health Disclaimer"
             iconColor="#ffd93d"
+            onPress={() => router.push('/disclaimer' as any)}
           />
           <View style={styles.separator} />
           <SettingsRow
             icon="lock-closed-outline"
             label="Privacy Policy"
             iconColor="#8e8e93"
+            onPress={() => router.push('/privacy' as any)}
           />
         </GlassCard>
+
+        {/* Sign Out */}
+        <TouchableOpacity
+          style={styles.signOutButton}
+          onPress={handleSignOut}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
 
         {/* Footer */}
         <Text style={styles.disclaimer}>
           Rapha AI is not medical advice. Always consult your healthcare provider.
         </Text>
-        <Text style={styles.copyright}>© 2026 Rapha AI. All rights reserved.</Text>
+        <Text style={styles.copyright}>&copy; 2026 Rapha AI. All rights reserved.</Text>
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -395,6 +477,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.xs,
     color: Colors.purple,
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+  },
+  signOutText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: '#ef4444',
   },
   disclaimer: {
     fontFamily: 'Inter_400Regular',

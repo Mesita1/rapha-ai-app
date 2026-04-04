@@ -10,6 +10,7 @@ import {
   Linking,
   TextInput,
   Easing,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -1108,13 +1109,13 @@ export default function TrainScreen() {
         <View style={styles.comboSection}>
           <View style={styles.comboHeaderRow}>
             <Text style={styles.sectionTitle}>Combo Protocols</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert('Combo Protocols', 'Multi-step sessions that combine breathing, bilateral stimulation, and audio for deeper nervous system regulation.')}>
               <Ionicons name="information-circle-outline" size={18} color={Colors.textMuted} />
             </TouchableOpacity>
           </View>
 
           {mockComboProtocols.map((combo) => (
-            <TouchableOpacity key={combo.name} activeOpacity={0.7}>
+            <TouchableOpacity key={combo.name} activeOpacity={0.7} onPress={() => router.push('/session')}>
               <GlassCard style={styles.comboCard}>
                 <View style={styles.comboTop}>
                   <View style={styles.comboInfo}>

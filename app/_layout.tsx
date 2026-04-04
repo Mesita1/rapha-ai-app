@@ -120,6 +120,27 @@ export default function RootLayout() {
                   animation: 'slide_from_bottom',
                 }}
               />
+              <Stack.Screen
+                name="profile"
+                options={{
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
+                }}
+              />
+              <Stack.Screen
+                name="disclaimer"
+                options={{
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
+                }}
+              />
+              <Stack.Screen
+                name="privacy"
+                options={{
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
+                }}
+              />
             </Stack>
           </View>
           </InterventionProvider>

@@ -161,6 +161,13 @@ export default function SettingsScreen() {
             onPress={() => router.push('/(auth)/connect-device')}
           />
           <View style={styles.separator} />
+          <View style={styles.deviceAccuracyNote}>
+            <Ionicons name="information-circle-outline" size={16} color={Colors.textDim} />
+            <Text style={styles.deviceAccuracyText}>
+              Device Accuracy Note: Chest straps (Polar H10) provide gold-standard HRV accuracy. Wrist-based devices (Apple Watch, Garmin) may vary. For the most accurate readings, use a chest strap.
+            </Text>
+          </View>
+          <View style={styles.separator} />
           <SettingsRow
             icon="medkit-outline"
             label="My Conditions"
@@ -435,6 +442,20 @@ const styles = StyleSheet.create({
     height: 0.5,
     backgroundColor: Colors.surfaceBorder,
     marginHorizontal: Spacing.md,
+  },
+  deviceAccuracyNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+  },
+  deviceAccuracyText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+    flex: 1,
+    lineHeight: 16,
   },
   subRow: {
     flexDirection: 'row',

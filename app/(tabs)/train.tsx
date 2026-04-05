@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import GlassCard from '../../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius, Shadows } from '../../constants/theme';
-import { mockTrainingHistory, mockComboProtocols } from '../../constants/mockData';
+import { mockComboProtocols } from '../../constants/mockData';
 import { getVerseOfTheDay, getVerseForState, scriptureVerses, ScriptureVerse } from '../../constants/scriptureData';
 import { useBLE } from '../../context/BLEContext';
 import { useInterventions } from '../../context/InterventionContext';
@@ -382,9 +382,102 @@ export default function TrainScreen() {
 
   // BLE integration
   const { isConnected: bleConnected, rmssd: bleRmssd } = useBLE();
-  const { addIntervention } = useInterventions();
+  const { addIntervention, interventions } = useInterventions();
 
   const [interventionLogged, setInterventionLogged] = useState(false);
+
+  // Combo protocol definitions with actual step sequences
+  interface ComboStep {
+    type: SessionType;
+    mode: string;
+    label: string;
+    durationSeconds: number;
+  }
+
+  interface ComboProtocol {
+    name: string;
+    steps: ComboStep[];
+  }
+
+  const COMBO_PROTOCOLS: ComboProtocol[] = [
+    {
+      name: 'Vagal Reset',
+      steps: [
+        { type: 'humming', mode: 'om', label: 'Humming', durationSeconds: 60 },
+        { type: 'bilateral', mode: 'tapping', label: 'Bilateral Tapping', durationSeconds: 120 },
+        { type: 'breathing', mode: 'resonance', label: 'Resonance Breathing', durationSeconds: 120 },
+      ],
+    },
+    {
+      name: 'Deep Calm',
+      steps: [
+        { type: 'binaural', mode: 'theta', label: 'Binaural Beats (Theta)', durationSeconds: 300 },
+        { type: 'breathing', mode: 'resonance', label: 'Resonance Breathing', durationSeconds: 120 },
+        { type: 'bilateral', mode: 'visual-tracking', label: 'Bilateral Visual Tracking', durationSeconds: 180 },
+      ],
+    },
+    {
+      name: 'Pre-Sleep Wind Down',
+      steps: [
+        { type: 'breathing', mode: '478', label: '4-7-8 Breathing', durationSeconds: 300 },
+        { type: 'humming', mode: 'om', label: 'Humming', durationSeconds: 180 },
+        { type: 'binaural', mode: 'delta', label: 'Binaural Beats (Delta)', durationSeconds: 420 },
+      ],
+    },
+    {
+      name: 'Crisis Calm',
+      steps: [
+        { type: 'bilateral', mode: 'butterfly', label: 'Butterfly Hug', durationSeconds: 60 },
+        { type: 'breathing', mode: 'box', label: 'Box Breathing', durationSeconds: 120 },
+      ],
+    },
+  ];
+
+  // Combo session state
+  const [activeCombo, setActiveCombo] = useState<ComboProtocol | null>(null);
+  const [comboStepIndex, setComboStepIndex] = useState(0);
+  const [comboElapsed, setComboElapsed] = useState(0);
+  const [comboStepElapsed, setComboStepElapsed] = useState(0);
+  const [comboComplete, setComboComplete] = useState(false);
+  const [comboStartRmssd, setComboStartRmssd] = useState(0);
+  const comboIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startComboProtocol = (comboName: string) => {
+    const protocol = COMBO_PROTOCOLS.find(p => p.name === comboName);
+    if (!protocol) return;
+    const startRmssd = bleConnected && bleRmssd > 0 ? bleRmssd : 0;
+    setActiveCombo(protocol);
+    setComboStepIndex(0);
+    setComboElapsed(0);
+    setComboStepElapsed(0);
+    setComboComplete(false);
+    setComboStartRmssd(startRmssd);
+
+    // Start first step as active session
+    const firstStep = protocol.steps[0];
+    setSessionDuration(firstStep.durationSeconds);
+    startSession(firstStep.type, firstStep.mode);
+  };
+
+  const advanceComboStep = useCallback(() => {
+    if (!activeCombo) return;
+    const nextIndex = comboStepIndex + 1;
+    if (nextIndex >= activeCombo.steps.length) {
+      // Combo complete
+      setComboComplete(true);
+      const endRmssd = bleConnected && bleRmssd > 0 ? bleRmssd : 0;
+      const totalDuration = activeCombo.steps.reduce((sum, s) => sum + s.durationSeconds, 0);
+      logSessionAsIntervention('combo', activeCombo.name, totalDuration, comboStartRmssd, endRmssd);
+      setActiveCombo(null);
+      return;
+    }
+    // Start next step
+    setComboStepIndex(nextIndex);
+    setComboStepElapsed(0);
+    const nextStep = activeCombo.steps[nextIndex];
+    setSessionDuration(nextStep.durationSeconds);
+    startSession(nextStep.type, nextStep.mode);
+  }, [activeCombo, comboStepIndex, bleConnected, bleRmssd, comboStartRmssd]);
 
   const mapSessionToCategory = (type: string): string => {
     switch (type) {
@@ -814,6 +907,14 @@ export default function TrainScreen() {
     if (breathTimerRef.current) clearTimeout(breathTimerRef.current);
     if (bilateralTimerRef.current) clearInterval(bilateralTimerRef.current);
     if (hummingTimerRef.current) clearTimeout(hummingTimerRef.current);
+
+    // If combo is active, advance to next step instead of fully stopping
+    if (activeCombo) {
+      setActiveSession(null);
+      advanceComboStep();
+      return;
+    }
+
     // Auto-log as intervention
     if (activeSession) {
       const modeName = getModeLabel(activeSession);
@@ -959,9 +1060,25 @@ export default function TrainScreen() {
             <View style={styles.activeBannerHeader}>
               <View style={styles.activePulse} />
               <Text style={styles.activeBannerTitle}>
-                {getModeLabel(activeSession)} — {formatTime(remainingSeconds)} remaining
+                {activeCombo
+                  ? `Combo: ${activeCombo.name} — Step ${comboStepIndex + 1} of ${activeCombo.steps.length}: ${activeCombo.steps[comboStepIndex]?.label}`
+                  : getModeLabel(activeSession)
+                } — {formatTime(remainingSeconds)} remaining
               </Text>
             </View>
+            {activeCombo && (
+              <View style={{ flexDirection: 'row', gap: 4, justifyContent: 'center', marginBottom: Spacing.sm }}>
+                {activeCombo.steps.map((step, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      width: 8, height: 8, borderRadius: 4,
+                      backgroundColor: i < comboStepIndex ? Colors.accent : i === comboStepIndex ? Colors.purple : Colors.surfaceBorder,
+                    }}
+                  />
+                ))}
+              </View>
+            )}
 
             {/* Session Visualization */}
             {activeSession.type === 'breathing' && (
@@ -991,8 +1108,10 @@ export default function TrainScreen() {
             </View>
 
             <TouchableOpacity style={styles.stopButton} onPress={stopSession}>
-              <Ionicons name="stop-circle" size={18} color="#ef4444" />
-              <Text style={styles.stopButtonText}>Stop</Text>
+              <Ionicons name={activeCombo && comboStepIndex < activeCombo.steps.length - 1 ? "play-forward" : "stop-circle"} size={18} color={activeCombo && comboStepIndex < activeCombo.steps.length - 1 ? Colors.accent : "#ef4444"} />
+              <Text style={[styles.stopButtonText, activeCombo && comboStepIndex < activeCombo.steps.length - 1 && { color: Colors.accent }]}>
+                {activeCombo && comboStepIndex < activeCombo.steps.length - 1 ? 'Skip to Next Step' : 'Stop'}
+              </Text>
             </TouchableOpacity>
           </GlassCard>
         )}
@@ -1115,7 +1234,7 @@ export default function TrainScreen() {
           </View>
 
           {mockComboProtocols.map((combo) => (
-            <TouchableOpacity key={combo.name} activeOpacity={0.7} onPress={() => router.push('/session')}>
+            <TouchableOpacity key={combo.name} activeOpacity={0.7} onPress={() => startComboProtocol(combo.name)}>
               <GlassCard style={styles.comboCard}>
                 <View style={styles.comboTop}>
                   <View style={styles.comboInfo}>
@@ -1156,20 +1275,76 @@ export default function TrainScreen() {
             <View style={styles.historyGrid}>
               <View style={styles.historyItem}>
                 <Text style={styles.historyLabel}>This Week</Text>
-                <Text style={styles.historyValue}>{mockTrainingHistory.thisWeek.sessions} sessions</Text>
-                <Text style={styles.historyMeta}>{mockTrainingHistory.thisWeek.minutes} min, avg +{mockTrainingHistory.thisWeek.avgImprovement}ms</Text>
+                {(() => {
+                  const now = new Date();
+                  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                  const weekSessions = interventions.filter(i => {
+                    const t = new Date(i.timestamp);
+                    return t >= weekAgo && (i.category === 'therapy' || i.category === 'activity' || i.category === 'prayer');
+                  });
+                  const totalMinutes = weekSessions.reduce((sum, i) => {
+                    const match = i.dose?.match(/(\d+)\s*min/);
+                    return sum + (match ? parseInt(match[1], 10) : 0);
+                  }, 0);
+                  return (
+                    <>
+                      <Text style={styles.historyValue}>{weekSessions.length} sessions</Text>
+                      <Text style={styles.historyMeta}>{totalMinutes} min total</Text>
+                    </>
+                  );
+                })()}
               </View>
               <View style={styles.historyItem}>
                 <Text style={styles.historyLabel}>Streak</Text>
                 <View style={styles.streakRow}>
                   <Ionicons name="flame" size={18} color="#f59e0b" />
-                  <Text style={styles.streakValue}>{mockTrainingHistory.streak} days</Text>
+                  <Text style={styles.streakValue}>{(() => {
+                    let streak = 0;
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    for (let d = 0; d < 365; d++) {
+                      const checkDate = new Date(today.getTime() - d * 24 * 60 * 60 * 1000);
+                      const dateStr = checkDate.toDateString();
+                      const hasSession = interventions.some(i => {
+                        const t = new Date(i.timestamp);
+                        return t.toDateString() === dateStr && (i.category === 'therapy' || i.category === 'activity' || i.category === 'prayer');
+                      });
+                      if (hasSession) {
+                        streak++;
+                      } else if (d > 0) {
+                        break;
+                      }
+                    }
+                    return streak;
+                  })()} days</Text>
                 </View>
               </View>
               <View style={styles.historyItem}>
                 <Text style={styles.historyLabel}>Best Session</Text>
-                <Text style={styles.historyValue}>{mockTrainingHistory.bestSession.name}</Text>
-                <Text style={styles.historyMeta}>{mockTrainingHistory.bestSession.day}, +{mockTrainingHistory.bestSession.improvement}ms</Text>
+                {(() => {
+                  const now = new Date();
+                  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                  const weekSessions = interventions.filter(i => {
+                    const t = new Date(i.timestamp);
+                    return t >= weekAgo && i.preRmssd != null && i.postRmssd != null;
+                  });
+                  const best = weekSessions.reduce<typeof weekSessions[0] | null>((best, i) => {
+                    const delta = (i.postRmssd || 0) - (i.preRmssd || 0);
+                    const bestDelta = best ? (best.postRmssd || 0) - (best.preRmssd || 0) : -Infinity;
+                    return delta > bestDelta ? i : best;
+                  }, null);
+                  if (best) {
+                    const delta = (best.postRmssd || 0) - (best.preRmssd || 0);
+                    const day = new Date(best.timestamp).toLocaleDateString('en-US', { weekday: 'long' });
+                    return (
+                      <>
+                        <Text style={styles.historyValue}>{best.name}</Text>
+                        <Text style={styles.historyMeta}>{day}, {delta >= 0 ? '+' : ''}{delta.toFixed(0)}ms</Text>
+                      </>
+                    );
+                  }
+                  return <Text style={styles.historyMeta}>Start your first session above</Text>;
+                })()}
               </View>
             </View>
           </GlassCard>

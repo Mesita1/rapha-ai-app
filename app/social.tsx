@@ -9,6 +9,7 @@ import {
   Share,
   Linking,
   Alert,
+  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +25,8 @@ export default function SocialScreen() {
   const [searchEmail, setSearchEmail] = useState('');
   const [emailSearchResult, setEmailSearchResult] = useState<'none' | 'not_found' | null>(null);
   const [showContactsInfo, setShowContactsInfo] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteInput, setInviteInput] = useState('');
 
   const handleInviteFriends = async () => {
     try {
@@ -99,33 +102,85 @@ export default function SocialScreen() {
                   <Ionicons name="people-outline" size={22} color={Colors.accent} />
                 </View>
                 <View style={styles.findFriendsInfo}>
-                  <Text style={styles.findFriendsTitle}>Find Friends from Contacts</Text>
+                  <Text style={styles.findFriendsTitle}>Find Friends</Text>
                   <Text style={styles.findFriendsDesc}>
-                    See which of your contacts are already on Rapha AI
+                    Invite friends by phone number, email, or share a link
                   </Text>
                 </View>
               </View>
-              {!showContactsInfo ? (
-                <TouchableOpacity
-                  style={styles.findFriendsBtn}
-                  onPress={() => setShowContactsInfo(true)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="search-outline" size={16} color={Colors.accent} />
-                  <Text style={styles.findFriendsBtnText}>Check Contacts</Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.contactsInfoBox}>
-                  <Ionicons name="information-circle-outline" size={18} color={Colors.accent} />
-                  <Text style={styles.contactsInfoText}>
-                    Contact sync coming soon! In the meantime, invite friends directly.
-                  </Text>
-                </View>
-              )}
+              <TouchableOpacity
+                style={styles.findFriendsBtn}
+                onPress={() => setShowInviteModal(true)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="person-add-outline" size={16} color={Colors.accent} />
+                <Text style={styles.findFriendsBtnText}>Invite a Friend</Text>
+              </TouchableOpacity>
               <Text style={styles.contactsPrivacy}>
-                Rapha AI can check your contacts to find friends already using the app. We never store or upload your contacts.
+                Rapha AI never stores or uploads your contacts.
               </Text>
             </GlassCard>
+
+            {/* Invite Modal */}
+            <Modal
+              visible={showInviteModal}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setShowInviteModal(false)}
+            >
+              <View style={styles.inviteModalOverlay}>
+                <View style={styles.inviteModalContent}>
+                  <View style={styles.inviteModalHeader}>
+                    <Text style={styles.inviteModalTitle}>Invite a Friend</Text>
+                    <TouchableOpacity onPress={() => setShowInviteModal(false)}>
+                      <Ionicons name="close" size={24} color={Colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.inviteModalLabel}>Enter a friend's phone number or email</Text>
+                  <TextInput
+                    style={styles.inviteModalInput}
+                    placeholder="Phone number or email"
+                    placeholderTextColor={Colors.textDim}
+                    value={inviteInput}
+                    onChangeText={setInviteInput}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+
+                  <TouchableOpacity
+                    style={[styles.inviteModalSendBtn, !inviteInput.trim() && { opacity: 0.5 }]}
+                    onPress={() => {
+                      if (!inviteInput.trim()) return;
+                      handleInviteFriends();
+                      setInviteInput('');
+                      setShowInviteModal(false);
+                    }}
+                    disabled={!inviteInput.trim()}
+                  >
+                    <Ionicons name="send-outline" size={16} color={Colors.white} />
+                    <Text style={styles.inviteModalSendText}>Send Invite</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.inviteModalDivider}>
+                    <View style={styles.inviteModalDividerLine} />
+                    <Text style={styles.inviteModalDividerText}>or</Text>
+                    <View style={styles.inviteModalDividerLine} />
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.inviteModalShareBtn}
+                    onPress={() => {
+                      handleInviteFriends();
+                      setShowInviteModal(false);
+                    }}
+                  >
+                    <Ionicons name="share-outline" size={16} color={Colors.accent} />
+                    <Text style={styles.inviteModalShareText}>Share Your Invite Link</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
 
             {/* Find by Email */}
             <GlassCard style={styles.findByEmailCard}>
@@ -715,6 +770,97 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     marginTop: 2,
+  },
+  // Invite Modal
+  inviteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  inviteModalContent: {
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xxl,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
+  inviteModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  inviteModalTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.xl,
+    color: Colors.text,
+  },
+  inviteModalLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
+  },
+  inviteModalInput: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    marginBottom: Spacing.md,
+  },
+  inviteModalSendBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.accent,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.md,
+  },
+  inviteModalSendText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.md,
+    color: Colors.white,
+  },
+  inviteModalDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  inviteModalDividerLine: {
+    flex: 1,
+    height: 0.5,
+    backgroundColor: Colors.surfaceBorder,
+  },
+  inviteModalDividerText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.textDim,
+  },
+  inviteModalShareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(14,168,122,0.12)',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(14,168,122,0.25)',
+  },
+  inviteModalShareText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.md,
+    color: Colors.accent,
   },
   // Community
   communityCard: {

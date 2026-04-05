@@ -1961,7 +1961,7 @@ export default function TrainScreen() {
                 <>
                   <GlassCard style={{ backgroundColor: 'rgba(212,165,116,0.06)', borderWidth: 0, marginBottom: Spacing.md }}>
                     <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: Colors.text, lineHeight: 22, textAlign: 'center' }}>
-                      Whether you pray regularly or are trying it for the first time, this is a quiet space for you. If you pray, talk to God like a loving Father. If you're exploring, simply sit in quiet reflection and openness.
+                      Talk to God like He's your loving heavenly Father. If you're new to prayer, just start talking — He's listening. There's no wrong way to do it.
                     </Text>
                   </GlassCard>
 

@@ -185,8 +185,8 @@ export default function SocialScreen() {
             {/* Find by Email */}
             <GlassCard style={styles.findByEmailCard}>
               <View style={styles.findFriendsRow}>
-                <View style={[styles.findFriendsIcon, { backgroundColor: Colors.purpleLight }]}>
-                  <Ionicons name="mail-outline" size={22} color={Colors.purple} />
+                <View style={[styles.findFriendsIcon, { backgroundColor: Colors.accentLight }]}>
+                  <Ionicons name="mail-outline" size={22} color={Colors.accent} />
                 </View>
                 <View style={styles.findFriendsInfo}>
                   <Text style={styles.findFriendsTitle}>Find by Email</Text>
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   emailSearchBtn: {
-    backgroundColor: Colors.purple,
+    backgroundColor: Colors.accent,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.sm,
     alignItems: 'center',

@@ -6,9 +6,9 @@ export const Colors = {
   accent: '#D4A574',
   accentDark: '#B8896A',
   accentLight: 'rgba(212, 165, 116, 0.15)',
-  purple: '#6C5CE7',
-  purpleDark: '#5A4BD6',
-  purpleLight: 'rgba(108, 92, 231, 0.15)',
+  purple: '#D4A574',
+  purpleDark: '#B8896A',
+  purpleLight: 'rgba(212, 165, 116, 0.15)',
   warning: '#ffd93d',
   warningLight: 'rgba(255, 217, 61, 0.15)',
   alert: '#ff6b6b',
@@ -23,7 +23,7 @@ export const Colors = {
   black: '#000000',
   cardGlass: 'rgba(18, 18, 26, 0.9)',
   overlay: 'rgba(0, 0, 0, 0.6)',
-  userBubble: '#6C5CE7',
+  userBubble: 'rgba(212, 165, 116, 0.2)',
   aiBubble: '#12121a',
 };
 
@@ -63,7 +63,7 @@ export const Shadows = {
     elevation: 8,
   },
   glow: {
-    shadowColor: Colors.purple,
+    shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4,
     shadowRadius: 20,

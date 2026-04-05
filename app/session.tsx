@@ -34,7 +34,7 @@ const modes = [
     label: 'Calm',
     icon: 'leaf-outline' as const,
     desc: 'Parasympathetic activation. Alpha \u2192 Theta. Best for stress relief.',
-    gradient: ['#6C5CE7', '#3B82F6'] as [string, string],
+    gradient: ['#D4A574', '#B8896A'] as [string, string],
     targetZone: 'Theta (4-8 Hz)',
     startFreq: 10,
     endFreq: 6,
@@ -78,7 +78,7 @@ function SineWaveViz({ progress }: { progress: number }) {
   const h = 100;
   const waves = [
     { amp: 30, freq: 2, phase: 0, opacity: 0.8, color: Colors.accent },
-    { amp: 20, freq: 3, phase: 1.5, opacity: 0.4, color: Colors.purple },
+    { amp: 20, freq: 3, phase: 1.5, opacity: 0.4, color: Colors.accent },
     { amp: 15, freq: 4, phase: 3, opacity: 0.25, color: '#3B82F6' },
     { amp: 25, freq: 1.5, phase: progress * Math.PI * 2, opacity: 0.5, color: Colors.accent },
   ];
@@ -297,7 +297,7 @@ export default function SessionScreen() {
           </GlassCard>
 
           <GlassCard style={styles.comparisonCard}>
-            <Ionicons name="analytics-outline" size={18} color={Colors.purple} />
+            <Ionicons name="analytics-outline" size={18} color={Colors.accent} />
             <Text style={styles.comparisonText}>
               12% better than your average {currentMode.label} session
             </Text>
@@ -515,7 +515,7 @@ export default function SessionScreen() {
       <ScrollView contentContainerStyle={styles.selectionContent} showsVerticalScrollIndicator={false}>
         <View style={styles.selectionHeader}>
           <View style={styles.selectionTitleRow}>
-            <Ionicons name="headset-outline" size={24} color={Colors.purple} />
+            <Ionicons name="headset-outline" size={24} color={Colors.accent} />
             <Text style={styles.selectionTitle}>Audio Sessions</Text>
           </View>
           <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
@@ -608,11 +608,11 @@ export default function SessionScreen() {
         <GlassCard style={{ padding: Spacing.md, marginBottom: Spacing.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="musical-notes-outline" size={20} color={Colors.purple} />
+              <Ionicons name="musical-notes-outline" size={20} color={Colors.accent} />
               <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: Colors.text }}>Your Music + Binaural</Text>
             </View>
-            <View style={{ backgroundColor: 'rgba(108,92,231,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: Colors.purple }}>Coming Soon</Text>
+            <View style={{ backgroundColor: 'rgba(212,165,116,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: Colors.accent }}>Coming Soon</Text>
             </View>
           </View>
           <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, marginTop: 8, lineHeight: 19 }}>
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.surfaceBorder,
   },
   modeCardSelected: {
-    borderColor: 'rgba(108, 92, 231, 0.5)',
+    borderColor: 'rgba(212, 165, 116, 0.5)',
   },
   modeGradient: {
     padding: Spacing.md,
@@ -758,17 +758,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   proBadge: {
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: Colors.accentLight,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(108, 92, 231, 0.3)',
+    borderColor: 'rgba(212, 165, 116, 0.3)',
   },
   proBadgeText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 9,
-    color: Colors.purple,
+    color: Colors.accent,
   },
   musicExplanation: {
     fontFamily: 'Inter_400Regular',
@@ -866,14 +866,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: Spacing.sm + 2,
     borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: Colors.accentLight,
     borderWidth: 1,
-    borderColor: 'rgba(108, 92, 231, 0.2)',
+    borderColor: 'rgba(212, 165, 116, 0.2)',
   },
   quickLaunchText: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.xs,
-    color: Colors.purple,
+    color: Colors.accent,
   },
   // Start Button
   startBtn: {
@@ -975,7 +975,7 @@ const styles = StyleSheet.create({
   targetLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.sm,
-    color: Colors.purple,
+    color: Colors.accent,
   },
   freqText: {
     fontFamily: 'Inter_400Regular',
@@ -1007,7 +1007,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: Colors.purple,
+    backgroundColor: Colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },

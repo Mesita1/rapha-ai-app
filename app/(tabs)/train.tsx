@@ -53,8 +53,8 @@ const SESSION_TYPES = [
     title: 'Bilateral Stimulation',
     subtitle: 'Alternating left-right activation for nervous system regulation',
     icon: 'hand-left-outline' as const,
-    gradientColors: ['rgba(108,92,231,0.3)', 'rgba(108,92,231,0.05)'] as [string, string],
-    borderColor: '#6C5CE7',
+    gradientColors: ['rgba(212,165,116,0.3)', 'rgba(212,165,116,0.05)'] as [string, string],
+    borderColor: '#D4A574',
   },
   {
     key: 'humming' as SessionType,
@@ -1073,7 +1073,7 @@ export default function TrainScreen() {
                     key={i}
                     style={{
                       width: 8, height: 8, borderRadius: 4,
-                      backgroundColor: i < comboStepIndex ? Colors.accent : i === comboStepIndex ? Colors.purple : Colors.surfaceBorder,
+                      backgroundColor: i < comboStepIndex ? Colors.accent : i === comboStepIndex ? Colors.accent : Colors.surfaceBorder,
                     }}
                   />
                 ))}
@@ -2194,13 +2194,13 @@ const sessionStyles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(108,92,231,0.2)',
+    backgroundColor: 'rgba(212,165,116,0.2)',
     borderWidth: 2,
-    borderColor: 'rgba(108,92,231,0.3)',
+    borderColor: 'rgba(212,165,116,0.3)',
   },
   bilateralDotActive: {
-    backgroundColor: 'rgba(108,92,231,0.6)',
-    borderColor: '#6C5CE7',
+    backgroundColor: 'rgba(212,165,116,0.6)',
+    borderColor: '#D4A574',
   },
   bilateralDivider: {
     width: 1,

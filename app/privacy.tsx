@@ -77,7 +77,7 @@ export default function PrivacyScreen() {
 
         <GlassCard style={styles.mainCard}>
           <View style={styles.iconRow}>
-            <Ionicons name="lock-closed-outline" size={32} color={Colors.purple} />
+            <Ionicons name="lock-closed-outline" size={32} color={Colors.accent} />
           </View>
 
           <Text style={styles.heading}>Privacy Policy</Text>
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.purple,
+    backgroundColor: Colors.accent,
     marginTop: 7,
     marginRight: Spacing.sm + 2,
     flexShrink: 0,

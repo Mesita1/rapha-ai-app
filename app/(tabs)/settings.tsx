@@ -65,12 +65,12 @@ function SettingsRow({
         <Switch
           value={toggleValue}
           onValueChange={onToggle}
-          trackColor={{ false: Colors.surfaceBorder, true: Colors.purple }}
+          trackColor={{ false: Colors.surfaceBorder, true: Colors.accent }}
           thumbColor={Colors.white}
         />
       ) : badge ? (
-        <View style={[styles.badge, { backgroundColor: (badgeColor || Colors.purple) + '20', borderColor: (badgeColor || Colors.purple) + '40' }]}>
-          <Text style={[styles.badgeText, { color: badgeColor || Colors.purple }]}>{badge}</Text>
+        <View style={[styles.badge, { backgroundColor: (badgeColor || Colors.accent) + '20', borderColor: (badgeColor || Colors.accent) + '40' }]}>
+          <Text style={[styles.badgeText, { color: badgeColor || Colors.accent }]}>{badge}</Text>
         </View>
       ) : (
         <View style={styles.rowRight}>
@@ -149,7 +149,7 @@ export default function SettingsScreen() {
             icon="person-outline"
             label="Profile"
             subtitle={userEmail}
-            iconColor="#6C5CE7"
+            iconColor="#D4A574"
             onPress={() => router.push('/profile' as any)}
           />
           <View style={styles.separator} />
@@ -215,7 +215,7 @@ export default function SettingsScreen() {
             isToggle
             toggleValue={darkMode}
             onToggle={setDarkMode}
-            iconColor="#6C5CE7"
+            iconColor="#D4A574"
           />
           <View style={styles.separator} />
           <SettingsRow
@@ -272,7 +272,7 @@ export default function SettingsScreen() {
             icon="share-outline"
             label="Share with Practitioner"
             subtitle="Generate a read-only link"
-            iconColor="#6C5CE7"
+            iconColor="#D4A574"
             onPress={() =>
               Alert.alert(
                 'Share with Practitioner',
@@ -291,7 +291,7 @@ export default function SettingsScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.subIcon}>
-              <Ionicons name="card-outline" size={20} color={Colors.purple} />
+              <Ionicons name="card-outline" size={20} color={Colors.accent} />
             </View>
             <View style={styles.subInfo}>
               <Text style={styles.subLabel}>Current Plan</Text>
@@ -305,7 +305,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="arrow-up-circle-outline"
             label="Upgrade Plan"
-            iconColor={Colors.purple}
+            iconColor={Colors.accent}
             onPress={() => router.push('/upgrade' as any)}
           />
         </GlassCard>
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: Colors.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -487,17 +487,17 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   premiumBadge: {
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: Colors.accentLight,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs + 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(108, 92, 231, 0.3)',
+    borderColor: 'rgba(212, 165, 116, 0.3)',
   },
   premiumBadgeText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.xs,
-    color: Colors.purple,
+    color: Colors.accent,
   },
   signOutButton: {
     flexDirection: 'row',

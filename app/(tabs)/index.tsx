@@ -219,7 +219,7 @@ export default function DashboardScreen() {
         {isConnected ? (
           <View style={styles.reviewWrapper}>
             <LinearGradient
-              colors={['rgba(212,165,116,0.25)', 'rgba(108,92,231,0.25)', 'rgba(212,165,116,0.15)']}
+              colors={['rgba(212,165,116,0.25)', 'rgba(212,165,116,0.25)', 'rgba(212,165,116,0.15)']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.reviewGradientBorder}
@@ -238,7 +238,7 @@ export default function DashboardScreen() {
         ) : (
           <View style={styles.reviewWrapper}>
             <LinearGradient
-              colors={['rgba(212,165,116,0.25)', 'rgba(108,92,231,0.25)', 'rgba(212,165,116,0.15)']}
+              colors={['rgba(212,165,116,0.25)', 'rgba(212,165,116,0.25)', 'rgba(212,165,116,0.15)']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.reviewGradientBorder}
@@ -943,13 +943,13 @@ export default function DashboardScreen() {
           <GlassCard style={styles.sessionButton}>
             <View style={styles.sessionRow}>
               <View style={styles.sessionIcon}>
-                <Ionicons name="headset-outline" size={24} color={Colors.purple} />
+                <Ionicons name="headset-outline" size={24} color={Colors.accent} />
               </View>
               <View style={styles.sessionInfo}>
                 <Text style={styles.sessionTitle}>Audio Sessions</Text>
                 <Text style={styles.sessionDesc}>Binaural beats: Calm, Focus, Sleep, Recovery</Text>
               </View>
-              <Ionicons name="play-circle" size={32} color={Colors.purple} />
+              <Ionicons name="play-circle" size={32} color={Colors.accent} />
             </View>
           </GlassCard>
         </TouchableOpacity>
@@ -960,8 +960,8 @@ export default function DashboardScreen() {
           onPress={() => router.push('/social')}
         >
           <GlassCard style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.sm + 4 }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.purpleLight, alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="people-outline" size={22} color={Colors.purple} />
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.accentLight, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="people-outline" size={22} color={Colors.accent} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: Colors.text }}>Rapha Community</Text>
@@ -1125,7 +1125,7 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Floating Action Button — Purple */}
+      {/* Floating Action Button — Gold */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => setShowFabMenu(!showFabMenu)}
@@ -1781,7 +1781,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: BorderRadius.md,
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: Colors.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2002,11 +2002,11 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.purple,
+    backgroundColor: Colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(108, 92, 231, 0.4)',
+    borderColor: 'rgba(212, 165, 116, 0.4)',
   },
   fabOverlay: {
     position: 'absolute',

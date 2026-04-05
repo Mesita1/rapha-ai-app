@@ -276,11 +276,11 @@ const styles = StyleSheet.create({
     color: Colors.accent,
   },
   conditionChipSelected: {
-    borderColor: Colors.purple,
-    backgroundColor: Colors.purpleLight,
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentLight,
   },
   conditionChipTextSelected: {
-    color: Colors.purple,
+    color: Colors.accent,
   },
   disclaimerSection: {
     marginTop: Spacing.lg,

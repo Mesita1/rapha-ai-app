@@ -61,7 +61,7 @@ export default function UpgradeScreen() {
             <GlassCard
               key={tier.name}
               style={[styles.tierCard, isPopular && styles.tierCardPopular]}
-              glowColor={isPopular ? Colors.purple : undefined}
+              glowColor={isPopular ? Colors.accent : undefined}
             >
               {isPopular && (
                 <View style={styles.popularBadge}>
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   toggleBtnActive: {
-    backgroundColor: Colors.purple,
+    backgroundColor: Colors.accent,
   },
   toggleText: {
     fontFamily: 'Inter_600SemiBold',
@@ -200,22 +200,22 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   tierCardPopular: {
-    borderColor: 'rgba(108, 92, 231, 0.3)',
+    borderColor: 'rgba(212, 165, 116, 0.3)',
   },
   popularBadge: {
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: Colors.accentLight,
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.md,
     paddingVertical: 3,
     borderRadius: BorderRadius.full,
     marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(108, 92, 231, 0.3)',
+    borderColor: 'rgba(212, 165, 116, 0.3)',
   },
   popularBadgeText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.xs - 1,
-    color: Colors.purple,
+    color: Colors.accent,
   },
   tierName: {
     fontFamily: 'Inter_700Bold',
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   selectButton: {
-    backgroundColor: Colors.purple,
+    backgroundColor: Colors.accent,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
     alignItems: 'center',
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.surfaceBorder,
   },
   selectButtonPopular: {
-    backgroundColor: Colors.purple,
+    backgroundColor: Colors.accent,
   },
   selectButtonText: {
     fontFamily: 'Inter_700Bold',

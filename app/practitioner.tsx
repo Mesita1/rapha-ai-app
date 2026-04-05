@@ -100,7 +100,7 @@ export default function PractitionerScreen() {
 
             {/* Add Patient */}
             <TouchableOpacity style={styles.addPatientBtn}>
-              <Ionicons name="add-circle-outline" size={20} color={Colors.purple} />
+              <Ionicons name="add-circle-outline" size={20} color={Colors.accent} />
               <Text style={styles.addPatientText}>Invite Patient</Text>
             </TouchableOpacity>
           </>
@@ -113,7 +113,7 @@ export default function PractitionerScreen() {
               <View style={styles.linkBox}>
                 <Text style={styles.linkText}>raphaai.com/ref/drmesita</Text>
                 <TouchableOpacity style={styles.copyBtn}>
-                  <Ionicons name="copy-outline" size={16} color={Colors.purple} />
+                  <Ionicons name="copy-outline" size={16} color={Colors.accent} />
                 </TouchableOpacity>
               </View>
               <View style={styles.statsRow}>
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   toggleBtnActive: {
-    backgroundColor: Colors.purple,
+    backgroundColor: Colors.accent,
   },
   toggleText: {
     fontFamily: 'Inter_500Medium',
@@ -273,14 +273,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     marginTop: Spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(108, 92, 231, 0.3)',
+    borderColor: 'rgba(212, 165, 116, 0.3)',
     borderRadius: BorderRadius.lg,
     borderStyle: 'dashed',
   },
   addPatientText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.md,
-    color: Colors.purple,
+    color: Colors.accent,
   },
   referralCard: {
     marginBottom: Spacing.md,
@@ -294,17 +294,17 @@ const styles = StyleSheet.create({
   linkBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(108, 92, 231, 0.08)',
+    backgroundColor: 'rgba(212, 165, 116, 0.08)',
     borderRadius: BorderRadius.sm,
     padding: Spacing.md,
     marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(108, 92, 231, 0.2)',
+    borderColor: 'rgba(212, 165, 116, 0.2)',
   },
   linkText: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.sm,
-    color: Colors.purple,
+    color: Colors.accent,
     flex: 1,
   },
   copyBtn: {
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   contactBtn: {
-    backgroundColor: Colors.purple,
+    backgroundColor: Colors.accent,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
     alignItems: 'center',

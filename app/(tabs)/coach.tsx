@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   sparkleText: {
     fontSize: 16,
-    color: Colors.purple,
+    color: Colors.accent,
   },
   bubble: {
     padding: Spacing.md,
@@ -320,7 +320,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius.sm,
   },
   userBubble: {
-    backgroundColor: Colors.purple,
+    backgroundColor: 'rgba(212, 165, 116, 0.2)',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
     borderTopRightRadius: BorderRadius.sm,
   },
   bubbleText: {
@@ -385,6 +387,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendButtonActive: {
-    backgroundColor: Colors.purple,
+    backgroundColor: Colors.accent,
   },
 });

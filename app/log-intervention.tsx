@@ -456,12 +456,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(108, 92, 231, 0.2)',
-    backgroundColor: 'rgba(108, 92, 231, 0.08)',
+    borderColor: 'rgba(212, 165, 116, 0.2)',
+    backgroundColor: 'rgba(212, 165, 116, 0.08)',
   },
   subChipSelected: {
-    borderColor: Colors.purple,
-    backgroundColor: Colors.purpleLight,
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentLight,
   },
   subChipText: {
     fontFamily: 'Inter_400Regular',
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   subChipTextSelected: {
-    color: Colors.purple,
+    color: Colors.accent,
     fontFamily: 'Inter_500Medium',
   },
   // Food section
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
   logButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.purple,
+    backgroundColor: Colors.accent,
     paddingVertical: Spacing.md + 2,
     borderRadius: BorderRadius.lg,
     marginTop: Spacing.sm,

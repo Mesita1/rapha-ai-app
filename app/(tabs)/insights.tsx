@@ -30,7 +30,7 @@ function SupplementRow({
   const sleepPositive = item.sleepImpact >= 0;
   const recoveryPositive = item.recoveryImpact >= 0;
   const categoryColors: Record<string, string> = {
-    supplement: Colors.purple,
+    supplement: Colors.accent,
     therapy: Colors.accent,
     activity: '#f59e0b',
   };
@@ -106,7 +106,7 @@ export default function InsightsScreen() {
         {/* Top Interventions */}
         <View style={styles.topSection}>
           <View style={styles.topHeaderRow}>
-            <Ionicons name="bar-chart-outline" size={16} color={Colors.purple} />
+            <Ionicons name="bar-chart-outline" size={16} color={Colors.accent} />
             <Text style={styles.topHeaderText}>Top Interventions</Text>
           </View>
 
@@ -189,7 +189,7 @@ export default function InsightsScreen() {
         {/* Stack Analysis */}
         <View style={styles.stackAnalysisSection}>
           <View style={styles.protocolsHeaderRow}>
-            <Ionicons name="git-merge-outline" size={16} color={Colors.purple} />
+            <Ionicons name="git-merge-outline" size={16} color={Colors.accent} />
             <Text style={styles.stackAnalysisHeader}>Stack Analysis</Text>
           </View>
 
@@ -239,7 +239,7 @@ export default function InsightsScreen() {
           {/* Intervention Stacking */}
           <GlassCard style={styles.discoverCard}>
             <View style={styles.stackHeader}>
-              <Ionicons name="layers-outline" size={16} color={Colors.purple} />
+              <Ionicons name="layers-outline" size={16} color={Colors.accent} />
               <Text style={styles.discoverCardTitle}>Intervention Stacking</Text>
             </View>
             <Text style={styles.stackCombo}>
@@ -251,7 +251,7 @@ export default function InsightsScreen() {
             <View style={styles.stackBarRow}>
               <View style={styles.stackBarTrack}>
                 <View
-                  style={[styles.stackBarFill, { width: `${(topStack.individualSum / topStack.combinedDelta) * 100}%`, backgroundColor: 'rgba(108,92,231,0.4)' }]}
+                  style={[styles.stackBarFill, { width: `${(topStack.individualSum / topStack.combinedDelta) * 100}%`, backgroundColor: 'rgba(212,165,116,0.4)' }]}
                 />
               </View>
               <Text style={styles.stackBarLabel}>Individual: +{topStack.individualSum}ms</Text>
@@ -259,7 +259,7 @@ export default function InsightsScreen() {
             <View style={styles.stackBarRow}>
               <View style={styles.stackBarTrack}>
                 <View
-                  style={[styles.stackBarFill, { width: '100%', backgroundColor: Colors.purple }]}
+                  style={[styles.stackBarFill, { width: '100%', backgroundColor: Colors.accent }]}
                 />
               </View>
               <Text style={styles.stackBarLabel}>Combined: +{topStack.combinedDelta}ms</Text>
@@ -314,7 +314,7 @@ export default function InsightsScreen() {
         {/* Deep Metrics Placeholder */}
         <GlassCard style={styles.deepMetrics}>
           <View style={styles.deepMetricsRow}>
-            <Ionicons name="lock-closed-outline" size={18} color={Colors.purple} />
+            <Ionicons name="lock-closed-outline" size={18} color={Colors.accent} />
             <Text style={styles.deepMetricsText}>Deep Metrics</Text>
             <View style={styles.proBadge}>
               <Text style={styles.proBadgeText}>Pro</Text>
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: Colors.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.sm,
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
   discoveryRankText: {
     fontFamily: 'Inter_700Bold',
     fontSize: FontSize.xs,
-    color: Colors.purple,
+    color: Colors.accent,
   },
   discoveryInfo: {
     flex: 1,
@@ -761,24 +761,24 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   scoreBox: {
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: Colors.accentLight,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm + 2,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(108, 92, 231, 0.2)',
+    borderColor: 'rgba(212, 165, 116, 0.2)',
   },
   scoreLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.xs,
-    color: Colors.purple,
+    color: Colors.accent,
     marginBottom: 2,
   },
   scoreValue: {
     fontFamily: 'Inter_700Bold',
     fontSize: FontSize.xxl,
-    color: Colors.purple,
+    color: Colors.accent,
   },
   trendLabel: {
     fontFamily: 'Inter_400Regular',
@@ -859,17 +859,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   proBadge: {
-    backgroundColor: Colors.purpleLight,
+    backgroundColor: Colors.accentLight,
     paddingHorizontal: Spacing.sm + 2,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(108, 92, 231, 0.3)',
+    borderColor: 'rgba(212, 165, 116, 0.3)',
   },
   proBadgeText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.xs - 1,
-    color: Colors.purple,
+    color: Colors.accent,
   },
   deepMetricsDesc: {
     fontFamily: 'Inter_400Regular',

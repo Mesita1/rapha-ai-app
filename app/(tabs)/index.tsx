@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,7 +8,9 @@ import {
   Dimensions,
   Linking,
   Modal,
+  AppState,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +39,7 @@ import { useSubscription } from '../../context/SubscriptionContext';
 import { useHRVTracker } from '../../context/HRVTrackerContext';
 import { useInterventions } from '../../context/InterventionContext';
 import { getAutonomicState } from '../../lib/bluetooth';
+import { checkTriggers, dismissTrigger, CoachingTrigger } from '../../lib/coachingTriggers';
 import ProBadge from '../../components/ProBadge';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -122,12 +125,77 @@ export default function DashboardScreen() {
   // Derive autonomic state from real or mock data
   const liveRmssd = isConnected ? rmssd : null;
   const liveHR = isConnected ? heartRate : null;
-  const liveState = isConnected && rmssd > 0
+  const autonomicResult = isConnected && rmssd > 0
     ? getAutonomicState(rmssd)
     : null;
+  const liveState = autonomicResult?.state ?? null;
   const liveStateLabel = liveState === 'parasympathetic' ? 'Parasympathetic'
     : liveState === 'sympathetic' ? 'Sympathetic' : liveState ? 'Transitioning' : '--';
   const sparkData = isConnected && rmssdHistory.length > 0 ? rmssdHistory : [];
+
+  // --- Coaching Triggers ---
+  const [activeTriggers, setActiveTriggers] = useState<CoachingTrigger[]>([]);
+  const triggerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const refreshTriggers = useCallback(async () => {
+    try {
+      const conditionsRaw = await AsyncStorage.getItem('rapha_user_conditions');
+      const conditions: string[] = conditionsRaw ? JSON.parse(conditionsRaw) : [];
+      const now = new Date();
+      const today = now.toDateString();
+      const todayInterventions = interventions.filter(
+        (i: any) => new Date(i.timestamp).toDateString() === today
+      );
+
+      // Calculate streak days from intervention history
+      let streakDays = 0;
+      const dateSet = new Set(
+        interventions
+          .filter((i: any) => i.category === 'therapy' || i.category === 'breathwork')
+          .map((i: any) => new Date(i.timestamp).toDateString())
+      );
+      const d = new Date();
+      while (dateSet.has(d.toDateString())) {
+        streakDays++;
+        d.setDate(d.getDate() - 1);
+      }
+
+      const triggers = await checkTriggers({
+        rmssd: liveRmssd,
+        heartRate: liveHR,
+        isConnected,
+        interventions: todayInterventions,
+        hourOfDay: now.getHours(),
+        dayOfWeek: now.getDay(),
+        streakDays,
+        conditions,
+      });
+      setActiveTriggers(triggers);
+    } catch (e) {
+      // Silently fail — coaching triggers are non-critical
+    }
+  }, [interventions, liveRmssd, liveHR, isConnected]);
+
+  useEffect(() => {
+    refreshTriggers();
+    triggerIntervalRef.current = setInterval(refreshTriggers, 60000);
+    return () => {
+      if (triggerIntervalRef.current) clearInterval(triggerIntervalRef.current);
+    };
+  }, [refreshTriggers]);
+
+  // Re-check triggers when app comes to foreground
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshTriggers();
+    });
+    return () => sub.remove();
+  }, [refreshTriggers]);
+
+  const handleDismissTrigger = useCallback(async (id: string) => {
+    await dismissTrigger(id);
+    setActiveTriggers(prev => prev.filter(t => t.id !== id));
+  }, []);
 
   // Autonomic balance: count sympathetic vs parasympathetic hours for gauge position
   const symCount = isConnected ? autonomicTimeline.filter((s) => s.state === 'sympathetic').length : 0;
@@ -252,6 +320,40 @@ export default function DashboardScreen() {
             </View>
           </TouchableOpacity>
         )}
+
+        {/* Coaching Triggers */}
+        {activeTriggers.map((trigger) => (
+          <View
+            key={trigger.id}
+            style={[
+              styles.triggerCard,
+              { borderLeftColor: trigger.priority === 'high' ? '#ef4444' : Colors.accent },
+            ]}
+          >
+            {trigger.dismissible && (
+              <TouchableOpacity
+                style={styles.triggerDismiss}
+                onPress={() => handleDismissTrigger(trigger.id)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={16} color={Colors.textMuted} />
+              </TouchableOpacity>
+            )}
+            <Text style={styles.triggerTitle}>{trigger.title}</Text>
+            <Text style={styles.triggerMessage}>{trigger.message}</Text>
+            {trigger.actionLabel && (
+              <TouchableOpacity
+                style={styles.triggerAction}
+                activeOpacity={0.7}
+                onPress={() => {
+                  if (trigger.actionRoute) router.push(trigger.actionRoute as any);
+                }}
+              >
+                <Text style={styles.triggerActionText}>{trigger.actionLabel}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ))}
 
         {/* Day-in-Review Card */}
         {isConnected ? (
@@ -1309,6 +1411,48 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Coaching trigger cards
+  triggerCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    position: 'relative',
+  },
+  triggerDismiss: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    zIndex: 1,
+  },
+  triggerTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.md,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+    paddingRight: Spacing.lg,
+  },
+  triggerMessage: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    lineHeight: 20,
+    marginBottom: Spacing.sm,
+  },
+  triggerAction: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.accent,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.sm,
+  },
+  triggerActionText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.xs,
+    color: Colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,

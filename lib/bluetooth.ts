@@ -300,13 +300,26 @@ export function calculatePNN50(rrIntervals: number[]): number {
   return Math.round((count50 / (rrIntervals.length - 1)) * 100 * 10) / 10;
 }
 
-// Get autonomic state from RMSSD
-export function getAutonomicState(
-  rmssd: number
-): 'sympathetic' | 'parasympathetic' | 'transitioning' {
-  if (rmssd >= 50) return 'parasympathetic';
-  if (rmssd <= 25) return 'sympathetic';
-  return 'transitioning';
+// Get autonomic state from RMSSD with optional dysautonomia nuance
+export function getAutonomicState(rmssd: number, conditions?: string[]): {
+  state: 'sympathetic' | 'parasympathetic' | 'transitioning';
+  note?: string;
+} {
+  // For MCAS/POTS/EDS users, very high RMSSD can indicate a flare, not relaxation
+  const hasDysautonomia = conditions?.some(c =>
+    ['POTS', 'MCAS', 'Dysautonomia', 'EDS'].includes(c)
+  );
+
+  if (rmssd >= 50) {
+    return {
+      state: 'parasympathetic',
+      note: hasDysautonomia && rmssd > 100
+        ? 'Unusually high — monitor for flare symptoms'
+        : undefined,
+    };
+  }
+  if (rmssd <= 25) return { state: 'sympathetic' };
+  return { state: 'transitioning' };
 }
 
 export function isDeviceConnected(): boolean {

@@ -13,6 +13,7 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { conditionsList } from '../../constants/mockData';
@@ -45,9 +46,12 @@ export default function ProfileSetupScreen() {
     );
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!name.trim()) return;
-    // Persist the display name so greeting can use it
+    // Persist conditions for coaching triggers & AI context
+    if (selectedConditions.length > 0) {
+      await AsyncStorage.setItem('rapha_user_conditions', JSON.stringify(selectedConditions));
+    }
     // Display name already saved during signup
     setIsOnboarded(true);
     router.replace('/(tabs)');

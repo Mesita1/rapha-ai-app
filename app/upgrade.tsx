@@ -12,9 +12,11 @@ import { Ionicons } from '@expo/vector-icons';
 import GlassCard from '../components/GlassCard';
 import { Colors, FontSize, Spacing, BorderRadius } from '../constants/theme';
 import { mockPricingTiers } from '../constants/mockData';
+import { useSubscription } from '../context/SubscriptionContext';
 
 export default function UpgradeScreen() {
   const [isAnnual, setIsAnnual] = useState(false);
+  const { tier } = useSubscription();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -45,21 +47,31 @@ export default function UpgradeScreen() {
           >
             <Text style={[styles.toggleText, isAnnual && styles.toggleTextActive]}>Annual</Text>
             <View style={styles.saveBadge}>
-              <Text style={styles.saveBadgeText}>Save 33%</Text>
+              <Text style={styles.saveBadgeText}>Save 44%</Text>
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Tier Cards */}
-        {mockPricingTiers.map((tier, index) => {
-          const price = isAnnual ? tier.annualPrice : tier.monthlyPrice;
+        {mockPricingTiers.map((pricingTier) => {
+          const price = isAnnual ? pricingTier.annualPrice : pricingTier.monthlyPrice;
           const period = isAnnual ? '/year' : '/month';
-          const isPopular = tier.popular;
-          const isFoundingPractitioner = tier.foundingPrice && !isAnnual;
+          const isPopular = pricingTier.popular;
+          const isFoundingPractitioner = pricingTier.foundingPrice && !isAnnual;
+          const isCurrent = tier === pricingTier.tierKey || (tier === 'pro_trial' && pricingTier.tierKey === 'pro');
+
+          const getButtonLabel = () => {
+            if (isCurrent && tier === 'pro_trial') return 'Current Trial';
+            if (isCurrent) return 'Current Plan';
+            if (price === 0) return 'Get Started Free';
+            if (isPopular) return 'Start 14-Day Free Trial';
+            if (pricingTier.name === 'Practitioner') return "Let's Talk";
+            return `Get ${pricingTier.name}`;
+          };
 
           return (
             <GlassCard
-              key={tier.name}
+              key={pricingTier.name}
               style={[styles.tierCard, isPopular && styles.tierCardPopular]}
               glowColor={isPopular ? Colors.accent : undefined}
             >
@@ -69,7 +81,7 @@ export default function UpgradeScreen() {
                 </View>
               )}
 
-              <Text style={styles.tierName}>{tier.name}</Text>
+              <Text style={styles.tierName}>{pricingTier.name}</Text>
 
               <View style={styles.priceRow}>
                 {price === 0 ? (
@@ -83,18 +95,24 @@ export default function UpgradeScreen() {
                 )}
               </View>
 
+              {isAnnual && pricingTier.monthlyPrice > 0 && pricingTier.annualPrice > 0 && (
+                <Text style={styles.annualBreakdown}>
+                  ${(pricingTier.annualPrice / 12).toFixed(2)}/month, billed annually
+                </Text>
+              )}
+
               {isFoundingPractitioner && (
                 <View style={styles.foundingRow}>
                   <Text style={styles.foundingText}>
-                    Founding: ${tier.foundingPrice}/mo locked for life
+                    Founding: ${pricingTier.foundingPrice}/mo locked for life
                   </Text>
                   <View style={styles.remainingBadge}>
-                    <Text style={styles.remainingText}>{tier.foundingRemaining} left</Text>
+                    <Text style={styles.remainingText}>{pricingTier.foundingRemaining} left</Text>
                   </View>
                 </View>
               )}
 
-              {tier.features.map((feature, i) => (
+              {pricingTier.features.map((feature, i) => (
                 <View key={i} style={styles.featureRow}>
                   <Ionicons name="checkmark" size={16} color={Colors.accent} />
                   <Text style={styles.featureText}>{feature}</Text>
@@ -114,7 +132,7 @@ export default function UpgradeScreen() {
                     price === 0 && styles.selectButtonTextFree,
                   ]}
                 >
-                  {price === 0 ? 'Current Plan' : tier.name === 'Practitioner' ? "Let's Talk" : `Get ${tier.name}`}
+                  {getButtonLabel()}
                 </Text>
               </TouchableOpacity>
             </GlassCard>
@@ -122,7 +140,7 @@ export default function UpgradeScreen() {
         })}
 
         <Text style={styles.disclaimer}>
-          All paid plans include a free 7-day trial. Cancel anytime.
+          Pro plan includes a free 14-day trial. Cancel anytime.
         </Text>
 
         <View style={{ height: 60 }} />
@@ -245,6 +263,13 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textMuted,
     marginLeft: 4,
+  },
+  annualBreakdown: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.md,
   },
   foundingRow: {
     flexDirection: 'row',

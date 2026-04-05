@@ -33,9 +33,11 @@ import {
 import { getVerseOfTheDay } from '../../constants/scriptureData';
 import { useBLE } from '../../context/BLEContext';
 import { useAuth } from '../../context/AuthContext';
+import { useSubscription } from '../../context/SubscriptionContext';
 import { useHRVTracker } from '../../context/HRVTrackerContext';
 import { useInterventions } from '../../context/InterventionContext';
 import { getAutonomicState } from '../../lib/bluetooth';
+import ProBadge from '../../components/ProBadge';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -115,6 +117,7 @@ export default function DashboardScreen() {
   const { user: authUser } = useAuth();
   const { activeTrackers: hrvTrackers, notifications: hrvNotifications, dismissNotification, getNextCheck, getSummary } = useHRVTracker();
   const { isConnected, heartRate, rmssd, sdnn, pnn50, signalQuality, rmssdHistory, rrIntervals, connectedDevice, fullAnalysis } = useBLE();
+  const { tier, trialDaysRemaining, isTrialActive, hasProAccess } = useSubscription();
 
   // Derive autonomic state from real or mock data
   const liveRmssd = isConnected ? rmssd : null;
@@ -177,6 +180,41 @@ export default function DashboardScreen() {
             <Ionicons name="settings-outline" size={22} color={Colors.textMuted} />
           </TouchableOpacity>
         </View>
+
+        {/* Pro Trial Banner */}
+        {isTrialActive && trialDaysRemaining !== null && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => router.push('/upgrade')}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'rgba(212, 165, 116, 0.1)',
+              borderWidth: 1,
+              borderColor: 'rgba(212, 165, 116, 0.25)',
+              borderRadius: BorderRadius.lg,
+              paddingHorizontal: Spacing.md,
+              paddingVertical: Spacing.sm + 2,
+              marginBottom: Spacing.md,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+              <Ionicons name="sparkles" size={16} color={Colors.accent} />
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: Colors.accent }}>
+                Pro Trial — {trialDaysRemaining} {trialDaysRemaining === 1 ? 'day' : 'days'} remaining
+              </Text>
+            </View>
+            <View style={{
+              backgroundColor: Colors.accent,
+              paddingHorizontal: Spacing.sm + 2,
+              paddingVertical: 4,
+              borderRadius: BorderRadius.full,
+            }}>
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: Colors.background }}>Upgrade</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Get Started Card (when not connected and not showing demo) */}
         {!isConnected && !showDemoData && (
@@ -310,6 +348,7 @@ export default function DashboardScreen() {
           <View style={styles.hrvLabelRow}>
             <Ionicons name="heart" size={16} color={Colors.accent} />
             <Text style={styles.liveHrvText}>{isConnected ? 'Live HRV' : 'HRV'}</Text>
+            {isConnected && <ProBadge isTrial={isTrialActive} hasAccess={hasProAccess} />}
             {isConnected && (() => {
               const signal = getSignalDisplay(signalQuality);
               return (
@@ -717,7 +756,10 @@ export default function DashboardScreen() {
           <View style={styles.healthMetricsHeader}>
             <Ionicons name="heart-half-outline" size={16} color={Colors.accent} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.healthMetricsTitle}>Health Metrics</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.healthMetricsTitle}>Health Metrics</Text>
+                <ProBadge isTrial={isTrialActive} hasAccess={hasProAccess} />
+              </View>
               <Text style={styles.healthMetricsSubtitle}>From connected devices</Text>
             </View>
           </View>
@@ -964,7 +1006,10 @@ export default function DashboardScreen() {
               <Ionicons name="people-outline" size={22} color={Colors.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: Colors.text }}>Rapha Community</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: Colors.text }}>Rapha Community</Text>
+                <ProBadge isTrial={isTrialActive} hasAccess={hasProAccess} />
+              </View>
               <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12, color: Colors.textMuted }}>Connect with friends and groups</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={Colors.textDim} />

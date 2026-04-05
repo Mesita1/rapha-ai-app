@@ -16,7 +16,9 @@ import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 import { scriptureVerses } from '../../constants/scriptureData';
 import { getChatResponse } from '../../lib/gemini';
 import { useBLE } from '../../context/BLEContext';
+import { useSubscription } from '../../context/SubscriptionContext';
 import { useInterventions } from '../../context/InterventionContext';
+import ProBadge from '../../components/ProBadge';
 
 const SCRIPTURE_REF_PATTERN = /(\d?\s?(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|Samuel|Kings|Chronicles|Ezra|Nehemiah|Esther|Job|Psalm|Psalms|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|Corinthians|Galatians|Ephesians|Philippians|Colossians|Thessalonians|Timothy|Titus|Philemon|Hebrews|James|Peter|Jude|Revelation)\s+\d+:\d+(?:-\d+)?)/g;
 
@@ -105,6 +107,7 @@ function ChatBubble({ message }: { message: { role: string; content: string; tim
 
 export default function CoachScreen() {
   const { rmssd, heartRate } = useBLE();
+  const { isTrialActive, hasProAccess } = useSubscription();
   const { interventions } = useInterventions();
 
   const [messages, setMessages] = useState<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: string }[]>([
@@ -175,8 +178,11 @@ export default function CoachScreen() {
           <Ionicons name="pulse" size={20} color={Colors.accent} />
         </View>
         <View>
-          <Text style={styles.headerTitle}>Rapha</Text>
-          <Text style={styles.headerSubtitle}>AI Coach · Online</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.headerTitle}>Rapha</Text>
+            <ProBadge isTrial={isTrialActive} hasAccess={hasProAccess} />
+          </View>
+          <Text style={styles.headerSubtitle}>AI Coach · {hasProAccess ? 'Unlimited' : '1/day'}</Text>
         </View>
       </View>
 

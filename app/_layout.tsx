@@ -14,6 +14,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { BLEProvider } from '../context/BLEContext';
 import { HRVTrackerProvider } from '../context/HRVTrackerContext';
 import { InterventionProvider } from '../context/InterventionContext';
+import { SubscriptionProvider } from '../context/SubscriptionContext';
 import { Colors } from '../constants/theme';
 
 // Conditionally import native-only modules
@@ -57,6 +58,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.root}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <SubscriptionProvider>
           <BLEProvider>
           <HRVTrackerProvider>
           <InterventionProvider>
@@ -146,6 +148,7 @@ export default function RootLayout() {
           </InterventionProvider>
           </HRVTrackerProvider>
           </BLEProvider>
+          </SubscriptionProvider>
         </AuthProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>

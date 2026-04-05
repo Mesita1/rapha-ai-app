@@ -31,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
 
 const AUTH_KEY = 'rapha_auth';
 const ONBOARDED_KEY = 'rapha_onboarded';
+const TRIAL_START_KEY = 'rapha_trial_start';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<LocalUser | null>(null);
@@ -89,6 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Supabase succeeded — also save locally for offline access
           const userData: LocalUser = { email: email.trim().toLowerCase(), displayName: displayName.trim() };
           await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
+          // Auto-start 14-day Pro trial for new users
+          await AsyncStorage.setItem(TRIAL_START_KEY, new Date().toISOString());
           setUser(userData);
           return { error: null };
         }
@@ -102,6 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
       await AsyncStorage.setItem('rapha_pw', password);
+      // Auto-start 14-day Pro trial for new users
+      await AsyncStorage.setItem(TRIAL_START_KEY, new Date().toISOString());
       setUser(userData);
       return { error: null };
     } catch {

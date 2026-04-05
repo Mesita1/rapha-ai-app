@@ -21,7 +21,9 @@ import { Colors, FontSize, Spacing, BorderRadius, Shadows } from '../../constant
 import { mockComboProtocols } from '../../constants/mockData';
 import { getVerseOfTheDay, getVerseForState, scriptureVerses, ScriptureVerse } from '../../constants/scriptureData';
 import { useBLE } from '../../context/BLEContext';
+import { useSubscription } from '../../context/SubscriptionContext';
 import { useInterventions } from '../../context/InterventionContext';
+import ProBadge from '../../components/ProBadge';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -382,6 +384,7 @@ export default function TrainScreen() {
 
   // BLE integration
   const { isConnected: bleConnected, rmssd: bleRmssd } = useBLE();
+  const { isTrialActive, hasProAccess } = useSubscription();
   const { addIntervention, interventions } = useInterventions();
 
   const [interventionLogged, setInterventionLogged] = useState(false);
@@ -1217,7 +1220,10 @@ export default function TrainScreen() {
                 style={[styles.sessionTypeGradient, { borderColor: type.borderColor + '40' }]}
               >
                 <Ionicons name={type.icon} size={28} color={type.borderColor} />
-                <Text style={styles.sessionTypeTitle}>{type.title}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={styles.sessionTypeTitle}>{type.title}</Text>
+                  {type.key !== 'breathing' && <ProBadge isTrial={isTrialActive} hasAccess={hasProAccess} />}
+                </View>
                 <Text style={styles.sessionTypeSubtitle} numberOfLines={2}>{type.subtitle}</Text>
               </LinearGradient>
             </TouchableOpacity>

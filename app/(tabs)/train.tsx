@@ -425,7 +425,7 @@ export default function TrainScreen() {
       ],
     },
     {
-      name: 'Crisis Calm',
+      name: 'Quick Calm',
       steps: [
         { type: 'bilateral', mode: 'butterfly', label: 'Butterfly Hug', durationSeconds: 60 },
         { type: 'breathing', mode: 'box', label: 'Box Breathing', durationSeconds: 120 },

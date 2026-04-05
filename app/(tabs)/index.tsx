@@ -17,16 +17,10 @@ import GlassCard from '../../components/GlassCard';
 import SparklineChart from '../../components/SparklineChart';
 import { Colors, FontSize, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import {
-  mockUser,
-  mockCurrentHRV,
-  mockSparklineData,
   mockMetrics,
-  mockTodaySummary,
-  dayInReview,
   autonomicTimeline,
   bodyBattery,
   trendArrows,
-  mockAthleteInsights,
 } from '../../constants/mockData';
 import { getVerseOfTheDay } from '../../constants/scriptureData';
 import { useBLE } from '../../context/BLEContext';
@@ -207,7 +201,7 @@ export default function DashboardScreen() {
         <GlassCard style={styles.readinessCard}>
           <View style={styles.readinessRow}>
             <View style={styles.readinessScoreContainer}>
-              <Text style={styles.readinessScore}>{mockAthleteInsights.preWorkout.readiness}</Text>
+              <Text style={styles.readinessScore}>--</Text>
             </View>
             <View style={styles.readinessInfo}>
               <Text style={styles.readinessLabel}>Readiness</Text>
@@ -290,6 +284,11 @@ export default function DashboardScreen() {
                       </View>
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>VLF</Text>
+                        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.textDim }}>--</Text>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>Requires 5+ min</Text>
+                      </View>
                       <View style={{ alignItems: 'center', flex: 1 }}>
                         <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>LF Power</Text>
                         <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.textDim }}>--</Text>

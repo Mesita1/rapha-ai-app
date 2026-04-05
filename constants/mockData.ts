@@ -25,11 +25,11 @@ export const mockSparklineData = [
 ];
 
 export const mockMetrics = [
-  { label: 'Stress', value: '34', unit: '', icon: 'flash-outline' as const, color: '#0ea87a' },
-  { label: 'Recovery', value: '87', unit: '%', icon: 'fitness-outline' as const, color: '#0ea87a' },
-  { label: 'Breathing', value: '14.2', unit: 'rpm', icon: 'cloud-outline' as const, color: '#8e8e93' },
-  { label: 'LF/HF', value: '1.4', unit: '', icon: 'pulse-outline' as const, color: '#ffd93d' },
-  { label: 'Coherence', value: '72', unit: '%', icon: 'water-outline' as const, color: '#0ea87a' },
+  { label: 'Stress', value: '--', unit: '', icon: 'flash-outline' as const, color: '#0ea87a' },
+  { label: 'Recovery', value: '--', unit: '', icon: 'fitness-outline' as const, color: '#0ea87a' },
+  { label: 'Breathing', value: '--', unit: '', icon: 'cloud-outline' as const, color: '#8e8e93' },
+  { label: 'LF/HF', value: '--', unit: '', icon: 'pulse-outline' as const, color: '#ffd93d' },
+  { label: 'Coher.', value: '--', unit: '', icon: 'water-outline' as const, color: '#0ea87a' },
 ];
 
 export const mockTodaySummary = {
@@ -317,11 +317,6 @@ export const achievements = [
 ];
 
 export const trendArrows: Record<string, 'up' | 'down' | 'stable'> = {
-  Stress: 'down',
-  Recovery: 'up',
-  Breathing: 'stable',
-  'LF/HF': 'down',
-  Coherence: 'up',
 };
 
 export const conditionsList = [
@@ -393,7 +388,7 @@ export const mockComboProtocols = [
   { name: 'Vagal Reset', duration: '5 min', steps: ['Humming 1min', 'Bilateral tapping 2min', 'Resonance breathing 2min'], icons: ['musical-note-outline', 'hand-left-outline', 'leaf-outline'], users: 142, avgImprovement: 11 },
   { name: 'Deep Calm', duration: '10 min', steps: ['Binaural beats (theta) + Resonance breathing', 'Bilateral eye movement 3min'], icons: ['headset-outline', 'leaf-outline', 'eye-outline'], users: 98, avgImprovement: 16 },
   { name: 'Pre-Sleep Wind Down', duration: '15 min', steps: ['4-7-8 breathing 5min', 'Humming 3min', 'Binaural sleep prep 7min'], icons: ['leaf-outline', 'musical-note-outline', 'headset-outline'], users: 215, avgImprovement: 14 },
-  { name: 'Crisis Calm', duration: '3 min', steps: ['Butterfly hug 1min', 'Box breathing 2min'], icons: ['hand-left-outline', 'leaf-outline'], users: 312, avgImprovement: 8 },
+  { name: 'Quick Calm', duration: '3 min', steps: ['Butterfly hug 1min', 'Box breathing 2min'], icons: ['hand-left-outline', 'leaf-outline'], users: 312, avgImprovement: 8 },
 ];
 
 // --- ATHLETE & BIOHACKER EXPANSION ---

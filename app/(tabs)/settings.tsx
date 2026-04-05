@@ -206,6 +206,75 @@ export default function SettingsScreen() {
           />
         </GlassCard>
 
+        {/* CONNECTED HEALTH SERVICES */}
+        <Text style={styles.sectionLabel}>CONNECTED HEALTH SERVICES</Text>
+        <GlassCard style={styles.sectionCard}>
+          <SettingsRow
+            icon="heart-outline"
+            label="Apple Health"
+            subtitle="Sync sleep, steps, SpO2, HR"
+            iconColor="#ff6b6b"
+            onPress={() =>
+              Alert.alert(
+                'Apple Health',
+                'Apple Health integration will sync your sleep, steps, SpO2, and workout data. Enable in the next update.'
+              )
+            }
+          />
+          <View style={styles.separator} />
+          <SettingsRow
+            icon="analytics-outline"
+            label="Glucose Monitor (CGM)"
+            subtitle="Dexcom, Libre, Levels"
+            iconColor="#00d68f"
+            onPress={() =>
+              Alert.alert(
+                'CGM Integration',
+                'CGM integration coming soon. Connect your Dexcom G7, FreeStyle Libre, or other continuous glucose monitor to see how blood sugar correlates with your HRV.'
+              )
+            }
+          />
+          <View style={styles.separator} />
+          <SettingsRow
+            icon="watch-outline"
+            label="Garmin Connect"
+            subtitle="Coming soon"
+            iconColor="#3b82f6"
+            onPress={() =>
+              Alert.alert(
+                'Garmin Connect',
+                'Garmin Connect integration coming soon.'
+              )
+            }
+          />
+          <View style={styles.separator} />
+          <SettingsRow
+            icon="fitness-outline"
+            label="WHOOP"
+            subtitle="Coming soon"
+            iconColor="#D4A574"
+            onPress={() =>
+              Alert.alert(
+                'WHOOP',
+                'WHOOP integration coming soon.'
+              )
+            }
+          />
+          <View style={styles.separator} />
+          <SettingsRow
+            icon="ellipse-outline"
+            label="Oura Ring"
+            subtitle="Coming soon"
+            iconColor="#8e8e93"
+            onPress={() =>
+              Alert.alert(
+                'Oura Ring',
+                'Oura Ring integration coming soon.'
+              )
+            }
+          />
+        </GlassCard>
+
         {/* PREFERENCES */}
         <Text style={styles.sectionLabel}>PREFERENCES</Text>
         <GlassCard style={styles.sectionCard}>

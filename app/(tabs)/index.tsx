@@ -262,7 +262,7 @@ export default function DashboardScreen() {
           <View style={styles.verseContent}>
             <View style={styles.verseHeader}>
               <Ionicons name="book-outline" size={14} color="#d4a574" />
-              <Text style={styles.verseLabel}>Verse of the Day</Text>
+              <Text style={styles.verseLabel}>Daily Inspiration</Text>
             </View>
             <Text style={styles.verseText}>"{verseOfTheDay.text}"</Text>
             <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL(verseOfTheDay.youversionUrl)}>
@@ -1040,6 +1040,24 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* Connected Services Card */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => router.push('/(tabs)/settings')}
+          style={styles.connectedServicesCard}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+            <View style={{ width: 40, height: 40, borderRadius: BorderRadius.sm, backgroundColor: Colors.accentLight, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="fitness-outline" size={22} color={Colors.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: FontSize.md, color: Colors.text }}>Connect health services for deeper AI insights</Text>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 2 }}>Apple Health, CGM, Garmin, WHOOP, Oura</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textDim} />
+          </View>
+        </TouchableOpacity>
+
         {/* Recent Interventions */}
         <View style={styles.interventionsSection}>
           <Text style={styles.sectionTitle}>Recent Interventions</Text>
@@ -1798,6 +1816,14 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     marginTop: 2,
+  },
+  connectedServicesCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm + 4,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
   },
   // Interventions
   interventionsSection: {

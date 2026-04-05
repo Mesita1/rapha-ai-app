@@ -510,9 +510,9 @@ export default function TrainScreen() {
   };
 
   const REFLECTION_PROMPTS = [
-    'Think about this scripture...',
+    'Sit with these words for a moment...',
     'How does this apply to your life?',
-    'What might God be saying to you here?',
+    'What stands out to you here?',
     'Read it slowly one more time...',
     'Say it out loud if you can...',
   ];
@@ -1172,8 +1172,8 @@ export default function TrainScreen() {
             <View style={styles.scriptureFeaturedHeader}>
               <Ionicons name="book-outline" size={24} color="#d4a574" />
               <View style={styles.scriptureFeaturedInfo}>
-                <Text style={styles.scriptureFeaturedTitle}>Scripture Meditation</Text>
-                <Text style={styles.scriptureFeaturedSubtitle}>Meditate on Scripture with real-time HRV tracking</Text>
+                <Text style={styles.scriptureFeaturedTitle}>Scripture & Reflection</Text>
+                <Text style={styles.scriptureFeaturedSubtitle}>For the faithful and those exploring</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#d4a574" />
             </View>
@@ -1961,7 +1961,7 @@ export default function TrainScreen() {
                 <>
                   <GlassCard style={{ backgroundColor: 'rgba(212,165,116,0.06)', borderWidth: 0, marginBottom: Spacing.md }}>
                     <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: Colors.text, lineHeight: 22, textAlign: 'center' }}>
-                      Talk to God like He's your loving heavenly Father. Bring everything to Him — your worries, your hopes, your gratitude. Come as you are. You are deeply loved.
+                      Whether you pray regularly or are trying it for the first time, this is a quiet space for you. If you pray, talk to God like a loving Father. If you're exploring, simply sit in quiet reflection and openness.
                     </Text>
                   </GlassCard>
 

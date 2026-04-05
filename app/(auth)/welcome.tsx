@@ -100,7 +100,7 @@ export default function WelcomeScreen() {
           </Animated.View>
           <Text style={styles.appName}>Rapha AI</Text>
           <Text style={styles.tagline}>Your Personal Autonomic Intelligence</Text>
-          <Text style={styles.healingTagline}>From Jehovah Rapha — The God Who Heals</Text>
+          <Text style={styles.healingTagline}>Rapha: from the Hebrew word meaning 'to heal'</Text>
         </Animated.View>
 
         <Animated.View style={[styles.bottomSection, { opacity: fadeAnim }]}>

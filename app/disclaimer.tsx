@@ -61,12 +61,15 @@ export default function DisclaimerScreen() {
             <Text style={styles.acknowledgementText}>
               By using Rapha AI, you acknowledge that you have read and understand this disclaimer.
             </Text>
+            <Text style={[styles.acknowledgementText, { marginTop: Spacing.md }]}>
+              Rapha AI welcomes people of all backgrounds. Faith-based features like Scripture meditation are optional and can be hidden in Settings.
+            </Text>
           </View>
         </GlassCard>
 
         <View style={styles.footer}>
           <Text style={styles.footerBrand}>Rapha AI</Text>
-          <Text style={styles.footerTagline}>From Jehovah Rapha, The God Who Heals</Text>
+          <Text style={styles.footerTagline}>Rapha — from the Hebrew word for healing</Text>
           <Text style={styles.footerVerse}>
             "He heals the brokenhearted and binds up their wounds." {'\u2014'} Psalm 147:3
           </Text>

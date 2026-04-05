@@ -40,6 +40,11 @@ export const scriptureVerses: ScriptureVerse[] = [
   { reference: 'Psalm 103:2-3', text: 'Praise the Lord, my soul, and forget not all his benefits\u2014who forgives all your sins and heals all your diseases.', translation: 'NIV', state: 'any', tags: ['healing', 'forgiveness', 'benefits'], youversionUrl: 'https://bible.com/bible/111/PSA.103.2-3' },
   { reference: 'James 5:16', text: 'Therefore confess your sins to each other and pray for each other so that you may be healed. The prayer of a righteous person is powerful and effective.', translation: 'NIV', state: 'any', tags: ['prayer', 'healing', 'community'], youversionUrl: 'https://bible.com/bible/111/JAS.5.16' },
   { reference: '3 John 1:2', text: 'Dear friend, I pray that you may enjoy good health and that all may go well with you, even as your soul is getting along well.', translation: 'NIV', state: 'any', tags: ['health', 'wholeness', 'prayer'], youversionUrl: 'https://bible.com/bible/111/3JN.1.2' },
+
+  // UNIVERSAL WISDOM / REFLECTION
+  { reference: 'Reflection', text: 'Be still and know that you are held.', translation: '', state: 'stressed', tags: ['peace', 'stillness', 'trust'], youversionUrl: '' },
+  { reference: 'Reflection', text: 'In the quiet, healing begins.', translation: '', state: 'resting', tags: ['healing', 'rest', 'peace'], youversionUrl: '' },
+  { reference: 'Reflection', text: 'Your body knows how to heal. Your job is to create the conditions.', translation: '', state: 'any', tags: ['healing', 'wholeness', 'health'], youversionUrl: '' },
 ];
 
 // Get a verse based on autonomic state

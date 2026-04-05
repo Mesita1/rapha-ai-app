@@ -1,8 +1,8 @@
 import type { ChatMessage, CurrentHRV, Intervention, InsightPattern } from './types';
 
-const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
+const GEMINI_API_KEY = 'AIzaSyBaFVnsXYvLmzjK6l_H8P9GzyGHa-spi88';
 const GEMINI_ENDPOINT =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 const SYSTEM_PROMPT = `You are Rapha, a personal autonomic nervous system AI coach inside the Rapha AI app. You help users understand and improve their autonomic balance through real-time HRV biofeedback and intervention tracking.
 
@@ -160,6 +160,71 @@ export async function sendChatMessage(
     console.error('Gemini API error:', error);
     return "I'm having trouble connecting right now. Please check your internet connection and try again.";
   }
+}
+
+/**
+ * Simplified chat interface for the coach screen.
+ * Sends conversation history with optional HRV/intervention context.
+ */
+export async function getChatResponse(
+  userMessage: string,
+  conversationHistory: { role: string; content: string }[],
+  context?: { rmssd?: number; heartRate?: number; recentInterventions?: string[] }
+): Promise<string> {
+  try {
+    let contextNote = '';
+    if (context?.rmssd) {
+      contextNote += `\nUser's current RMSSD: ${context.rmssd}ms, HR: ${context.heartRate}bpm.`;
+    }
+    if (context?.recentInterventions?.length) {
+      contextNote += `\nRecent interventions: ${context.recentInterventions.join(', ')}.`;
+    }
+
+    const messages = [
+      ...conversationHistory.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      })),
+      {
+        role: 'user',
+        parts: [{ text: userMessage + contextNote }],
+      },
+    ];
+
+    const response = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: messages,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 300,
+          topP: 0.9,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm here for you. Could you tell me more about what you're experiencing?";
+  } catch (error) {
+    console.warn('Gemini API failed:', error);
+    return getFallbackResponse(userMessage);
+  }
+}
+
+function getFallbackResponse(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes('breath')) return "Try the Adaptive Breathing in the Train tab. Box Breathing (4-4-4-4) is perfect for beginners. Your nervous system will thank you!";
+  if (lower.includes('sleep')) return "Sleep is crucial for HRV recovery. Try the Sleep Prep binaural beats 30 minutes before bed. Avoid caffeine after 2pm.";
+  if (lower.includes('stress') || lower.includes('anxious')) return "When stress is high, a 5-minute Resonance Breathing session (5.5s in, 5.5s out) can bring you back to balance quickly.";
+  if (lower.includes('pray') || lower.includes('scripture')) return "Prayer and scripture meditation are among the most powerful parasympathetic activators. Head to the Train tab and try Scripture Meditation!";
+  if (lower.includes('hrv') || lower.includes('heart rate')) return "HRV measures the variation between heartbeats. Higher RMSSD generally means better parasympathetic tone. Connect a Bluetooth HR monitor to track yours.";
+  return "I'm still learning about you! Log some interventions and connect a device so I can give you personalized insights. In the meantime, try a training session from the Train tab.";
 }
 
 export function parseIntervention(aiResponse: string, rawText: string): {

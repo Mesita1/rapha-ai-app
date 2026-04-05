@@ -14,6 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 import { scriptureVerses } from '../../constants/scriptureData';
+import { getChatResponse } from '../../lib/gemini';
+import { useBLE } from '../../context/BLEContext';
+import { useInterventions } from '../../context/InterventionContext';
 
 const SCRIPTURE_REF_PATTERN = /(\d?\s?(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|Samuel|Kings|Chronicles|Ezra|Nehemiah|Esther|Job|Psalm|Psalms|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|Corinthians|Galatians|Ephesians|Philippians|Colossians|Thessalonians|Timothy|Titus|Philemon|Hebrews|James|Peter|Jude|Revelation)\s+\d+:\d+(?:-\d+)?)/g;
 
@@ -101,6 +104,9 @@ function ChatBubble({ message }: { message: { role: string; content: string; tim
 }
 
 export default function CoachScreen() {
+  const { rmssd, heartRate } = useBLE();
+  const { interventions } = useInterventions();
+
   const [messages, setMessages] = useState<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: string }[]>([
     {
       id: '1',
@@ -117,33 +123,7 @@ export default function CoachScreen() {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
   }, []);
 
-  const getCannedResponse = (message: string): string => {
-    const lower = message.toLowerCase();
-    if (lower.includes('breathing') || lower.includes('breath')) {
-      return "Great question! Try the Adaptive Breathing in the Train tab. Box Breathing (4-4-4-4) is perfect for beginners. Your nervous system will thank you!";
-    }
-    if (lower.includes('sleep')) {
-      return "Sleep is crucial for HRV recovery. Try the Sleep Prep binaural beats session 30 minutes before bed. Avoid caffeine after 2pm \u2014 our data shows it reduces sleep quality by 18%.";
-    }
-    if (lower.includes('stress') || lower.includes('anxious')) {
-      return "I hear you. When stress is high, your body shifts to sympathetic mode. A 5-minute Resonance Breathing session (5.5s in, 5.5s out) can bring you back to balance quickly.";
-    }
-    if (lower.includes('prayer') || lower.includes('pray') || lower.includes('scripture')) {
-      return "Prayer and scripture meditation are among the most powerful parasympathetic activators we've seen. Head to the Train tab and try Scripture Meditation \u2014 many users see their strongest HRV shifts during these moments.";
-    }
-    if (lower.includes('hrv') || lower.includes('heart rate') || lower.includes('rmssd')) {
-      return "HRV (Heart Rate Variability) measures the variation in time between heartbeats. Higher RMSSD generally means better parasympathetic tone. Connect a Bluetooth heart rate monitor to see your real-time values.";
-    }
-    if (lower.includes('device') || lower.includes('polar') || lower.includes('connect')) {
-      return "To connect your device, go to Settings \u2192 My Devices, or use the Connect Device screen. Turn on your Polar H10 (or other HR monitor) and tap Scan. Make sure Bluetooth is enabled on your phone.";
-    }
-    if (lower.includes('supplement') || lower.includes('creatine') || lower.includes('magnesium')) {
-      return "Track your supplements by tapping the + button on the Dashboard and logging them as interventions. Over time, I'll show you exactly how each one affects your HRV, sleep, and recovery.";
-    }
-    return "I'm still learning! Once your data starts flowing, I'll give you personalized insights about what works best for your body. In the meantime, try a training session from the Train tab \u2014 every session teaches me more about you.";
-  };
-
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
 
     const userMessage = {
@@ -160,17 +140,31 @@ export default function CoachScreen() {
 
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
 
-    setTimeout(() => {
-      const aiMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant' as const,
-        content: getCannedResponse(userText),
-        timestamp: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-      setIsLoading(false);
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-    }, 1000);
+    // Build conversation history (skip the welcome message for context)
+    const history = messages
+      .filter((m) => m.id !== '1')
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    // Build context from BLE and interventions
+    const recentInterventions = interventions
+      .slice(-5)
+      .map((i) => i.name);
+
+    const aiText = await getChatResponse(userText, history, {
+      rmssd: rmssd || undefined,
+      heartRate: heartRate || undefined,
+      recentInterventions: recentInterventions.length > 0 ? recentInterventions : undefined,
+    });
+
+    const aiMessage = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant' as const,
+      content: aiText,
+      timestamp: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    };
+    setMessages((prev) => [...prev, aiMessage]);
+    setIsLoading(false);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
   return (
@@ -220,7 +214,7 @@ export default function CoachScreen() {
           </TouchableOpacity>
           <TextInput
             style={styles.input}
-            placeholder="Log an intervention..."
+            placeholder="Ask Rapha anything..."
             placeholderTextColor={Colors.textDim}
             value={inputText}
             onChangeText={setInputText}
@@ -245,7 +239,7 @@ export default function CoachScreen() {
         {/* Powered by note */}
         <View style={{ alignItems: 'center', paddingVertical: 6 }}>
           <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 10, color: Colors.textDim }}>
-            AI coach powered by Gemini — full intelligence coming soon
+            AI coach powered by Gemini
           </Text>
         </View>
 

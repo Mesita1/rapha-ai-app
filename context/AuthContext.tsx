@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface LocalUser {
   email: string;
@@ -36,8 +37,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isOnboarded, setIsOnboardedState] = useState(false);
 
+  // On mount: check Supabase session first, then local fallback
   useEffect(() => {
     (async () => {
+      if (isSupabaseConfigured) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const displayName = session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || '';
+            const userData: LocalUser = { email: session.user.email || '', displayName };
+            await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
+            setUser(userData);
+            const onboarded = await AsyncStorage.getItem(ONBOARDED_KEY);
+            if (onboarded === 'true') setIsOnboardedState(true);
+            setIsLoading(false);
+            return;
+          }
+        } catch {
+          // Supabase unavailable — check local
+        }
+      }
+
+      // Local fallback
       try {
         const saved = await AsyncStorage.getItem(AUTH_KEY);
         const onboarded = await AsyncStorage.getItem(ONBOARDED_KEY);
@@ -53,6 +74,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!email.includes('@')) return { error: 'Please enter a valid email' };
     if (password.length < 6) return { error: 'Password must be at least 6 characters' };
 
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim().toLowerCase(),
+          password,
+          options: { data: { display_name: displayName.trim() } },
+        });
+
+        if (error) {
+          console.warn('Supabase signup failed, using local:', error.message);
+          // Fall through to local fallback below
+        } else {
+          // Supabase succeeded — also save locally for offline access
+          const userData: LocalUser = { email: email.trim().toLowerCase(), displayName: displayName.trim() };
+          await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
+          setUser(userData);
+          return { error: null };
+        }
+      } catch {
+        // Network error — use local auth
+      }
+    }
+
+    // Local fallback
     const userData: LocalUser = { email: email.trim().toLowerCase(), displayName: displayName.trim() };
     try {
       await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
@@ -66,6 +111,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     if (!email || !password) return { error: 'Email and password are required' };
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+
+        if (!error && data.user) {
+          const displayName = data.user.user_metadata?.display_name || email.split('@')[0];
+          const userData: LocalUser = { email: data.user.email || email, displayName };
+          await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
+          setUser(userData);
+          return { error: null };
+        }
+        // If Supabase fails, try local
+      } catch {
+        // Network error — try local
+      }
+    }
+
+    // Local fallback
     try {
       const saved = await AsyncStorage.getItem(AUTH_KEY);
       const savedPw = await AsyncStorage.getItem('rapha_pw');
@@ -81,9 +148,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    try {
-      await AsyncStorage.multiRemove([AUTH_KEY, 'rapha_pw', ONBOARDED_KEY]);
-    } catch {}
+    try { await supabase.auth.signOut(); } catch {}
+    try { await AsyncStorage.multiRemove([AUTH_KEY, 'rapha_pw', ONBOARDED_KEY]); } catch {}
     setUser(null);
     setIsOnboardedState(false);
   };

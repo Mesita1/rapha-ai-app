@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { Platform } from 'react-native';
 import type { BLEDevice, HRVData } from '../lib/bluetooth';
+import type { FullHRVAnalysis } from '../lib/hrvAnalysis';
 
 interface BLEContextType {
   // State
@@ -15,6 +16,7 @@ interface BLEContextType {
   signalQuality: 'excellent' | 'good' | 'poor' | 'bad' | 'none';
   rrIntervals: number[];
   rmssdHistory: number[];
+  fullAnalysis: FullHRVAnalysis | null;
   // Actions
   startScan: () => void;
   stopScan: () => void;
@@ -34,6 +36,7 @@ const BLEContext = createContext<BLEContextType>({
   signalQuality: 'none',
   rrIntervals: [],
   rmssdHistory: [],
+  fullAnalysis: null,
   startScan: () => {},
   stopScan: () => {},
   connectToDevice: async () => {},
@@ -51,6 +54,7 @@ export function BLEProvider({ children }: { children: React.ReactNode }) {
   const [signalQuality, setSignalQuality] = useState<'excellent' | 'good' | 'poor' | 'bad' | 'none'>('none');
   const [rrIntervals, setRrIntervals] = useState<number[]>([]);
   const [rmssdHistory, setRmssdHistory] = useState<number[]>([]);
+  const [fullAnalysis, setFullAnalysis] = useState<FullHRVAnalysis | null>(null);
 
   const stopScanRef = useRef<(() => void) | null>(null);
   const disconnectRef = useRef<(() => void) | null>(null);
@@ -118,6 +122,9 @@ export function BLEProvider({ children }: { children: React.ReactNode }) {
           setPnn50(data.pnn50);
           setSignalQuality(data.signalQuality);
           setRrIntervals(data.rrIntervals);
+          if (data.fullAnalysis) {
+            setFullAnalysis(data.fullAnalysis);
+          }
           if (data.rmssd > 0) {
             setRmssdHistory((prev) => {
               const updated = [...prev, data.rmssd];
@@ -131,6 +138,7 @@ export function BLEProvider({ children }: { children: React.ReactNode }) {
           setHeartRate(0);
           setRmssd(0);
           setSdnn(0);
+          setFullAnalysis(null);
         },
         (error: string) => {
           console.warn('BLE stream error:', error);
@@ -151,6 +159,7 @@ export function BLEProvider({ children }: { children: React.ReactNode }) {
     setRmssd(0);
     setSdnn(0);
     setRmssdHistory([]);
+    setFullAnalysis(null);
   }, []);
 
   // Cleanup on unmount
@@ -175,6 +184,7 @@ export function BLEProvider({ children }: { children: React.ReactNode }) {
         signalQuality,
         rrIntervals,
         rmssdHistory,
+        fullAnalysis,
         startScan,
         stopScan,
         connectToDevice,

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { runFullAnalysis, type FullHRVAnalysis } from './hrvAnalysis';
 
 // Types
 export interface BLEDevice {
@@ -15,6 +16,7 @@ export interface HRVData {
   pnn50: number;
   signalQuality: 'excellent' | 'good' | 'poor' | 'bad';
   timestamp: number;
+  fullAnalysis: FullHRVAnalysis | null;
 }
 
 // Heart Rate Service UUIDs (standard BLE)
@@ -160,6 +162,8 @@ export async function connectAndStream(
   // Use a LARGER buffer — 300 intervals ≈ 5 minutes at 60bpm
   // This matches what Kubios and Elite HRV use for short-term analysis
   let rawRRBuffer: number[] = [];
+  let lastFullAnalysis: FullHRVAnalysis | null = null;
+  let lastAnalysisTime = 0;
 
   device.monitorCharacteristicForService(
     HR_SERVICE_UUID,
@@ -175,18 +179,26 @@ export async function connectAndStream(
           if (rawRRBuffer.length > 300) rawRRBuffer = rawRRBuffer.slice(-300);
         }
 
-        // Apply artifact rejection BEFORE calculating metrics
+        // Run full analysis every 5 seconds (CPU intensive)
+        const now = Date.now();
+        if (now - lastAnalysisTime >= 5000 && rawRRBuffer.length >= 4) {
+          lastFullAnalysis = runFullAnalysis(rawRRBuffer);
+          lastAnalysisTime = now;
+        }
+
+        // For immediate feedback, use the old fast path for basic metrics
         const cleanRR = filterArtifacts(rawRRBuffer);
         const signalQuality = assessSignalQuality(rawRRBuffer, cleanRR);
 
         onData({
           heartRate: parsed.heartRate,
           rrIntervals: parsed.rrIntervals,
-          rmssd: calculateRMSSD(cleanRR),
-          sdnn: calculateSDNN(cleanRR),
-          pnn50: calculatePNN50(cleanRR),
-          signalQuality,
-          timestamp: Date.now(),
+          rmssd: lastFullAnalysis?.rmssd ?? calculateRMSSD(cleanRR),
+          sdnn: lastFullAnalysis?.sdnn ?? calculateSDNN(cleanRR),
+          pnn50: lastFullAnalysis?.pnn50 ?? calculatePNN50(cleanRR),
+          signalQuality: lastFullAnalysis?.signalQuality ?? signalQuality,
+          timestamp: now,
+          fullAnalysis: lastFullAnalysis,
         });
       }
     }

@@ -77,7 +77,7 @@ export default function DashboardScreen() {
   const { interventions } = useInterventions();
   const { user: authUser } = useAuth();
   const { activeTrackers: hrvTrackers, notifications: hrvNotifications, dismissNotification, getNextCheck, getSummary } = useHRVTracker();
-  const { isConnected, heartRate, rmssd, sdnn, pnn50, signalQuality, rmssdHistory, rrIntervals, connectedDevice } = useBLE();
+  const { isConnected, heartRate, rmssd, sdnn, pnn50, signalQuality, rmssdHistory, rrIntervals, connectedDevice, fullAnalysis } = useBLE();
 
   // Derive autonomic state from real or mock data
   const liveRmssd = isConnected ? rmssd : null;
@@ -305,9 +305,23 @@ export default function DashboardScreen() {
               </TouchableOpacity>
               {showHrvDetails && (() => {
                 const signal = getSignalDisplay(signalQuality);
-                const pnn50 = calculatePNN50(rrIntervals);
+                const fa = fullAnalysis;
+                const freq = fa?.frequency;
+                const poinc = fa?.poincare;
+                const qualityColor = signal.color;
+                const dfaVal = fa?.dfaAlpha1;
+                const dfaInterp = dfaVal !== null && dfaVal !== undefined
+                  ? dfaVal > 1.0 ? 'Resting' : dfaVal > 0.75 ? 'Moderate' : dfaVal > 0.5 ? 'Aerobic threshold' : 'Anaerobic'
+                  : null;
+                const sampEnVal = fa?.sampleEntropy;
+                const sampEnInterp = sampEnVal !== null && sampEnVal !== undefined
+                  ? sampEnVal > 1.5 ? 'High complexity' : sampEnVal > 0.8 ? 'Normal' : 'Low complexity'
+                  : null;
+
                 return (
                   <View style={{ marginTop: Spacing.sm, borderTopWidth: 0.5, borderTopColor: Colors.surfaceBorder, paddingTop: Spacing.sm }}>
+                    {/* Row 1: Time Domain */}
+                    <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 10, color: Colors.textDim, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Time Domain</Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
                       <View style={{ alignItems: 'center', flex: 1 }}>
                         <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>RMSSD</Text>
@@ -321,31 +335,74 @@ export default function DashboardScreen() {
                       </View>
                       <View style={{ alignItems: 'center', flex: 1 }}>
                         <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>pNN50</Text>
-                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: Colors.text }}>{pnn50 !== null ? `${pnn50.toFixed(0)}%` : '--'}</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: Colors.text }}>{fa ? `${fa.pnn50.toFixed(1)}%` : pnn50 > 0 ? `${pnn50.toFixed(0)}%` : '--'}</Text>
                         <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 10, color: Colors.textDim }}> </Text>
+                      </View>
+                    </View>
+
+                    {/* Row 2: Frequency Domain */}
+                    <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 10, color: Colors.textDim, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Frequency Domain</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>VLF</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: freq ? Colors.text : Colors.textDim }}>{freq ? `${freq.vlf}` : '--'}</Text>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>ms²</Text>
+                      </View>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>LF</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: freq ? Colors.text : Colors.textDim }}>{freq ? `${freq.lf}` : '--'}</Text>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>ms²</Text>
+                      </View>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>HF</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: freq ? Colors.text : Colors.textDim }}>{freq ? `${freq.hf}` : '--'}</Text>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>ms²</Text>
                       </View>
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
                       <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>LF Power</Text>
-                        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.textDim }}>--</Text>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>Requires 5+ min</Text>
-                      </View>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>HF Power</Text>
-                        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.textDim }}>--</Text>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>Requires 5+ min</Text>
-                      </View>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
                         <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>LF/HF</Text>
-                        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.textDim }}>--</Text>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>Requires 5+ min</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: freq ? Colors.text : Colors.textDim }}>{freq ? `${freq.lfHfRatio}` : '--'}</Text>
+                      </View>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>Total</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: freq ? Colors.text : Colors.textDim }}>{freq ? `${freq.totalPower}` : '--'}</Text>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>ms²</Text>
+                      </View>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        {!freq && <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim, textAlign: 'center' }}>Need 2+ min{'\n'}for frequency</Text>}
                       </View>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, justifyContent: 'center' }}>
-                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: signal.color }} />
-                      <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textDim }}>
-                        Signal quality affects accuracy
+
+                    {/* Row 3: Non-linear */}
+                    <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 10, color: Colors.textDim, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Non-Linear</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>DFA α1</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: dfaVal != null ? Colors.text : Colors.textDim }}>{dfaVal != null ? dfaVal.toFixed(3) : '--'}</Text>
+                        {dfaInterp && <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.accent }}>{dfaInterp}</Text>}
+                      </View>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>SampEn</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: sampEnVal != null ? Colors.text : Colors.textDim }}>{sampEnVal != null ? sampEnVal.toFixed(3) : '--'}</Text>
+                        {sampEnInterp && <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.accent }}>{sampEnInterp}</Text>}
+                      </View>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>SD1/SD2</Text>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: poinc ? Colors.text : Colors.textDim }}>{poinc ? `${poinc.sd1}/${poinc.sd2}` : '--'}</Text>
+                        {poinc && <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>ratio {poinc.sd1sd2}</Text>}
+                      </View>
+                    </View>
+
+                    {/* Row 4: Signal Quality & Data Info */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.sm, paddingTop: Spacing.xs, borderTopWidth: 0.5, borderTopColor: Colors.surfaceBorder }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: qualityColor }} />
+                        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 11, color: qualityColor }}>{signal.label}</Text>
+                        {fa && <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 10, color: Colors.textDim }}> ({fa.artifactRate}% artifacts)</Text>}
+                      </View>
+                      <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 10, color: Colors.textDim }}>
+                        {fa ? `${fa.dataPoints} pts · ${Math.floor(fa.durationSeconds / 60)}m ${fa.durationSeconds % 60}s` : '--'}
                       </Text>
                     </View>
                   </View>

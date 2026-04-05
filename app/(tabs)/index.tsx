@@ -53,8 +53,8 @@ const TREND_ARROW_MAP: Record<string, { symbol: string; color: string }> = {
 
 function getSignalDisplay(quality: string): { label: string; color: string } {
   switch (quality) {
-    case 'excellent': return { label: 'Excellent', color: '#00d68f' };
-    case 'good': return { label: 'Good', color: '#00d68f' };
+    case 'excellent': return { label: 'Excellent', color: '#D4A574' };
+    case 'good': return { label: 'Good', color: '#D4A574' };
     case 'poor': return { label: 'Poor', color: '#f59e0b' };
     case 'bad': return { label: 'Weak', color: '#ef4444' };
     default: return { label: '--', color: '#8e8e93' };
@@ -219,7 +219,7 @@ export default function DashboardScreen() {
         {isConnected ? (
           <View style={styles.reviewWrapper}>
             <LinearGradient
-              colors={['rgba(14,168,122,0.25)', 'rgba(108,92,231,0.25)', 'rgba(14,168,122,0.15)']}
+              colors={['rgba(212,165,116,0.25)', 'rgba(108,92,231,0.25)', 'rgba(212,165,116,0.15)']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.reviewGradientBorder}
@@ -238,7 +238,7 @@ export default function DashboardScreen() {
         ) : (
           <View style={styles.reviewWrapper}>
             <LinearGradient
-              colors={['rgba(14,168,122,0.25)', 'rgba(108,92,231,0.25)', 'rgba(14,168,122,0.15)']}
+              colors={['rgba(212,165,116,0.25)', 'rgba(108,92,231,0.25)', 'rgba(212,165,116,0.15)']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.reviewGradientBorder}
@@ -1852,7 +1852,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(14, 168, 122, 0.15)',
+    backgroundColor: 'rgba(212, 165, 116, 0.15)',
     borderWidth: 2,
     borderColor: Colors.accent,
     alignItems: 'center',
@@ -1884,7 +1884,7 @@ const styles = StyleSheet.create({
   recommendationCard: {
     marginBottom: Spacing.sm + 4,
     borderWidth: 1,
-    borderColor: 'rgba(14, 168, 122, 0.2)',
+    borderColor: 'rgba(212, 165, 116, 0.2)',
   },
   recommendationHeader: {
     flexDirection: 'row',
@@ -1909,7 +1909,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(14, 168, 122, 0.12)',
+    backgroundColor: 'rgba(212, 165, 116, 0.12)',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,

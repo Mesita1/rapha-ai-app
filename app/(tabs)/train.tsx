@@ -45,8 +45,8 @@ const SESSION_TYPES = [
     title: 'Adaptive Breathing',
     subtitle: 'AI-guided breathing that adapts to your HRV in real time',
     icon: 'leaf-outline' as const,
-    gradientColors: ['rgba(14,168,122,0.3)', 'rgba(14,168,122,0.05)'] as [string, string],
-    borderColor: '#0ea87a',
+    gradientColors: ['rgba(212,165,116,0.3)', 'rgba(212,165,116,0.05)'] as [string, string],
+    borderColor: '#D4A574',
   },
   {
     key: 'bilateral' as SessionType,
@@ -85,8 +85,8 @@ const SESSION_TYPES = [
     title: 'HRV Exercise',
     subtitle: 'Movement protocols proven to boost HRV',
     icon: 'bicycle-outline' as const,
-    gradientColors: ['rgba(0,214,143,0.3)', 'rgba(0,214,143,0.05)'] as [string, string],
-    borderColor: '#00d68f',
+    gradientColors: ['rgba(212,165,116,0.3)', 'rgba(212,165,116,0.05)'] as [string, string],
+    borderColor: '#D4A574',
   },
 ];
 
@@ -141,7 +141,7 @@ function BreathingCircle({ phase, phaseDuration }: { phase: string; phaseDuratio
         ]}
       >
         <LinearGradient
-          colors={['rgba(14,168,122,0.4)', 'rgba(14,168,122,0.1)']}
+          colors={['rgba(212,165,116,0.4)', 'rgba(212,165,116,0.1)']}
           style={sessionStyles.breathCircleGradient}
         >
           <Text style={sessionStyles.breathPhaseText}>{phase}</Text>
@@ -1626,7 +1626,7 @@ export default function TrainScreen() {
             <GlassCard style={styles.scriptureModal}>
               {/* Header */}
               <View style={styles.modeHeader}>
-                <Ionicons name="bicycle-outline" size={20} color="#00d68f" />
+                <Ionicons name="bicycle-outline" size={20} color={Colors.accent} />
                 <Text style={styles.modeTitle}>HRV Exercise</Text>
                 <TouchableOpacity onPress={resetExerciseSession} style={styles.modeClose}>
                   <Ionicons name="close" size={20} color={Colors.textMuted} />
@@ -1645,7 +1645,7 @@ export default function TrainScreen() {
                       key={mode.key}
                       style={[
                         styles.modeOption,
-                        selectedExerciseMode === mode.key && { borderColor: '#00d68f', backgroundColor: 'rgba(0,214,143,0.08)' },
+                        selectedExerciseMode === mode.key && { borderColor: Colors.accent, backgroundColor: Colors.accentLight },
                       ]}
                       onPress={() => {
                         setSelectedExerciseMode(mode.key);
@@ -1653,7 +1653,7 @@ export default function TrainScreen() {
                       }}
                     >
                       <View style={styles.exerciseModeHeader}>
-                        <Ionicons name={mode.icon as any} size={18} color={selectedExerciseMode === mode.key ? '#00d68f' : Colors.textMuted} />
+                        <Ionicons name={mode.icon as any} size={18} color={selectedExerciseMode === mode.key ? Colors.accent : Colors.textMuted} />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.modeOptionLabel}>{mode.label}</Text>
                           <Text style={styles.modeOptionDesc}>{mode.desc}</Text>
@@ -1671,7 +1671,7 @@ export default function TrainScreen() {
                     {(EXERCISE_MODES.find(m => m.key === selectedExerciseMode)?.durations || []).map((d) => (
                       <TouchableOpacity
                         key={d}
-                        style={[styles.durationPill, exerciseDuration === d && !showCustomDurationInput && { backgroundColor: '#00d68f' }]}
+                        style={[styles.durationPill, exerciseDuration === d && !showCustomDurationInput && { backgroundColor: Colors.accent }]}
                         onPress={() => { setExerciseDuration(d); setShowCustomDurationInput(false); }}
                       >
                         <Text style={[styles.durationPillText, exerciseDuration === d && !showCustomDurationInput && { color: Colors.white }]}>
@@ -1680,7 +1680,7 @@ export default function TrainScreen() {
                       </TouchableOpacity>
                     ))}
                     <TouchableOpacity
-                      style={[styles.durationPill, showCustomDurationInput && { backgroundColor: '#00d68f' }]}
+                      style={[styles.durationPill, showCustomDurationInput && { backgroundColor: Colors.accent }]}
                       onPress={() => setShowCustomDurationInput(true)}
                     >
                       <Text style={[styles.durationPillText, showCustomDurationInput && { color: Colors.white }]}>Custom</Text>
@@ -1706,7 +1706,7 @@ export default function TrainScreen() {
 
                   {/* Start Button */}
                   <TouchableOpacity
-                    style={[styles.startButton, { backgroundColor: '#00d68f' }]}
+                    style={[styles.startButton, { backgroundColor: Colors.accent }]}
                     onPress={startExerciseSession}
                   >
                     <Ionicons name="play" size={18} color={Colors.white} />
@@ -1720,7 +1720,7 @@ export default function TrainScreen() {
                 const currentMode = EXERCISE_MODES.find(m => m.key === selectedExerciseMode);
                 return (
                   <View style={styles.scriptureActiveSession}>
-                    <Ionicons name={currentMode?.icon as any || 'fitness-outline'} size={32} color="#00d68f" />
+                    <Ionicons name={currentMode?.icon as any || 'fitness-outline'} size={32} color={Colors.accent} />
                     <Text style={styles.customDeviceTitle}>{currentMode?.label}</Text>
 
                     {/* Large RMSSD */}
@@ -1738,7 +1738,7 @@ export default function TrainScreen() {
                     {/* HR Target Zone */}
                     {currentMode?.hrTarget && (
                       <View style={styles.exerciseHrTarget}>
-                        <Ionicons name="heart-outline" size={14} color="#00d68f" />
+                        <Ionicons name="heart-outline" size={14} color={Colors.accent} />
                         <Text style={styles.exerciseHrTargetText}>{currentMode.hrTarget}</Text>
                       </View>
                     )}
@@ -1771,7 +1771,7 @@ export default function TrainScreen() {
                 const delta = exerciseRmssd - exerciseStartRmssd;
                 return (
                   <View style={styles.scripturePostSession}>
-                    <Ionicons name="checkmark-circle" size={48} color="#00d68f" />
+                    <Ionicons name="checkmark-circle" size={48} color={Colors.accent} />
                     <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: Colors.accent, textAlign: 'center', marginBottom: Spacing.xs }}>
                       {['Way to go!', 'Great job!', 'You showed up \u2014 that matters!', 'Your nervous system thanks you!', 'Keep it up!', 'Progress, not perfection!', "You're doing amazing!", 'Every session counts!'][Math.floor(Math.random() * 8)]}
                     </Text>
@@ -1814,7 +1814,7 @@ export default function TrainScreen() {
                     )}
 
                     <TouchableOpacity
-                      style={[styles.startButton, { backgroundColor: '#00d68f', marginTop: Spacing.sm }]}
+                      style={[styles.startButton, { backgroundColor: Colors.accent, marginTop: Spacing.sm }]}
                       onPress={() => { resetExerciseSession(); setInterventionLogged(false); }}
                     >
                       <Text style={styles.startButtonText}>Done</Text>
@@ -2264,7 +2264,7 @@ const sessionStyles = StyleSheet.create({
     width: SCREEN_WIDTH - 100,
     height: 40,
     justifyContent: 'center',
-    backgroundColor: 'rgba(14,168,122,0.06)',
+    backgroundColor: 'rgba(212,165,116,0.06)',
     borderRadius: 20,
   },
   visualTrackDot: {
@@ -2812,12 +2812,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs,
     alignSelf: 'center',
-    backgroundColor: 'rgba(14,168,122,0.12)',
+    backgroundColor: 'rgba(212,165,116,0.12)',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(14,168,122,0.3)',
+    borderColor: 'rgba(212,165,116,0.3)',
     marginTop: Spacing.sm,
   },
   customMarkEventText: {
@@ -2968,18 +2968,18 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs + 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(0,214,143,0.25)',
+    borderColor: 'rgba(212,165,116,0.25)',
     marginTop: Spacing.sm,
   },
   exerciseHrTargetText: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.xs,
-    color: '#00d68f',
+    color: Colors.accent,
   },
   exercisePostModeName: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.sm,
-    color: '#00d68f',
+    color: Colors.accent,
     marginBottom: Spacing.lg,
   },
 });

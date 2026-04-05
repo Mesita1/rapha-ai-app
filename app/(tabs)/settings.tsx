@@ -157,7 +157,7 @@ export default function SettingsScreen() {
             icon="watch-outline"
             label="My Devices"
             subtitle={deviceLabel}
-            iconColor="#0ea87a"
+            iconColor="#D4A574"
             onPress={() => router.push('/(auth)/connect-device')}
           />
           <View style={styles.separator} />
@@ -187,9 +187,9 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="trophy-outline"
             label="Achievements"
-            iconColor="#0ea87a"
+            iconColor="#D4A574"
             badge={`${achievements.filter(a => a.unlocked).length}/${achievements.length}`}
-            badgeColor="#0ea87a"
+            badgeColor="#D4A574"
             onPress={() => router.push('/achievements' as any)}
           />
         </GlassCard>
@@ -249,7 +249,7 @@ export default function SettingsScreen() {
             isToggle
             toggleValue={communityInsights}
             onToggle={handleCommunityInsightsToggle}
-            iconColor="#0ea87a"
+            iconColor="#D4A574"
           />
         </GlassCard>
 
@@ -259,7 +259,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="download-outline"
             label="Export Data (CSV)"
-            iconColor="#0ea87a"
+            iconColor="#D4A574"
             onPress={() =>
               Alert.alert(
                 'Export Data',

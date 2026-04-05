@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
   exerciseAIRec: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    backgroundColor: 'rgba(14, 168, 122, 0.08)',
+    backgroundColor: 'rgba(212, 165, 116, 0.08)',
     borderRadius: BorderRadius.md,
     padding: Spacing.sm + 2,
   },
@@ -991,7 +991,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   suppTag: {
-    backgroundColor: 'rgba(14, 168, 122, 0.12)',
+    backgroundColor: 'rgba(212, 165, 116, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,

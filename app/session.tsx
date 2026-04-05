@@ -64,7 +64,7 @@ const modes = [
     label: 'Recovery',
     icon: 'heart-outline' as const,
     desc: 'Vagal tone boost. RSA entrainment at 0.1Hz.',
-    gradient: ['#0ea87a', '#00d68f'] as [string, string],
+    gradient: ['#D4A574', '#E8C5A0'] as [string, string],
     targetZone: 'RSA (0.1 Hz)',
     startFreq: 8,
     endFreq: 7,
@@ -623,7 +623,7 @@ export default function SessionScreen() {
         {/* Start Session Button */}
         <TouchableOpacity style={styles.startBtn} onPress={startSession} activeOpacity={0.8}>
           <LinearGradient
-            colors={[Colors.accent, '#0b8a63']}
+            colors={[Colors.accent, Colors.accentDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.startGradient}
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
   },
   durationPillSelected: {
     borderColor: Colors.accent,
-    backgroundColor: 'rgba(14, 168, 122, 0.15)',
+    backgroundColor: 'rgba(212, 165, 116, 0.15)',
   },
   durationText: {
     fontFamily: 'Inter_500Medium',
@@ -786,8 +786,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   musicModeCardSelected: {
-    borderColor: 'rgba(14, 168, 122, 0.5)',
-    backgroundColor: 'rgba(14, 168, 122, 0.06)',
+    borderColor: 'rgba(212, 165, 116, 0.5)',
+    backgroundColor: 'rgba(212, 165, 116, 0.06)',
   },
   musicModeHeader: {
     flexDirection: 'row',
@@ -915,7 +915,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(14, 168, 122, 0.12)',
+    backgroundColor: 'rgba(212, 165, 116, 0.12)',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs + 2,
     borderRadius: BorderRadius.full,
@@ -1118,7 +1118,7 @@ const styles = StyleSheet.create({
   },
   feelingBtnSelected: {
     borderColor: Colors.accent,
-    backgroundColor: 'rgba(14, 168, 122, 0.15)',
+    backgroundColor: 'rgba(212, 165, 116, 0.15)',
   },
   feelingBtnText: {
     fontFamily: 'Inter_500Medium',

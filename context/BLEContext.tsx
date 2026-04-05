@@ -11,6 +11,8 @@ interface BLEContextType {
   heartRate: number;
   rmssd: number;
   sdnn: number;
+  pnn50: number;
+  signalQuality: 'excellent' | 'good' | 'poor' | 'bad' | 'none';
   rrIntervals: number[];
   rmssdHistory: number[];
   // Actions
@@ -28,6 +30,8 @@ const BLEContext = createContext<BLEContextType>({
   heartRate: 0,
   rmssd: 0,
   sdnn: 0,
+  pnn50: 0,
+  signalQuality: 'none',
   rrIntervals: [],
   rmssdHistory: [],
   startScan: () => {},
@@ -43,6 +47,8 @@ export function BLEProvider({ children }: { children: React.ReactNode }) {
   const [heartRate, setHeartRate] = useState(0);
   const [rmssd, setRmssd] = useState(0);
   const [sdnn, setSdnn] = useState(0);
+  const [pnn50, setPnn50] = useState(0);
+  const [signalQuality, setSignalQuality] = useState<'excellent' | 'good' | 'poor' | 'bad' | 'none'>('none');
   const [rrIntervals, setRrIntervals] = useState<number[]>([]);
   const [rmssdHistory, setRmssdHistory] = useState<number[]>([]);
 
@@ -109,6 +115,8 @@ export function BLEProvider({ children }: { children: React.ReactNode }) {
           setHeartRate(data.heartRate);
           setRmssd(data.rmssd);
           setSdnn(data.sdnn);
+          setPnn50(data.pnn50);
+          setSignalQuality(data.signalQuality);
           setRrIntervals(data.rrIntervals);
           if (data.rmssd > 0) {
             setRmssdHistory((prev) => {
@@ -163,6 +171,8 @@ export function BLEProvider({ children }: { children: React.ReactNode }) {
         heartRate,
         rmssd,
         sdnn,
+        pnn50,
+        signalQuality,
         rrIntervals,
         rmssdHistory,
         startScan,

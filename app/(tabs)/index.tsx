@@ -17,10 +17,17 @@ import GlassCard from '../../components/GlassCard';
 import SparklineChart from '../../components/SparklineChart';
 import { Colors, FontSize, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import {
+  mockUser,
+  mockCurrentHRV,
+  mockSparklineData,
   mockMetrics,
+  mockTodaySummary,
+  dayInReview,
   autonomicTimeline,
   bodyBattery,
   trendArrows,
+  mockAthleteInsights,
+  mockHealthMetrics,
 } from '../../constants/mockData';
 import { getVerseOfTheDay } from '../../constants/scriptureData';
 import { useBLE } from '../../context/BLEContext';
@@ -43,10 +50,14 @@ const TREND_ARROW_MAP: Record<string, { symbol: string; color: string }> = {
   stable: { symbol: '\u2192', color: '#8e8e93' },
 };
 
-function getSignalQuality(rrIntervals: number[]): { label: string; color: string } {
-  if (rrIntervals.length < 2) return { label: 'Weak', color: '#ef4444' };
-  if (rrIntervals.length < 10) return { label: 'Moderate', color: '#f59e0b' };
-  return { label: 'Strong', color: '#00d68f' };
+function getSignalDisplay(quality: string): { label: string; color: string } {
+  switch (quality) {
+    case 'excellent': return { label: 'Excellent', color: '#00d68f' };
+    case 'good': return { label: 'Good', color: '#00d68f' };
+    case 'poor': return { label: 'Poor', color: '#f59e0b' };
+    case 'bad': return { label: 'Weak', color: '#ef4444' };
+    default: return { label: '--', color: '#8e8e93' };
+  }
 }
 
 function calculatePNN50(rrIntervals: number[]): number | null {
@@ -66,7 +77,7 @@ export default function DashboardScreen() {
   const { interventions } = useInterventions();
   const { user: authUser } = useAuth();
   const { activeTrackers: hrvTrackers, notifications: hrvNotifications, dismissNotification, getNextCheck, getSummary } = useHRVTracker();
-  const { isConnected, heartRate, rmssd, sdnn, rmssdHistory, rrIntervals, connectedDevice } = useBLE();
+  const { isConnected, heartRate, rmssd, sdnn, pnn50, signalQuality, rmssdHistory, rrIntervals, connectedDevice } = useBLE();
 
   // Derive autonomic state from real or mock data
   const liveRmssd = isConnected ? rmssd : null;
@@ -196,16 +207,47 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* Verse of the Day Card - always show */}
+        <View style={styles.verseCard}>
+          <View style={styles.verseLeftBorder} />
+          <View style={styles.verseContent}>
+            <View style={styles.verseHeader}>
+              <Ionicons name="book-outline" size={14} color="#d4a574" />
+              <Text style={styles.verseLabel}>Verse of the Day</Text>
+            </View>
+            <Text style={styles.verseText}>"{verseOfTheDay.text}"</Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL(verseOfTheDay.youversionUrl)}>
+              <Text style={[styles.verseReference, { textDecorationLine: 'underline' }]}>{verseOfTheDay.reference} — {verseOfTheDay.translation}</Text>
+            </TouchableOpacity>
+            <View style={styles.verseActions}>
+              <TouchableOpacity
+                style={styles.verseMeditateButton}
+                activeOpacity={0.7}
+                onPress={() => router.push('/(tabs)/train')}
+              >
+                <Ionicons name="leaf-outline" size={14} color={Colors.accent} />
+                <Text style={styles.verseMeditateText}>Meditate</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => Linking.openURL(verseOfTheDay.youversionUrl)}
+              >
+                <Text style={styles.verseBibleLink}>Read in Bible App</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
         {/* Readiness Card */}
         {isConnected && (
         <GlassCard style={styles.readinessCard}>
           <View style={styles.readinessRow}>
             <View style={styles.readinessScoreContainer}>
-              <Text style={styles.readinessScore}>--</Text>
+              <Text style={styles.readinessScore}>{rmssd > 50 ? Math.min(95, Math.round(rmssd * 1.4)) : rmssd > 30 ? Math.round(50 + rmssd) : Math.round(rmssd * 1.5)}</Text>
             </View>
             <View style={styles.readinessInfo}>
               <Text style={styles.readinessLabel}>Readiness</Text>
-              <Text style={styles.readinessRec}>Green light for high intensity</Text>
+              <Text style={styles.readinessRec}>{rmssd > 50 ? 'Green light for high intensity' : rmssd > 30 ? 'Moderate — consider lighter activity' : 'Low — prioritize recovery today'}</Text>
             </View>
             <View style={styles.readinessIndicator}>
               <Ionicons name="checkmark-circle" size={20} color={Colors.accent} />
@@ -220,7 +262,7 @@ export default function DashboardScreen() {
             <Ionicons name="heart" size={16} color={Colors.accent} />
             <Text style={styles.liveHrvText}>{isConnected ? 'Live HRV' : 'HRV'}</Text>
             {isConnected && (() => {
-              const signal = getSignalQuality(rrIntervals);
+              const signal = getSignalDisplay(signalQuality);
               return (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
                   <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: signal.color }} />
@@ -262,7 +304,7 @@ export default function DashboardScreen() {
                 </View>
               </TouchableOpacity>
               {showHrvDetails && (() => {
-                const signal = getSignalQuality(rrIntervals);
+                const signal = getSignalDisplay(signalQuality);
                 const pnn50 = calculatePNN50(rrIntervals);
                 return (
                   <View style={{ marginTop: Spacing.sm, borderTopWidth: 0.5, borderTopColor: Colors.surfaceBorder, paddingTop: Spacing.sm }}>
@@ -284,11 +326,6 @@ export default function DashboardScreen() {
                       </View>
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>VLF</Text>
-                        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.textDim }}>--</Text>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>Requires 5+ min</Text>
-                      </View>
                       <View style={{ alignItems: 'center', flex: 1 }}>
                         <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>LF Power</Text>
                         <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.textDim }}>--</Text>
@@ -317,33 +354,6 @@ export default function DashboardScreen() {
             </>
           )}
         </GlassCard>
-
-        {/* Community Card */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => router.push('/social')}
-        >
-          <View style={styles.communityCardWrapper}>
-            <LinearGradient
-              colors={['rgba(108,92,231,0.3)', 'rgba(108,92,231,0.0)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.communityGradientBorder}
-            />
-            <GlassCard style={styles.communityCard}>
-              <View style={styles.communityRow}>
-                <View style={styles.communityIconContainer}>
-                  <Ionicons name="people" size={26} color={Colors.purple} />
-                </View>
-                <View style={styles.communityInfo}>
-                  <Text style={styles.communityTitle}>Rapha Community</Text>
-                  <Text style={styles.communitySubtitle}>Connect with friends, join groups, encourage each other</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={Colors.purple} />
-              </View>
-            </GlassCard>
-          </View>
-        </TouchableOpacity>
 
         {/* Nervous System Timeline */}
         <GlassCard style={styles.timelineCard}>
@@ -433,34 +443,151 @@ export default function DashboardScreen() {
         </GlassCard>
 
         {/* Metrics Row with Trend Arrows */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.metricsRow}
-          style={styles.metricsScroll}
-        >
-          {mockMetrics.map((metric) => {
-            const trend = isConnected ? trendArrows[metric.label] : undefined;
-            const arrow = trend ? TREND_ARROW_MAP[trend] : null;
-            return (
-              <TouchableOpacity key={metric.label} activeOpacity={0.7}>
-                <GlassCard style={styles.metricCard}>
-                  <Ionicons name={metric.icon} size={18} color={isConnected ? metric.color : Colors.textDim} />
-                  <View style={styles.metricValueRow}>
-                    <Text style={styles.metricValue}>
-                      {isConnected ? metric.value : '--'}
-                      {isConnected && metric.unit ? <Text style={styles.metricUnit}>{metric.unit}</Text> : null}
-                    </Text>
-                    {arrow ? (
-                      <Text style={[styles.trendArrow, { color: arrow.color }]}>{arrow.symbol}</Text>
-                    ) : null}
-                  </View>
-                  <Text style={styles.metricLabel}>{metric.label}</Text>
-                </GlassCard>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        {isConnected ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.metricsRow}
+            style={styles.metricsScroll}
+          >
+            {mockMetrics.map((metric) => {
+              const trend = trendArrows[metric.label];
+              const arrow = trend ? TREND_ARROW_MAP[trend] : null;
+              return (
+                <TouchableOpacity key={metric.label} activeOpacity={0.7}>
+                  <GlassCard style={styles.metricCard}>
+                    <Ionicons name={metric.icon} size={18} color={metric.color} />
+                    <View style={styles.metricValueRow}>
+                      <Text style={styles.metricValue}>
+                        {metric.value}
+                        {metric.unit ? <Text style={styles.metricUnit}>{metric.unit}</Text> : null}
+                      </Text>
+                      {arrow ? (
+                        <Text style={[styles.trendArrow, { color: arrow.color }]}>{arrow.symbol}</Text>
+                      ) : null}
+                    </View>
+                    <Text style={styles.metricLabel}>{metric.label}</Text>
+                  </GlassCard>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <GlassCard style={{ marginBottom: Spacing.sm + 4, alignItems: 'center', paddingVertical: Spacing.md }}>
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted }}>Metrics appear when a device is connected</Text>
+          </GlassCard>
+        )}
+
+        {/* Health Metrics */}
+        <View style={styles.healthMetricsSection}>
+          <View style={styles.healthMetricsHeader}>
+            <Ionicons name="heart-half-outline" size={16} color={Colors.accent} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.healthMetricsTitle}>Health Metrics</Text>
+              <Text style={styles.healthMetricsSubtitle}>From connected devices</Text>
+            </View>
+          </View>
+        </View>
+        {isConnected ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.healthMetricsRow}
+            style={styles.healthMetricsScroll}
+          >
+            {/* SpO2 */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <View style={[styles.healthMetricDot, { backgroundColor: Colors.accent }]} />
+                  <Text style={styles.healthMetricTag}>SpO2</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.bloodOxygen.current}<Text style={styles.healthMetricUnit}>{mockHealthMetrics.bloodOxygen.unit}</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Blood Oxygen</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.bloodOxygen.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
+
+            {/* Glucose */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <Text style={[styles.healthMetricArrow, { color: '#f59e0b' }]}>{'\u2191'}</Text>
+                  <Text style={styles.healthMetricTag}>CGM</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.glucose.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.glucose.unit}</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Glucose</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.glucose.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
+
+            {/* Resting HR */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <Text style={[styles.healthMetricArrow, { color: Colors.accent }]}>{'\u2193'}</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.restingHR.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.restingHR.unit}</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Resting HR</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.restingHR.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
+
+            {/* Body Temp */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <Text style={[styles.healthMetricArrow, { color: Colors.textMuted }]}>{'\u2192'}</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.bodyTemp.current}<Text style={styles.healthMetricUnit}>{mockHealthMetrics.bodyTemp.unit}</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Temp</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.bodyTemp.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
+
+            {/* Respiratory Rate */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <Text style={[styles.healthMetricArrow, { color: Colors.textMuted }]}>{'\u2192'}</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.respiratoryRate.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.respiratoryRate.unit}</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Resp Rate</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.respiratoryRate.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
+
+            {/* Steps */}
+            <TouchableOpacity activeOpacity={0.7}>
+              <GlassCard style={styles.healthMetricCard}>
+                <View style={styles.healthMetricTop}>
+                  <Text style={[styles.healthMetricArrow, { color: Colors.accent }]}>{'\u2191'}</Text>
+                </View>
+                <Text style={styles.healthMetricValue}>
+                  {mockHealthMetrics.steps.current.toLocaleString()}<Text style={styles.healthMetricUnit}> / {(mockHealthMetrics.steps.goal / 1000)}K</Text>
+                </Text>
+                <Text style={styles.healthMetricLabel}>Steps</Text>
+                <Text style={styles.healthMetricSource}>{mockHealthMetrics.steps.source}</Text>
+              </GlassCard>
+            </TouchableOpacity>
+          </ScrollView>
+        ) : (
+          <GlassCard style={{ marginBottom: Spacing.sm + 4, alignItems: 'center', paddingVertical: Spacing.lg }}>
+            <Ionicons name="bluetooth-outline" size={24} color={Colors.textMuted} />
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, marginTop: 8 }}>No devices connected</Text>
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12, color: Colors.textDim, marginTop: 4 }}>All values: --</Text>
+          </GlassCard>
+        )}
 
         {/* Autonomic Balance Gauge */}
         <GlassCard style={styles.gaugeCard}>
@@ -593,6 +720,23 @@ export default function DashboardScreen() {
           </GlassCard>
         </TouchableOpacity>
 
+        {/* Community Card */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => router.push('/social')}
+        >
+          <GlassCard style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.sm + 4 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.purpleLight, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="people-outline" size={22} color={Colors.purple} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: Colors.text }}>Rapha Community</Text>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12, color: Colors.textMuted }}>Connect with friends and groups</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textDim} />
+          </GlassCard>
+        </TouchableOpacity>
+
         {/* Active HRV Tracking */}
         {hrvTrackers.length > 0 && (
           <View style={{ marginBottom: Spacing.md }}>
@@ -694,37 +838,6 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             </GlassCard>
           )}
-        </View>
-
-        {/* Verse of the Day */}
-        <View style={styles.verseCard}>
-          <View style={styles.verseLeftBorder} />
-          <View style={styles.verseContent}>
-            <View style={styles.verseHeader}>
-              <Ionicons name="book-outline" size={14} color="#d4a574" />
-              <Text style={styles.verseLabel}>Verse of the Day</Text>
-            </View>
-            <Text style={styles.verseText}>"{verseOfTheDay.text}"</Text>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL(verseOfTheDay.youversionUrl)}>
-              <Text style={[styles.verseReference, { textDecorationLine: 'underline' }]}>{verseOfTheDay.reference} — {verseOfTheDay.translation}</Text>
-            </TouchableOpacity>
-            <View style={styles.verseActions}>
-              <TouchableOpacity
-                style={styles.verseMeditateButton}
-                activeOpacity={0.7}
-                onPress={() => router.push('/(tabs)/train')}
-              >
-                <Ionicons name="leaf-outline" size={14} color={Colors.accent} />
-                <Text style={styles.verseMeditateText}>Meditate</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => Linking.openURL(verseOfTheDay.youversionUrl)}
-              >
-                <Text style={styles.verseBibleLink}>Read in Bible App</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
 
         {/* Bottom spacing for tab bar + FAB */}
@@ -1143,55 +1256,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs - 2,
     color: Colors.textDim,
     marginTop: 2,
-  },
-  // Community Card
-  communityCardWrapper: {
-    marginBottom: Spacing.sm + 4,
-    borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  communityGradientBorder: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    zIndex: 1,
-  },
-  communityCard: {
-    paddingVertical: Spacing.md + 4,
-    paddingHorizontal: Spacing.md,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.purple,
-  },
-  communityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  communityIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.purpleLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  communityInfo: {
-    flex: 1,
-  },
-  communityTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: FontSize.lg,
-    color: Colors.text,
-  },
-  communitySubtitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    marginTop: 2,
-    lineHeight: 18,
   },
   // Gauge
   gaugeCard: {

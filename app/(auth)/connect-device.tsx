@@ -79,9 +79,14 @@ export default function ConnectDeviceScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.deviceTypesScroll}>
           <View style={styles.deviceTypesRow}>
             {deviceTypes.map((device) => (
-              <View key={device.id} style={styles.deviceTypeChip}>
-                <Ionicons name={device.icon} size={16} color={Colors.textMuted} />
-                <Text style={styles.deviceTypeChipText}>{device.name}</Text>
+              <View key={device.id} style={[styles.deviceTypeChip, device.id === 'muse' && styles.deviceTypeChipComingSoon]}>
+                <Ionicons name={device.icon} size={16} color={device.id === 'muse' ? Colors.textDim : Colors.textMuted} />
+                <Text style={[styles.deviceTypeChipText, device.id === 'muse' && { color: Colors.textDim }]}>{device.name}</Text>
+                {device.id === 'muse' && (
+                  <View style={styles.comingSoonBadge}>
+                    <Text style={styles.comingSoonBadgeText}>Soon</Text>
+                  </View>
+                )}
               </View>
             ))}
           </View>
@@ -262,6 +267,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.xs,
     color: Colors.textMuted,
+  },
+  deviceTypeChipComingSoon: {
+    borderColor: 'rgba(245,158,11,0.3)',
+    backgroundColor: 'rgba(245,158,11,0.08)',
+  },
+  comingSoonBadge: {
+    backgroundColor: 'rgba(245,158,11,0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  comingSoonBadgeText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 9,
+    color: '#f59e0b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   // Connected card
   connectedCard: {

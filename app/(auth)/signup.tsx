@@ -128,13 +128,15 @@ export default function SignUpScreen() {
             <Text style={styles.label}>Password</Text>
             <View style={styles.passwordRow}>
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.passwordInput, { flex: 1 }]}
                 placeholder="At least 6 characters"
-                placeholderTextColor={Colors.textDim}
+                placeholderTextColor="#666"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                textContentType="oneTimeCode"
+                autoComplete="off"
               />
               <TouchableOpacity
                 style={styles.eyeBtn}
@@ -152,13 +154,15 @@ export default function SignUpScreen() {
           <View style={styles.field}>
             <Text style={styles.label}>Confirm Password</Text>
             <TextInput
-              style={styles.input}
+              style={styles.passwordInput}
               placeholder="Re-enter your password"
-              placeholderTextColor={Colors.textDim}
+              placeholderTextColor="#666"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
+              textContentType="oneTimeCode"
+              autoComplete="off"
             />
           </View>
 
@@ -257,6 +261,18 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.md,
     color: '#ffffff',
+    height: 52,
+  },
+  passwordInput: {
+    backgroundColor: '#e8e8ed',
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.12)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.md,
+    color: '#0a0a0f',
     height: 52,
   },
   passwordRow: {

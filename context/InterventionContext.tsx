@@ -11,6 +11,11 @@ export interface Intervention {
   timestamp: string;
   preRmssd?: number;
   postRmssd?: number;
+  mood?: 'great' | 'good' | 'okay' | 'low' | 'struggling';
+  stressLevel?: number;  // 1-5
+  energyLevel?: number;  // 1-5
+  mealType?: string;     // breakfast, lunch, dinner, snack
+  quantity?: string;      // "8oz", "1 cup", etc.
 }
 
 interface InterventionContextType {

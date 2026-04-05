@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Linking,
+  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -60,6 +61,37 @@ function getSignalDisplay(quality: string): { label: string; color: string } {
   }
 }
 
+function getMoodDotColor(mood?: string): string {
+  if (mood === 'great' || mood === 'good') return '#22c55e';
+  if (mood === 'okay') return '#f59e0b';
+  if (mood === 'low' || mood === 'struggling') return '#ef4444';
+  return 'transparent';
+}
+
+const MOOD_CHECK_OPTIONS: { key: 'great' | 'good' | 'okay' | 'low' | 'struggling'; label: string; icon: string }[] = [
+  { key: 'great', label: 'Great', icon: '😄' },
+  { key: 'good', label: 'Good', icon: '🙂' },
+  { key: 'okay', label: 'Okay', icon: '😐' },
+  { key: 'low', label: 'Low', icon: '😕' },
+  { key: 'struggling', label: 'Struggling', icon: '😢' },
+];
+
+const STRESS_LEVELS_DASH = [
+  { value: 1, label: 'Calm', color: '#22c55e' },
+  { value: 2, label: 'Mild', color: '#86efac' },
+  { value: 3, label: 'Moderate', color: '#f59e0b' },
+  { value: 4, label: 'High', color: '#f97316' },
+  { value: 5, label: 'Intense', color: '#ef4444' },
+];
+
+const ENERGY_LEVELS_DASH = [
+  { value: 1, label: 'Exhausted', color: '#ef4444' },
+  { value: 2, label: 'Low', color: '#f97316' },
+  { value: 3, label: 'Moderate', color: '#f59e0b' },
+  { value: 4, label: 'Good', color: '#86efac' },
+  { value: 5, label: 'Energized', color: '#22c55e' },
+];
+
 function calculatePNN50(rrIntervals: number[]): number | null {
   if (rrIntervals.length < 3) return null;
   let nn50Count = 0;
@@ -73,8 +105,13 @@ export default function DashboardScreen() {
   const [showRecommendation, setShowRecommendation] = useState(false);
   const [showDemoData, setShowDemoData] = useState(false);
   const [showHrvDetails, setShowHrvDetails] = useState(false);
+  const [showFabMenu, setShowFabMenu] = useState(false);
+  const [showMoodCheck, setShowMoodCheck] = useState(false);
+  const [moodCheckMood, setMoodCheckMood] = useState<'great' | 'good' | 'okay' | 'low' | 'struggling' | null>(null);
+  const [moodCheckStress, setMoodCheckStress] = useState<number | null>(null);
+  const [moodCheckEnergy, setMoodCheckEnergy] = useState<number | null>(null);
   const verseOfTheDay = getVerseOfTheDay();
-  const { interventions } = useInterventions();
+  const { interventions, addIntervention } = useInterventions();
   const { user: authUser } = useAuth();
   const { activeTrackers: hrvTrackers, notifications: hrvNotifications, dismissNotification, getNextCheck, getSummary } = useHRVTracker();
   const { isConnected, heartRate, rmssd, sdnn, pnn50, signalQuality, rmssdHistory, rrIntervals, connectedDevice, fullAnalysis } = useBLE();
@@ -1004,6 +1041,18 @@ export default function DashboardScreen() {
                       {item.category} · {new Date(item.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                     </Text>
                   </View>
+                  {/* Mood / Stress / Energy indicators */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {item.mood && (
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: getMoodDotColor(item.mood) }} />
+                    )}
+                    {item.stressLevel != null && (
+                      <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 10, color: Colors.textMuted }}>S:{item.stressLevel}</Text>
+                    )}
+                    {item.energyLevel != null && (
+                      <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 10, color: Colors.textMuted }}>E:{item.energyLevel}</Text>
+                    )}
+                  </View>
                 </View>
               ))}
             </GlassCard>
@@ -1029,16 +1078,157 @@ export default function DashboardScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
+      {/* FAB Menu Popup */}
+      {showFabMenu && (
+        <TouchableOpacity
+          style={styles.fabOverlay}
+          activeOpacity={1}
+          onPress={() => setShowFabMenu(false)}
+        >
+          <View style={styles.fabMenuContainer}>
+            <TouchableOpacity
+              style={styles.fabMenuItem}
+              onPress={() => {
+                setShowFabMenu(false);
+                router.push('/log-intervention');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="clipboard-outline" size={20} color={Colors.accent} />
+              <Text style={styles.fabMenuText}>Log Intervention</Text>
+            </TouchableOpacity>
+            <View style={{ height: 1, backgroundColor: Colors.surfaceBorder }} />
+            <TouchableOpacity
+              style={styles.fabMenuItem}
+              onPress={() => {
+                setShowFabMenu(false);
+                setShowMoodCheck(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="happy-outline" size={20} color={Colors.accent} />
+              <Text style={styles.fabMenuText}>Quick Mood Check</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      )}
+
       {/* Floating Action Button — Purple */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push('/log-intervention')}
+        onPress={() => setShowFabMenu(!showFabMenu)}
         activeOpacity={0.85}
       >
         <View style={styles.fabInner}>
-          <Ionicons name="add" size={28} color={Colors.white} />
+          <Ionicons name={showFabMenu ? 'close' : 'add'} size={28} color={Colors.white} />
         </View>
       </TouchableOpacity>
+
+      {/* Quick Mood Check-in Modal */}
+      <Modal
+        visible={showMoodCheck}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowMoodCheck(false)}
+      >
+        <View style={styles.moodModalOverlay}>
+          <View style={styles.moodModalSheet}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg }}>
+              <Text style={styles.moodModalTitle}>Quick Mood Check</Text>
+              <TouchableOpacity onPress={() => setShowMoodCheck(false)}>
+                <Ionicons name="close" size={24} color={Colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Mood */}
+            <Text style={styles.moodModalLabel}>How are you feeling?</Text>
+            <View style={styles.moodModalRow}>
+              {MOOD_CHECK_OPTIONS.map((m) => (
+                <TouchableOpacity
+                  key={m.key}
+                  style={[
+                    styles.moodModalPill,
+                    moodCheckMood === m.key && styles.moodModalPillSelected,
+                  ]}
+                  onPress={() => setMoodCheckMood(moodCheckMood === m.key ? null : m.key)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 20 }}>{m.icon}</Text>
+                  <Text style={[styles.moodModalPillText, moodCheckMood === m.key && { color: Colors.accent }]}>{m.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Stress */}
+            <Text style={styles.moodModalLabel}>Stress Level</Text>
+            <View style={styles.moodModalScaleRow}>
+              {STRESS_LEVELS_DASH.map((s) => (
+                <TouchableOpacity
+                  key={s.value}
+                  style={[
+                    styles.moodModalCircle,
+                    moodCheckStress === s.value && { backgroundColor: s.color, borderColor: s.color },
+                  ]}
+                  onPress={() => setMoodCheckStress(moodCheckStress === s.value ? null : s.value)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.moodModalCircleText, moodCheckStress === s.value && { color: '#fff' }]}>{s.value}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: 5 * 40 + 4 * Spacing.md, marginBottom: Spacing.md }}>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textDim }}>Calm</Text>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textDim }}>Intense</Text>
+            </View>
+
+            {/* Energy */}
+            <Text style={styles.moodModalLabel}>Energy Level</Text>
+            <View style={styles.moodModalScaleRow}>
+              {ENERGY_LEVELS_DASH.map((e) => (
+                <TouchableOpacity
+                  key={e.value}
+                  style={[
+                    styles.moodModalCircle,
+                    moodCheckEnergy === e.value && { backgroundColor: e.color, borderColor: e.color },
+                  ]}
+                  onPress={() => setMoodCheckEnergy(moodCheckEnergy === e.value ? null : e.value)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.moodModalCircleText, moodCheckEnergy === e.value && { color: '#fff' }]}>{e.value}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: 5 * 40 + 4 * Spacing.md, marginBottom: Spacing.lg }}>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textDim }}>Exhausted</Text>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textDim }}>Energized</Text>
+            </View>
+
+            {/* Save */}
+            <TouchableOpacity
+              style={[styles.moodModalSaveBtn, !moodCheckMood && !moodCheckStress && !moodCheckEnergy && { backgroundColor: Colors.surface }]}
+              onPress={() => {
+                addIntervention({
+                  name: 'Mood Check-in',
+                  category: 'other',
+                  mood: moodCheckMood || undefined,
+                  stressLevel: moodCheckStress || undefined,
+                  energyLevel: moodCheckEnergy || undefined,
+                });
+                setMoodCheckMood(null);
+                setMoodCheckStress(null);
+                setMoodCheckEnergy(null);
+                setShowMoodCheck(false);
+              }}
+              disabled={!moodCheckMood && !moodCheckStress && !moodCheckEnergy}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.moodModalSaveBtnText, !moodCheckMood && !moodCheckStress && !moodCheckEnergy && { color: Colors.textDim }]}>
+                Save Mood Check
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1793,6 +1983,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: Spacing.lg,
     bottom: 110,
+    zIndex: 20,
     ...Shadows.glow,
   },
   fabInner: {
@@ -1804,5 +1995,118 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(108, 92, 231, 0.4)',
+  },
+  fabOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 15,
+  },
+  fabMenuContainer: {
+    position: 'absolute',
+    right: Spacing.lg,
+    bottom: 180,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    overflow: 'hidden',
+    minWidth: 200,
+    ...Shadows.card,
+  },
+  fabMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+  },
+  fabMenuText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  // Mood check-in modal
+  moodModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  moodModalSheet: {
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xxl,
+  },
+  moodModalTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.xl,
+    color: Colors.text,
+  },
+  moodModalLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
+  },
+  moodModalRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  moodModalPill: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.surfaceBorder,
+    backgroundColor: Colors.background,
+    minWidth: 60,
+  },
+  moodModalPillSelected: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentLight,
+  },
+  moodModalPillText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  moodModalScaleRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  moodModalCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.surfaceBorder,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moodModalCircleText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.md,
+    color: Colors.textMuted,
+  },
+  moodModalSaveBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.accent,
+    paddingVertical: Spacing.md + 2,
+    borderRadius: BorderRadius.lg,
+  },
+  moodModalSaveBtnText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.md,
+    color: Colors.white,
   },
 });

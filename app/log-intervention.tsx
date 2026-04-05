@@ -21,11 +21,48 @@ import { useHRVTracker } from '../context/HRVTrackerContext';
 let Haptics: any = null;
 try { Haptics = require('expo-haptics'); } catch {}
 
+const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+
+const COMMON_FOODS = [
+  'Coffee', 'Water', 'Protein Shake', 'Salad', 'Chicken', 'Rice',
+  'Fruit', 'Nuts', 'Alcohol', 'Sugar/Candy', 'Fast Food', 'Smoothie',
+];
+
+const MOOD_OPTIONS: { key: 'great' | 'good' | 'okay' | 'low' | 'struggling'; label: string; icon: string }[] = [
+  { key: 'great', label: 'Great', icon: '😄' },
+  { key: 'good', label: 'Good', icon: '🙂' },
+  { key: 'okay', label: 'Okay', icon: '😐' },
+  { key: 'low', label: 'Low', icon: '😕' },
+  { key: 'struggling', label: 'Struggling', icon: '😢' },
+];
+
+const STRESS_LEVELS = [
+  { value: 1, label: 'Calm', color: '#22c55e' },
+  { value: 2, label: 'Mild', color: '#86efac' },
+  { value: 3, label: 'Moderate', color: '#f59e0b' },
+  { value: 4, label: 'High', color: '#f97316' },
+  { value: 5, label: 'Intense', color: '#ef4444' },
+];
+
+const ENERGY_LEVELS = [
+  { value: 1, label: 'Exhausted', color: '#ef4444' },
+  { value: 2, label: 'Low', color: '#f97316' },
+  { value: 3, label: 'Moderate', color: '#f59e0b' },
+  { value: 4, label: 'Good', color: '#86efac' },
+  { value: 5, label: 'Energized', color: '#22c55e' },
+];
+
 export default function LogInterventionScreen() {
   const [text, setText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPrayerSub, setSelectedPrayerSub] = useState<string | null>(null);
   const [isLogged, setIsLogged] = useState(false);
+  const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState('');
+  const [foodNotes, setFoodNotes] = useState('');
+  const [selectedMood, setSelectedMood] = useState<'great' | 'good' | 'okay' | 'low' | 'struggling' | null>(null);
+  const [stressLevel, setStressLevel] = useState<number | null>(null);
+  const [energyLevel, setEnergyLevel] = useState<number | null>(null);
   const { isConnected, rmssd } = useBLE();
   const { addIntervention } = useInterventions();
   const { trackIntervention } = useHRVTracker();
@@ -36,10 +73,15 @@ export default function LogInterventionScreen() {
     addIntervention({
       name: text.trim(),
       category: selectedCategory || 'other',
-      subcategory: selectedPrayerSub || undefined,
+      subcategory: selectedCategory === 'food' ? (selectedMealType?.toLowerCase() || undefined) : (selectedPrayerSub || undefined),
       preRmssd: isConnected && rmssd > 0 ? rmssd : undefined,
+      notes: selectedCategory === 'food' && foodNotes.trim() ? foodNotes.trim() : undefined,
+      mood: selectedMood || undefined,
+      stressLevel: stressLevel || undefined,
+      energyLevel: energyLevel || undefined,
+      mealType: selectedCategory === 'food' ? (selectedMealType?.toLowerCase() || undefined) : undefined,
+      quantity: selectedCategory === 'food' && quantity.trim() ? quantity.trim() : undefined,
     });
-    // Start auto-tracking HRV snapshots at 2min, 5min, 10min, 30min, 1hr, 2hr
     trackIntervention(interventionId, text.trim(), selectedCategory || 'other');
     try { Haptics?.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
     setIsLogged(true);
@@ -103,6 +145,7 @@ export default function LogInterventionScreen() {
                 onPress={() => {
                   setSelectedCategory(cat.key);
                   setSelectedPrayerSub(null);
+                  setSelectedMealType(null);
                   try { Haptics?.selectionAsync(); } catch {}
                 }}
                 activeOpacity={0.7}
@@ -152,6 +195,167 @@ export default function LogInterventionScreen() {
               ))}
             </View>
           )}
+
+          {/* Food-specific fields */}
+          {selectedCategory === 'food' && (
+            <View style={styles.foodSection}>
+              {/* Meal Type Pills */}
+              <Text style={styles.sectionLabel}>Meal Type</Text>
+              <View style={styles.chipContainer}>
+                {MEAL_TYPES.map((meal) => (
+                  <TouchableOpacity
+                    key={meal}
+                    style={[
+                      styles.chip,
+                      selectedMealType === meal && styles.chipSelected,
+                    ]}
+                    onPress={() => {
+                      setSelectedMealType(meal);
+                      try { Haptics?.selectionAsync(); } catch {}
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.chipText, selectedMealType === meal && styles.chipTextSelected]}>
+                      {meal}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Quantity Input */}
+              <Text style={styles.sectionLabel}>Quantity</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[styles.input, { minHeight: 44 }]}
+                  placeholder="e.g., 8oz, 1 cup, 2 servings"
+                  placeholderTextColor={Colors.textDim}
+                  value={quantity}
+                  onChangeText={setQuantity}
+                  maxLength={100}
+                />
+              </View>
+
+              {/* Common Foods Quick-Add */}
+              <Text style={styles.sectionLabel}>Common Foods</Text>
+              <View style={styles.chipContainer}>
+                {COMMON_FOODS.map((food) => (
+                  <TouchableOpacity
+                    key={food}
+                    style={styles.chip}
+                    onPress={() => {
+                      setText(food);
+                      try { Haptics?.selectionAsync(); } catch {}
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.chipText}>{food}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Food Notes */}
+              <Text style={styles.sectionLabel}>How did this food make you feel?</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[styles.input, { minHeight: 44 }]}
+                  placeholder="Any reactions, energy changes, etc."
+                  placeholderTextColor={Colors.textDim}
+                  value={foodNotes}
+                  onChangeText={setFoodNotes}
+                  multiline
+                  maxLength={300}
+                />
+              </View>
+            </View>
+          )}
+
+          {/* Mood / Stress / Energy Section */}
+          <View style={styles.moodSection}>
+            <Text style={styles.moodSectionTitle}>How are you feeling?</Text>
+
+            {/* Mood Selector */}
+            <View style={styles.moodRow}>
+              {MOOD_OPTIONS.map((m) => (
+                <TouchableOpacity
+                  key={m.key}
+                  style={[
+                    styles.moodPill,
+                    selectedMood === m.key && styles.moodPillSelected,
+                  ]}
+                  onPress={() => {
+                    setSelectedMood(selectedMood === m.key ? null : m.key);
+                    try { Haptics?.selectionAsync(); } catch {}
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.moodEmoji}>{m.icon}</Text>
+                  <Text style={[styles.moodLabel, selectedMood === m.key && styles.moodLabelSelected]}>
+                    {m.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Stress Level */}
+            <Text style={styles.scaleLabel}>Stress Level</Text>
+            <View style={styles.scaleRow}>
+              {STRESS_LEVELS.map((s) => (
+                <TouchableOpacity
+                  key={s.value}
+                  style={[
+                    styles.scaleCircle,
+                    stressLevel === s.value && { backgroundColor: s.color, borderColor: s.color },
+                  ]}
+                  onPress={() => {
+                    setStressLevel(stressLevel === s.value ? null : s.value);
+                    try { Haptics?.selectionAsync(); } catch {}
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.scaleNumber,
+                    stressLevel === s.value && styles.scaleNumberSelected,
+                  ]}>
+                    {s.value}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.scaleLabelRow}>
+              <Text style={styles.scaleEndLabel}>Calm</Text>
+              <Text style={styles.scaleEndLabel}>Intense</Text>
+            </View>
+
+            {/* Energy Level */}
+            <Text style={styles.scaleLabel}>Energy Level</Text>
+            <View style={styles.scaleRow}>
+              {ENERGY_LEVELS.map((e) => (
+                <TouchableOpacity
+                  key={e.value}
+                  style={[
+                    styles.scaleCircle,
+                    energyLevel === e.value && { backgroundColor: e.color, borderColor: e.color },
+                  ]}
+                  onPress={() => {
+                    setEnergyLevel(energyLevel === e.value ? null : e.value);
+                    try { Haptics?.selectionAsync(); } catch {}
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.scaleNumber,
+                    energyLevel === e.value && styles.scaleNumberSelected,
+                  ]}>
+                    {e.value}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.scaleLabelRow}>
+              <Text style={styles.scaleEndLabel}>Exhausted</Text>
+              <Text style={styles.scaleEndLabel}>Energized</Text>
+            </View>
+          </View>
 
           {/* Log Button */}
           <TouchableOpacity
@@ -267,6 +471,98 @@ const styles = StyleSheet.create({
   subChipTextSelected: {
     color: Colors.purple,
     fontFamily: 'Inter_500Medium',
+  },
+  // Food section
+  foodSection: {
+    marginBottom: Spacing.sm,
+  },
+  sectionLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
+  },
+  // Mood section
+  moodSection: {
+    marginBottom: Spacing.lg,
+  },
+  moodSectionTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.lg,
+    color: Colors.text,
+    marginBottom: Spacing.md,
+  },
+  moodRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  moodPill: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.surfaceBorder,
+    backgroundColor: Colors.surface,
+    minWidth: 60,
+  },
+  moodPillSelected: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentLight,
+  },
+  moodEmoji: {
+    fontSize: 20,
+    marginBottom: 2,
+  },
+  moodLabel: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+  },
+  moodLabelSelected: {
+    color: Colors.accent,
+  },
+  scaleLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
+  },
+  scaleRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  scaleCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.surfaceBorder,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scaleNumber: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.md,
+    color: Colors.textMuted,
+  },
+  scaleNumberSelected: {
+    color: Colors.white,
+  },
+  scaleLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: 5 * 40 + 4 * Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  scaleEndLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
   },
   logButton: {
     alignItems: 'center',

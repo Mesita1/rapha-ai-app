@@ -29,6 +29,16 @@ export interface PoincareResults {
   s: number;      // Area of the ellipse (ms²)
 }
 
+export interface GeometricResults {
+  triangularIndex: number;  // Higher = more variability
+  tinn: number;             // Baseline width in ms
+}
+
+export interface DCACResults {
+  dc: number;   // Deceleration capacity (ms) — higher is better
+  ac: number;   // Acceleration capacity (ms) — more negative = stronger
+}
+
 export interface FullHRVAnalysis {
   // Time domain
   rmssd: number;
@@ -42,6 +52,14 @@ export interface FullHRVAnalysis {
   dfaAlpha1: number | null;
   sampleEntropy: number | null;
   poincare: PoincareResults | null;
+  permutationEntropy: number | null;
+  // Geometric
+  geometric: GeometricResults | null;
+  // Autonomic
+  rsa: number | null;
+  respiratoryRate: number | null;
+  baevskySI: number | null;
+  dcac: DCACResults | null;
   // Quality
   signalQuality: 'excellent' | 'good' | 'poor' | 'bad';
   artifactRate: number;
@@ -523,6 +541,209 @@ export function poincareAnalysis(rrIntervals: number[]): PoincareResults | null 
 }
 
 // ============================================================
+// 7. PERMUTATION ENTROPY — Bandt & Pompe (2002)
+// Most robust complexity measure for short time series
+// Healthy resting: ~0.6-0.9
+// ============================================================
+
+export function permutationEntropy(rrIntervals: number[], m: number = 3, tau: number = 1): number | null {
+  if (rrIntervals.length < 20) return null;
+
+  const N = rrIntervals.length;
+  const patternCounts: Map<string, number> = new Map();
+  let totalPatterns = 0;
+
+  for (let i = 0; i <= N - m * tau; i++) {
+    const vector: number[] = [];
+    for (let j = 0; j < m; j++) {
+      vector.push(rrIntervals[i + j * tau]);
+    }
+    const indices = vector.map((v, idx) => ({ v, idx }));
+    indices.sort((a, b) => a.v - b.v);
+    const pattern = indices.map(x => x.idx).join(',');
+    patternCounts.set(pattern, (patternCounts.get(pattern) || 0) + 1);
+    totalPatterns++;
+  }
+
+  let entropy = 0;
+  for (const count of patternCounts.values()) {
+    const p = count / totalPatterns;
+    if (p > 0) entropy -= p * Math.log2(p);
+  }
+
+  const factorial = (n: number): number => n <= 1 ? 1 : n * factorial(n - 1);
+  const maxEntropy = Math.log2(factorial(m));
+  const normalizedPE = maxEntropy > 0 ? entropy / maxEntropy : 0;
+
+  return Math.round(normalizedPE * 1000) / 1000;
+}
+
+// ============================================================
+// 8. RESPIRATORY SINUS ARRHYTHMIA (RSA)
+// Peak-valley method for vagal tone assessment
+// ============================================================
+
+export function respiratorySinusArrhythmia(rrIntervals: number[]): {
+  rsa: number | null;
+  respiratoryRate: number | null;
+} | null {
+  if (rrIntervals.length < 60) return null;
+
+  // Smooth with 3-point moving average
+  const smoothed: number[] = [];
+  for (let i = 0; i < rrIntervals.length; i++) {
+    const start = Math.max(0, i - 1);
+    const end = Math.min(rrIntervals.length - 1, i + 1);
+    let sum = 0, count = 0;
+    for (let j = start; j <= end; j++) { sum += rrIntervals[j]; count++; }
+    smoothed.push(sum / count);
+  }
+
+  const peaks: number[] = [];
+  const valleys: number[] = [];
+  for (let i = 1; i < smoothed.length - 1; i++) {
+    if (smoothed[i] > smoothed[i-1] && smoothed[i] > smoothed[i+1]) peaks.push(i);
+    if (smoothed[i] < smoothed[i-1] && smoothed[i] < smoothed[i+1]) valleys.push(i);
+  }
+
+  if (peaks.length < 2 || valleys.length < 2) return null;
+
+  const pairs = Math.min(peaks.length, valleys.length);
+  let rsaSum = 0;
+  for (let i = 0; i < pairs; i++) {
+    rsaSum += Math.abs(rrIntervals[peaks[i]] - rrIntervals[valleys[i]]);
+  }
+  const rsaAmplitude = rsaSum / pairs;
+
+  let breathIntervalSum = 0;
+  for (let i = 1; i < peaks.length; i++) {
+    let timeMs = 0;
+    for (let j = peaks[i-1]; j < peaks[i]; j++) timeMs += rrIntervals[j];
+    breathIntervalSum += timeMs;
+  }
+  const avgBreathInterval = breathIntervalSum / (peaks.length - 1);
+  const respiratoryRate = 60000 / avgBreathInterval;
+
+  return {
+    rsa: Math.round(rsaAmplitude * 10) / 10,
+    respiratoryRate: Math.round(respiratoryRate * 10) / 10,
+  };
+}
+
+// ============================================================
+// 9. BAEVSKY STRESS INDEX — Baevsky (1984)
+// SI = AMo / (2 * Mo * MxDMn)
+// Normal resting: 50-150, Stress: 150-500, High: >500
+// ============================================================
+
+export function baevskySI(rrIntervals: number[]): number | null {
+  if (rrIntervals.length < 20) return null;
+
+  const binWidth = 50;
+  const bins: Map<number, number> = new Map();
+  let maxCount = 0;
+  let modeBin = 0;
+
+  for (const rr of rrIntervals) {
+    const bin = Math.round(rr / binWidth) * binWidth;
+    const count = (bins.get(bin) || 0) + 1;
+    bins.set(bin, count);
+    if (count > maxCount) { maxCount = count; modeBin = bin; }
+  }
+
+  const N = rrIntervals.length;
+  const AMo = (maxCount / N) * 100;
+  const Mo = modeBin / 1000;
+
+  const sorted = [...rrIntervals].sort((a, b) => a - b);
+  const p5 = sorted[Math.floor(N * 0.05)];
+  const p95 = sorted[Math.floor(N * 0.95)];
+  const MxDMn = (p95 - p5) / 1000;
+
+  if (Mo === 0 || MxDMn === 0) return null;
+
+  const SI = AMo / (2 * Mo * MxDMn);
+  return Math.round(SI * 10) / 10;
+}
+
+// ============================================================
+// 10. GEOMETRIC ANALYSIS — HRV Triangular Index & TINN
+// Reference: Task Force of ESC/NASPE (1996)
+// ============================================================
+
+export function geometricAnalysis(rrIntervals: number[]): GeometricResults | null {
+  if (rrIntervals.length < 50) return null;
+
+  const binWidth = 1000 / 128; // 7.8125 ms per ESC recommendation
+  const bins: Map<number, number> = new Map();
+  let maxCount = 0;
+
+  for (const rr of rrIntervals) {
+    const bin = Math.round(rr / binWidth);
+    const count = (bins.get(bin) || 0) + 1;
+    bins.set(bin, count);
+    if (count > maxCount) maxCount = count;
+  }
+
+  const triangularIndex = rrIntervals.length / maxCount;
+
+  const allBins = [...bins.keys()].sort((a, b) => a - b);
+  const leftBin = allBins[0];
+  const rightBin = allBins[allBins.length - 1];
+  const tinn = (rightBin - leftBin) * binWidth;
+
+  return {
+    triangularIndex: Math.round(triangularIndex * 10) / 10,
+    tinn: Math.round(tinn * 10) / 10,
+  };
+}
+
+// ============================================================
+// 11. DECELERATION/ACCELERATION CAPACITY (DC/AC)
+// Phase Rectified Signal Averaging — Bauer et al. (2006)
+// DC > 4.5ms: low risk, 2.5-4.5: moderate, <2.5: high risk
+// ============================================================
+
+export function decelerationAccelerationCapacity(rrIntervals: number[]): DCACResults | null {
+  if (rrIntervals.length < 20) return null;
+
+  const N = rrIntervals.length;
+  const decAnchors: number[] = [];
+  const accAnchors: number[] = [];
+
+  for (let i = 1; i < N - 1; i++) {
+    if (rrIntervals[i] > rrIntervals[i - 1]) decAnchors.push(i);
+    else if (rrIntervals[i] < rrIntervals[i - 1]) accAnchors.push(i);
+  }
+
+  function prsa(anchors: number[]): number | null {
+    if (anchors.length < 5) return null;
+    let sum0 = 0, sum1 = 0, sumM1 = 0, sumM2 = 0;
+    let count = 0;
+    for (const a of anchors) {
+      if (a >= 2 && a + 1 < N) {
+        sum0 += rrIntervals[a];
+        sum1 += rrIntervals[a + 1];
+        sumM1 += rrIntervals[a - 1];
+        sumM2 += rrIntervals[a - 2];
+        count++;
+      }
+    }
+    if (count === 0) return null;
+    return ((sum0 / count) + (sum1 / count) - (sumM1 / count) - (sumM2 / count)) / 4;
+  }
+
+  const dc = prsa(decAnchors);
+  const ac = prsa(accAnchors);
+  if (dc === null || ac === null) return null;
+
+  return {
+    dc: Math.round(dc * 100) / 100,
+    ac: Math.round(ac * 100) / 100,
+  };
+}
+
+// ============================================================
 // TIME DOMAIN METRICS
 // ============================================================
 
@@ -569,6 +790,12 @@ export function runFullAnalysis(rawRR: number[]): FullHRVAnalysis {
       dfaAlpha1: null,
       sampleEntropy: null,
       poincare: null,
+      permutationEntropy: null,
+      geometric: null,
+      rsa: null,
+      respiratoryRate: null,
+      baevskySI: null,
+      dcac: null,
       signalQuality,
       artifactRate: Math.round(artifactRate * 1000) / 10,
       analysisReady: false,
@@ -592,6 +819,15 @@ export function runFullAnalysis(rawRR: number[]): FullHRVAnalysis {
   const dfa = correctedRR.length >= 50 ? dfaAlpha1(correctedRR) : null;
   const sampEn = correctedRR.length >= 30 ? sampleEntropy(correctedRR) : null;
   const poinc = poincareAnalysis(correctedRR);
+  const permEn = correctedRR.length >= 20 ? permutationEntropy(correctedRR) : null;
+
+  // Step 5: Geometric analyses
+  const geo = correctedRR.length >= 50 ? geometricAnalysis(correctedRR) : null;
+
+  // Step 6: Autonomic analyses
+  const rsaResult = respiratorySinusArrhythmia(correctedRR);
+  const stressIndex = correctedRR.length >= 20 ? baevskySI(correctedRR) : null;
+  const dcac = correctedRR.length >= 20 ? decelerationAccelerationCapacity(correctedRR) : null;
 
   return {
     rmssd,
@@ -603,6 +839,12 @@ export function runFullAnalysis(rawRR: number[]): FullHRVAnalysis {
     dfaAlpha1: dfa,
     sampleEntropy: sampEn,
     poincare: poinc,
+    permutationEntropy: permEn,
+    geometric: geo,
+    rsa: rsaResult?.rsa ?? null,
+    respiratoryRate: rsaResult?.respiratoryRate ?? null,
+    baevskySI: stressIndex,
+    dcac,
     signalQuality,
     artifactRate: Math.round(artifactRate * 1000) / 10,
     analysisReady: correctedRR.length >= 120,

@@ -308,94 +308,222 @@ export default function DashboardScreen() {
                 const fa = fullAnalysis;
                 const freq = fa?.frequency;
                 const poinc = fa?.poincare;
+                const geo = fa?.geometric;
+                const dcac = fa?.dcac;
                 const qualityColor = signal.color;
                 const dfaVal = fa?.dfaAlpha1;
-                const dfaInterp = dfaVal !== null && dfaVal !== undefined
-                  ? dfaVal > 1.0 ? 'Resting' : dfaVal > 0.75 ? 'Moderate' : dfaVal > 0.5 ? 'Aerobic threshold' : 'Anaerobic'
+                const dfaInterp = dfaVal != null
+                  ? dfaVal > 1.0 ? 'Healthy resting' : dfaVal > 0.75 ? 'Moderate activity' : dfaVal > 0.5 ? 'High intensity' : 'Exhaustion'
                   : null;
+                const dfaColor = dfaVal != null
+                  ? dfaVal > 1.0 ? '#00d68f' : dfaVal > 0.75 ? '#00d68f' : dfaVal > 0.5 ? '#f59e0b' : '#ef4444'
+                  : Colors.textDim;
                 const sampEnVal = fa?.sampleEntropy;
-                const sampEnInterp = sampEnVal !== null && sampEnVal !== undefined
-                  ? sampEnVal > 1.5 ? 'High complexity' : sampEnVal > 0.8 ? 'Normal' : 'Low complexity'
+                const sampEnInterp = sampEnVal != null
+                  ? sampEnVal >= 1.0 && sampEnVal <= 2.0 ? 'Normal complexity' : sampEnVal < 1.0 ? 'Reduced complexity' : 'High complexity'
                   : null;
+                const sampEnColor = sampEnVal != null
+                  ? sampEnVal >= 1.0 && sampEnVal <= 2.0 ? '#00d68f' : '#f59e0b'
+                  : Colors.textDim;
+                const permEnVal = fa?.permutationEntropy;
+                const permEnInterp = permEnVal != null
+                  ? permEnVal >= 0.6 && permEnVal <= 0.9 ? 'Normal' : permEnVal < 0.6 ? 'Very regular' : 'Very random'
+                  : null;
+                const permEnColor = permEnVal != null
+                  ? permEnVal >= 0.6 && permEnVal <= 0.9 ? '#00d68f' : '#f59e0b'
+                  : Colors.textDim;
+                const siVal = fa?.baevskySI;
+                const siInterp = siVal != null
+                  ? siVal < 100 ? 'Relaxed' : siVal <= 250 ? 'Normal' : siVal <= 500 ? 'Stressed' : 'High stress'
+                  : null;
+                const siColor = siVal != null
+                  ? siVal < 100 ? '#00d68f' : siVal <= 250 ? '#00d68f' : siVal <= 500 ? '#f59e0b' : '#ef4444'
+                  : Colors.textDim;
+                const dcVal = dcac?.dc;
+                const dcInterp = dcVal != null
+                  ? dcVal > 4.5 ? 'Strong vagal' : dcVal >= 2.5 ? 'Moderate' : 'Weak vagal'
+                  : null;
+                const dcColor = dcVal != null
+                  ? dcVal > 4.5 ? '#00d68f' : dcVal >= 2.5 ? '#f59e0b' : '#ef4444'
+                  : Colors.textDim;
+                const rsaVal = fa?.rsa;
+                const respVal = fa?.respiratoryRate;
+
+                const sectionLabel = { fontFamily: 'Inter_500Medium' as const, fontSize: 10, color: Colors.textDim, marginBottom: 4, textTransform: 'uppercase' as const, letterSpacing: 1 };
+                const metricName = { fontFamily: 'Inter_400Regular' as const, fontSize: 11, color: Colors.textMuted };
+                const metricVal = (active: boolean) => ({ fontFamily: 'Inter_700Bold' as const, fontSize: 14, color: active ? Colors.text : Colors.textDim });
+                const metricUnit = { fontFamily: 'Inter_400Regular' as const, fontSize: 9, color: Colors.textDim };
+                const metricInterp = (color: string) => ({ fontFamily: 'Inter_400Regular' as const, fontSize: 9, color });
+                const row = { flexDirection: 'row' as const, justifyContent: 'space-between' as const, marginBottom: 4 };
+                const cell = { alignItems: 'center' as const, flex: 1 };
 
                 return (
                   <View style={{ marginTop: Spacing.sm, borderTopWidth: 0.5, borderTopColor: Colors.surfaceBorder, paddingTop: Spacing.sm }}>
-                    {/* Row 1: Time Domain */}
-                    <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 10, color: Colors.textDim, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Time Domain</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>RMSSD</Text>
+                    {/* Time Domain */}
+                    <Text style={sectionLabel}>Time Domain</Text>
+                    <View style={{ ...row, marginBottom: Spacing.sm }}>
+                      <View style={cell}>
+                        <Text style={metricName}>RMSSD</Text>
                         <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: Colors.text }}>{rmssd > 0 ? rmssd.toFixed(1) : '--'}</Text>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 10, color: Colors.textDim }}>ms</Text>
+                        <Text style={metricUnit}>ms</Text>
                       </View>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>SDNN</Text>
+                      <View style={cell}>
+                        <Text style={metricName}>SDNN</Text>
                         <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: Colors.text }}>{sdnn > 0 ? sdnn.toFixed(1) : '--'}</Text>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 10, color: Colors.textDim }}>ms</Text>
+                        <Text style={metricUnit}>ms</Text>
                       </View>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>pNN50</Text>
+                      <View style={cell}>
+                        <Text style={metricName}>pNN50</Text>
                         <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: Colors.text }}>{fa ? `${fa.pnn50.toFixed(1)}%` : pnn50 > 0 ? `${pnn50.toFixed(0)}%` : '--'}</Text>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 10, color: Colors.textDim }}> </Text>
                       </View>
+                    </View>
+                    <View style={{ ...row, marginBottom: Spacing.sm }}>
+                      <View style={cell}>
+                        <Text style={metricName}>Mean RR</Text>
+                        <Text style={metricVal(!!fa)}>{fa ? `${fa.meanRR}` : '--'}</Text>
+                        <Text style={metricUnit}>ms</Text>
+                      </View>
+                      <View style={cell}>
+                        <Text style={metricName}>Mean HR</Text>
+                        <Text style={metricVal(!!fa)}>{fa ? `${fa.meanHR}` : '--'}</Text>
+                        <Text style={metricUnit}>bpm</Text>
+                      </View>
+                      <View style={cell} />
                     </View>
 
-                    {/* Row 2: Frequency Domain */}
-                    <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 10, color: Colors.textDim, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Frequency Domain</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>VLF</Text>
-                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: freq ? Colors.text : Colors.textDim }}>{freq ? `${freq.vlf}` : '--'}</Text>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>ms²</Text>
+                    {/* Frequency Domain */}
+                    <Text style={sectionLabel}>Frequency Domain</Text>
+                    <View style={row}>
+                      <View style={cell}>
+                        <Text style={metricName}>VLF</Text>
+                        <Text style={metricVal(!!freq)}>{freq ? `${freq.vlf}` : '--'}</Text>
+                        <Text style={metricUnit}>ms²</Text>
                       </View>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>LF</Text>
-                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: freq ? Colors.text : Colors.textDim }}>{freq ? `${freq.lf}` : '--'}</Text>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>ms²</Text>
+                      <View style={cell}>
+                        <Text style={metricName}>LF</Text>
+                        <Text style={metricVal(!!freq)}>{freq ? `${freq.lf}` : '--'}</Text>
+                        <Text style={metricUnit}>ms²</Text>
                       </View>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>HF</Text>
-                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: freq ? Colors.text : Colors.textDim }}>{freq ? `${freq.hf}` : '--'}</Text>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>ms²</Text>
+                      <View style={cell}>
+                        <Text style={metricName}>HF</Text>
+                        <Text style={metricVal(!!freq)}>{freq ? `${freq.hf}` : '--'}</Text>
+                        <Text style={metricUnit}>ms²</Text>
                       </View>
                     </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>LF/HF</Text>
-                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: freq ? Colors.text : Colors.textDim }}>{freq ? `${freq.lfHfRatio}` : '--'}</Text>
+                    <View style={row}>
+                      <View style={cell}>
+                        <Text style={metricName}>Total Power</Text>
+                        <Text style={metricVal(!!freq)}>{freq ? `${freq.totalPower}` : '--'}</Text>
+                        <Text style={metricUnit}>ms²</Text>
                       </View>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>Total</Text>
-                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: freq ? Colors.text : Colors.textDim }}>{freq ? `${freq.totalPower}` : '--'}</Text>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>ms²</Text>
+                      <View style={cell}>
+                        <Text style={metricName}>LF/HF</Text>
+                        <Text style={metricVal(!!freq)}>{freq ? `${freq.lfHfRatio}` : '--'}</Text>
                       </View>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
+                      <View style={cell}>
+                        <Text style={metricName}>Peak LF</Text>
+                        <Text style={metricVal(!!freq)}>{freq ? `${freq.peakLF}` : '--'}</Text>
+                        <Text style={metricUnit}>Hz</Text>
+                      </View>
+                    </View>
+                    <View style={{ ...row, marginBottom: Spacing.sm }}>
+                      <View style={cell}>
+                        <Text style={metricName}>Peak HF</Text>
+                        <Text style={metricVal(!!freq)}>{freq ? `${freq.peakHF}` : '--'}</Text>
+                        <Text style={metricUnit}>Hz</Text>
+                      </View>
+                      <View style={cell} />
+                      <View style={cell}>
                         {!freq && <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim, textAlign: 'center' }}>Need 2+ min{'\n'}for frequency</Text>}
                       </View>
                     </View>
 
-                    {/* Row 3: Non-linear */}
-                    <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 10, color: Colors.textDim, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Non-Linear</Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>DFA α1</Text>
-                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: dfaVal != null ? Colors.text : Colors.textDim }}>{dfaVal != null ? dfaVal.toFixed(3) : '--'}</Text>
-                        {dfaInterp && <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.accent }}>{dfaInterp}</Text>}
+                    {/* Non-Linear */}
+                    <Text style={sectionLabel}>Non-Linear</Text>
+                    <View style={row}>
+                      <View style={cell}>
+                        <Text style={metricName}>DFA α1</Text>
+                        <Text style={metricVal(dfaVal != null)}>{dfaVal != null ? dfaVal.toFixed(3) : '--'}</Text>
+                        {dfaInterp && <Text style={metricInterp(dfaColor)}>{dfaInterp}</Text>}
                       </View>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>SampEn</Text>
-                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: sampEnVal != null ? Colors.text : Colors.textDim }}>{sampEnVal != null ? sampEnVal.toFixed(3) : '--'}</Text>
-                        {sampEnInterp && <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.accent }}>{sampEnInterp}</Text>}
+                      <View style={cell}>
+                        <Text style={metricName}>SampEn</Text>
+                        <Text style={metricVal(sampEnVal != null)}>{sampEnVal != null ? sampEnVal.toFixed(3) : '--'}</Text>
+                        {sampEnInterp && <Text style={metricInterp(sampEnColor)}>{sampEnInterp}</Text>}
                       </View>
-                      <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: Colors.textMuted }}>SD1/SD2</Text>
-                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: poinc ? Colors.text : Colors.textDim }}>{poinc ? `${poinc.sd1}/${poinc.sd2}` : '--'}</Text>
-                        {poinc && <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim }}>ratio {poinc.sd1sd2}</Text>}
+                      <View style={cell}>
+                        <Text style={metricName}>PermEn</Text>
+                        <Text style={metricVal(permEnVal != null)}>{permEnVal != null ? permEnVal.toFixed(3) : '--'}</Text>
+                        {permEnInterp && <Text style={metricInterp(permEnColor)}>{permEnInterp}</Text>}
+                      </View>
+                    </View>
+                    <View style={{ ...row, marginBottom: Spacing.sm }}>
+                      <View style={cell}>
+                        <Text style={metricName}>SD1/SD2</Text>
+                        <Text style={metricVal(!!poinc)}>{poinc ? `${poinc.sd1}/${poinc.sd2}` : '--'}</Text>
+                        {poinc && <Text style={metricUnit}>ratio {poinc.sd1sd2}</Text>}
+                      </View>
+                      <View style={cell}>
+                        <Text style={metricName}>Poincaré S</Text>
+                        <Text style={metricVal(!!poinc)}>{poinc ? `${poinc.s}` : '--'}</Text>
+                        <Text style={metricUnit}>ms²</Text>
+                      </View>
+                      <View style={cell} />
+                    </View>
+
+                    {/* Geometric */}
+                    <Text style={sectionLabel}>Geometric</Text>
+                    <View style={{ ...row, marginBottom: Spacing.sm }}>
+                      <View style={cell}>
+                        <Text style={metricName}>Tri Index</Text>
+                        <Text style={metricVal(!!geo)}>{geo ? `${geo.triangularIndex}` : '--'}</Text>
+                      </View>
+                      <View style={cell}>
+                        <Text style={metricName}>TINN</Text>
+                        <Text style={metricVal(!!geo)}>{geo ? `${geo.tinn}` : '--'}</Text>
+                        <Text style={metricUnit}>ms</Text>
+                      </View>
+                      <View style={cell}>
+                        {!geo && <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 9, color: Colors.textDim, textAlign: 'center' }}>Need 50+{'\n'}intervals</Text>}
                       </View>
                     </View>
 
-                    {/* Row 4: Signal Quality & Data Info */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.sm, paddingTop: Spacing.xs, borderTopWidth: 0.5, borderTopColor: Colors.surfaceBorder }}>
+                    {/* Autonomic */}
+                    <Text style={sectionLabel}>Autonomic</Text>
+                    <View style={row}>
+                      <View style={cell}>
+                        <Text style={metricName}>RSA</Text>
+                        <Text style={metricVal(rsaVal != null)}>{rsaVal != null ? `${rsaVal}` : '--'}</Text>
+                        <Text style={metricUnit}>ms</Text>
+                      </View>
+                      <View style={cell}>
+                        <Text style={metricName}>Resp Rate</Text>
+                        <Text style={metricVal(respVal != null)}>{respVal != null ? `${respVal}` : '--'}</Text>
+                        <Text style={metricUnit}>br/min</Text>
+                      </View>
+                      <View style={cell}>
+                        <Text style={metricName}>Stress (SI)</Text>
+                        <Text style={metricVal(siVal != null)}>{siVal != null ? `${siVal}` : '--'}</Text>
+                        {siInterp && <Text style={metricInterp(siColor)}>{siInterp}</Text>}
+                      </View>
+                    </View>
+                    <View style={{ ...row, marginBottom: Spacing.sm }}>
+                      <View style={cell}>
+                        <Text style={metricName}>DC</Text>
+                        <Text style={metricVal(dcVal != null)}>{dcVal != null ? `${dcVal}` : '--'}</Text>
+                        {dcInterp && <Text style={metricInterp(dcColor)}>{dcInterp}</Text>}
+                      </View>
+                      <View style={cell}>
+                        <Text style={metricName}>AC</Text>
+                        <Text style={metricVal(dcac?.ac != null)}>{dcac?.ac != null ? `${dcac.ac}` : '--'}</Text>
+                        <Text style={metricUnit}>ms</Text>
+                      </View>
+                      <View style={cell} />
+                    </View>
+
+                    {/* Signal Quality & Data Info */}
+                    <Text style={sectionLabel}>Signal</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Spacing.xs }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: qualityColor }} />
                         <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 11, color: qualityColor }}>{signal.label}</Text>

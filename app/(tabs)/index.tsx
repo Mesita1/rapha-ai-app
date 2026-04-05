@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Polyline, Line, Circle, Text as SvgText } from 'react-native-svg';
+import Svg, { Polyline, Line, Circle, Text as SvgText, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import GlassCard from '../../components/GlassCard';
 import SparklineChart from '../../components/SparklineChart';
 import { Colors, FontSize, Spacing, BorderRadius, Shadows } from '../../constants/theme';
@@ -151,7 +151,19 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hi, {authUser?.displayName?.split(' ')[0] || 'there'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Svg width={24} height={24} viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                <Defs>
+                  <SvgLinearGradient id="miniRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <Stop offset="0%" stopColor="#0ea87a" />
+                    <Stop offset="100%" stopColor="#D4A574" />
+                  </SvgLinearGradient>
+                </Defs>
+                <Circle cx="12" cy="12" r="9" stroke="url(#miniRingGrad)" strokeWidth={2.5} fill="none" />
+                <SvgText x="12" y="12" textAnchor="middle" alignmentBaseline="central" fontSize={11} fontWeight="700" fill="#ffffff">R</SvgText>
+              </Svg>
+              <Text style={styles.greeting}>Hi, {authUser?.displayName?.split(' ')[0] || 'there'}</Text>
+            </View>
             {!isConnected && (
               <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, marginTop: 2 }}>
                 Your healing journey begins here

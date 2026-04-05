@@ -9,44 +9,40 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path, Circle, Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 
 const { width } = Dimensions.get('window');
 
-function HeartbeatLogo() {
+function RadiantCircleLogo() {
   return (
     <View style={styles.logoContainer}>
-      <Svg width={140} height={140} viewBox="0 0 140 140">
-        {/* Background glow */}
+      <Svg width={150} height={150} viewBox="0 0 150 150">
         <Defs>
-          <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor={Colors.accent} stopOpacity="0.15" />
-            <Stop offset="1" stopColor={Colors.accent} stopOpacity="0" />
-          </RadialGradient>
+          <LinearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#0ea87a" />
+            <Stop offset="100%" stopColor="#D4A574" />
+          </LinearGradient>
         </Defs>
-        <Rect x="0" y="0" width="140" height="140" fill="url(#glow)" />
-
-        {/* Neural dots */}
-        <Circle cx="20" cy="70" r="3" fill={Colors.accent} opacity={0.5} />
-        <Circle cx="35" cy="45" r="2.5" fill={Colors.accent} opacity={0.4} />
-        <Circle cx="50" cy="30" r="2" fill={Colors.purple} opacity={0.3} />
-        <Circle cx="90" cy="30" r="2" fill={Colors.purple} opacity={0.3} />
-        <Circle cx="105" cy="45" r="2.5" fill={Colors.accent} opacity={0.4} />
-        <Circle cx="120" cy="70" r="3" fill={Colors.accent} opacity={0.5} />
-        <Circle cx="35" cy="95" r="2" fill={Colors.accent} opacity={0.3} />
-        <Circle cx="105" cy="95" r="2" fill={Colors.accent} opacity={0.3} />
-        <Circle cx="70" cy="110" r="2.5" fill={Colors.purple} opacity={0.25} />
-
-        {/* Heartbeat waveform */}
-        <Path
-          d="M10 70 L30 70 L38 70 L42 52 L48 88 L54 30 L60 100 L66 52 L70 70 L78 70 L90 70 L110 70 L130 70"
-          stroke={Colors.accent}
-          strokeWidth={3}
+        <Circle
+          cx="75"
+          cy="75"
+          r="60"
+          stroke="url(#ringGradient)"
+          strokeWidth={8}
           fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
         />
+        <SvgText
+          x="75"
+          y="75"
+          textAnchor="middle"
+          alignmentBaseline="central"
+          fontSize={52}
+          fontWeight="700"
+          fill="#ffffff"
+        >
+          R
+        </SvgText>
       </Svg>
     </View>
   );
@@ -74,13 +70,13 @@ export default function WelcomeScreen() {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 1500,
+          toValue: 0.8,
+          duration: 2000,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1500,
+          duration: 2000,
           useNativeDriver: true,
         }),
       ])
@@ -95,13 +91,16 @@ export default function WelcomeScreen() {
             styles.logoSection,
             {
               opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }, { scale: pulseAnim }],
+              transform: [{ translateY: slideAnim }],
             },
           ]}
         >
-          <HeartbeatLogo />
+          <Animated.View style={{ opacity: pulseAnim }}>
+            <RadiantCircleLogo />
+          </Animated.View>
           <Text style={styles.appName}>Rapha AI</Text>
           <Text style={styles.tagline}>Your Personal Autonomic Intelligence</Text>
+          <Text style={styles.healingTagline}>From Jehovah Rapha — The God Who Heals</Text>
         </Animated.View>
 
         <Animated.View style={[styles.bottomSection, { opacity: fadeAnim }]}>
@@ -158,6 +157,14 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     marginTop: Spacing.sm,
     textAlign: 'center',
+  },
+  healingTagline: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: '#D4A574',
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   bottomSection: {
     alignItems: 'center',

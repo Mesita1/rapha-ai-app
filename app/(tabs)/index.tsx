@@ -68,12 +68,12 @@ function getMoodDotColor(mood?: string): string {
   return 'transparent';
 }
 
-const MOOD_CHECK_OPTIONS: { key: 'great' | 'good' | 'okay' | 'low' | 'struggling'; label: string; icon: string }[] = [
-  { key: 'great', label: 'Great', icon: '😄' },
-  { key: 'good', label: 'Good', icon: '🙂' },
-  { key: 'okay', label: 'Okay', icon: '😐' },
-  { key: 'low', label: 'Low', icon: '😕' },
-  { key: 'struggling', label: 'Struggling', icon: '😢' },
+const MOOD_CHECK_OPTIONS: { key: 'great' | 'good' | 'okay' | 'low' | 'struggling'; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'great', label: 'Great', icon: 'happy-outline' },
+  { key: 'good', label: 'Good', icon: 'happy-outline' },
+  { key: 'okay', label: 'Okay', icon: 'remove-circle-outline' },
+  { key: 'low', label: 'Low', icon: 'sad-outline' },
+  { key: 'struggling', label: 'Struggling', icon: 'sad-outline' },
 ];
 
 const STRESS_LEVELS_DASH = [
@@ -1026,7 +1026,7 @@ export default function DashboardScreen() {
                 onPress={() => dismissNotification(notif.id)}
                 style={{ backgroundColor: '#12121a', borderWidth: 1, borderColor: Colors.accent, borderRadius: 12, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10 }}
               >
-                <Text style={{ fontSize: 18 }}>📊</Text>
+                <Ionicons name="analytics-outline" size={18} color={Colors.accent} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: Colors.text }}>
                     {notif.interventionName} — {notif.label} check
@@ -1165,7 +1165,7 @@ export default function DashboardScreen() {
                   onPress={() => setMoodCheckMood(moodCheckMood === m.key ? null : m.key)}
                   activeOpacity={0.7}
                 >
-                  <Text style={{ fontSize: 20 }}>{m.icon}</Text>
+                  <Ionicons name={m.icon} size={20} color={moodCheckMood === m.key ? Colors.accent : Colors.textMuted} />
                   <Text style={[styles.moodModalPillText, moodCheckMood === m.key && { color: Colors.accent }]}>{m.label}</Text>
                 </TouchableOpacity>
               ))}

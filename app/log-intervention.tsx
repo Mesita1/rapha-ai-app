@@ -28,12 +28,12 @@ const COMMON_FOODS = [
   'Fruit', 'Nuts', 'Alcohol', 'Sugar/Candy', 'Fast Food', 'Smoothie',
 ];
 
-const MOOD_OPTIONS: { key: 'great' | 'good' | 'okay' | 'low' | 'struggling'; label: string; icon: string }[] = [
-  { key: 'great', label: 'Great', icon: '😄' },
-  { key: 'good', label: 'Good', icon: '🙂' },
-  { key: 'okay', label: 'Okay', icon: '😐' },
-  { key: 'low', label: 'Low', icon: '😕' },
-  { key: 'struggling', label: 'Struggling', icon: '😢' },
+const MOOD_OPTIONS: { key: 'great' | 'good' | 'okay' | 'low' | 'struggling'; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'great', label: 'Great', icon: 'happy-outline' },
+  { key: 'good', label: 'Good', icon: 'happy-outline' },
+  { key: 'okay', label: 'Okay', icon: 'remove-circle-outline' },
+  { key: 'low', label: 'Low', icon: 'sad-outline' },
+  { key: 'struggling', label: 'Struggling', icon: 'sad-outline' },
 ];
 
 const STRESS_LEVELS = [
@@ -288,7 +288,7 @@ export default function LogInterventionScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.moodEmoji}>{m.icon}</Text>
+                  <Ionicons name={m.icon} size={20} color={selectedMood === m.key ? Colors.accent : Colors.textMuted} />
                   <Text style={[styles.moodLabel, selectedMood === m.key && styles.moodLabelSelected]}>
                     {m.label}
                   </Text>
@@ -512,8 +512,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.accent,
     backgroundColor: Colors.accentLight,
   },
-  moodEmoji: {
-    fontSize: 20,
+  moodIcon: {
     marginBottom: 2,
   },
   moodLabel: {

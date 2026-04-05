@@ -88,7 +88,7 @@ function ChatBubble({ message }: { message: { role: string; content: string; tim
     <View style={[styles.bubbleRow, isUser && styles.bubbleRowUser]}>
       {!isUser && (
         <View style={styles.sparkleIcon}>
-          <Text style={styles.sparkleText}>✦</Text>
+          <Ionicons name="sparkles-outline" size={16} color={Colors.accent} />
         </View>
       )}
       <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
@@ -198,7 +198,7 @@ export default function CoachScreen() {
           {isLoading && (
             <View style={styles.bubbleRow}>
               <View style={styles.sparkleIcon}>
-                <Text style={styles.sparkleText}>✦</Text>
+                <Ionicons name="sparkles-outline" size={16} color={Colors.accent} />
               </View>
               <View style={[styles.bubble, styles.aiBubble]}>
                 <Text style={styles.typingDots}>Rapha is thinking...</Text>
@@ -303,10 +303,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
-  },
-  sparkleText: {
-    fontSize: 16,
-    color: Colors.accent,
   },
   bubble: {
     padding: Spacing.md,

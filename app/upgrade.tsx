@@ -5,6 +5,7 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -64,7 +65,7 @@ export default function UpgradeScreen() {
             if (isCurrent && tier === 'pro_trial') return 'Current Trial';
             if (isCurrent) return 'Current Plan';
             if (price === 0) return 'Get Started Free';
-            if (isPopular) return 'Start 14-Day Free Trial';
+            if (isPopular) return 'Start 7-Day Free Trial';
             if (pricingTier.name === 'Practitioner') return "Let's Talk";
             return `Get ${pricingTier.name}`;
           };
@@ -140,8 +141,26 @@ export default function UpgradeScreen() {
         })}
 
         <Text style={styles.disclaimer}>
-          Pro plan includes a free 14-day trial. Cancel anytime.
+          Pro plan includes a free 7-day trial. Cancel anytime.
         </Text>
+
+        {/* Enterprise Callout */}
+        <View style={styles.enterpriseCard}>
+          <Text style={styles.enterpriseTitle}>Enterprise</Text>
+          <Text style={styles.enterpriseDesc}>
+            For clinics, hospitals, corporate wellness, research institutions, and church networks
+          </Text>
+          <Text style={styles.enterpriseDetails}>
+            Custom pricing, custom onboarding, white-label options, HIPAA BAA available
+          </Text>
+          <TouchableOpacity
+            style={styles.enterpriseButton}
+            onPress={() => Linking.openURL('mailto:hello@raphaai.com?subject=Enterprise Inquiry')}
+          >
+            <Ionicons name="chatbubbles-outline" size={16} color={Colors.accent} />
+            <Text style={styles.enterpriseButtonText}>Let's Talk</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={{ height: 60 }} />
       </ScrollView>
@@ -339,5 +358,51 @@ const styles = StyleSheet.create({
     color: Colors.textDim,
     textAlign: 'center',
     marginTop: Spacing.sm,
+  },
+  enterpriseCard: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginTop: Spacing.lg,
+    alignItems: 'center',
+  },
+  enterpriseTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.lg,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  enterpriseDesc: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: Spacing.sm,
+  },
+  enterpriseDetails: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.xs,
+    color: Colors.textDim,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: Spacing.md,
+  },
+  enterpriseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 165, 116, 0.3)',
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 2,
+  },
+  enterpriseButtonText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: FontSize.sm,
+    color: Colors.accent,
   },
 });

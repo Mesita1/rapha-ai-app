@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SubscriptionTier } from '../lib/types';
+import { hasDeviceUsedTrial, markTrialUsed } from '../lib/deviceId';
 
 const TRIAL_START_KEY = 'rapha_trial_start';
 const SUBSCRIPTION_KEY = 'rapha_subscription_tier';
-const TRIAL_DURATION_DAYS = 14;
+const TRIAL_DURATION_DAYS = 7;
 
 interface SubscriptionContextType {
   tier: SubscriptionTier;
   trialDaysRemaining: number | null;
   isTrialActive: boolean;
   hasProAccess: boolean;
+  trialBlocked: string | null;
   startTrial: () => Promise<void>;
 }
 
@@ -19,6 +21,7 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   trialDaysRemaining: null,
   isTrialActive: false,
   hasProAccess: false,
+  trialBlocked: null,
   startTrial: async () => {},
 });
 
@@ -47,6 +50,7 @@ function getSubscriptionTier(
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const [tier, setTier] = useState<SubscriptionTier>('free');
   const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
+  const [trialBlocked, setTrialBlocked] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -66,8 +70,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const startTrial = async () => {
+    const alreadyUsed = await hasDeviceUsedTrial();
+    if (alreadyUsed) {
+      setTrialBlocked('Trial already used. Upgrade to Pro to continue.');
+      return;
+    }
+
     const now = new Date().toISOString();
     await AsyncStorage.setItem(TRIAL_START_KEY, now);
+    await markTrialUsed();
     setTier('pro_trial');
     setTrialDaysRemaining(TRIAL_DURATION_DAYS);
   };
@@ -76,7 +87,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const hasProAccess = tier === 'pro_trial' || tier === 'pro' || tier === 'practitioner';
 
   return (
-    <SubscriptionContext.Provider value={{ tier, trialDaysRemaining, isTrialActive, hasProAccess, startTrial }}>
+    <SubscriptionContext.Provider value={{ tier, trialDaysRemaining, isTrialActive, hasProAccess, trialBlocked, startTrial }}>
       {children}
     </SubscriptionContext.Provider>
   );

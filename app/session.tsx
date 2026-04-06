@@ -611,8 +611,8 @@ export default function SessionScreen() {
               <Ionicons name="musical-notes-outline" size={20} color={Colors.accent} />
               <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: Colors.text }}>Your Music + Binaural</Text>
             </View>
-            <View style={{ backgroundColor: 'rgba(212,165,116,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: Colors.accent }}>Coming Soon</Text>
+            <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.3)' }}>
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: '#f59e0b' }}>ELITE</Text>
             </View>
           </View>
           <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.textMuted, marginTop: 8, lineHeight: 19 }}>

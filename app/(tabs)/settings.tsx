@@ -17,6 +17,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from '../../constants/theme';
 import { achievements } from '../../constants/mockData';
 import { useAuth } from '../../context/AuthContext';
 import { useBLE } from '../../context/BLEContext';
+import { restorePurchases } from '../../lib/revenuecat';
 
 const COMMUNITY_INSIGHTS_KEY = 'rapha_community_insights';
 
@@ -376,6 +377,20 @@ export default function SettingsScreen() {
             label="Upgrade Plan"
             iconColor={Colors.accent}
             onPress={() => router.push('/upgrade' as any)}
+          />
+          <View style={styles.separator} />
+          <SettingsRow
+            icon="refresh-outline"
+            label="Restore Purchases"
+            iconColor={Colors.accent}
+            onPress={async () => {
+              const result = await restorePurchases();
+              if (result) {
+                Alert.alert('Purchases Restored', 'Your purchases have been restored successfully.');
+              } else {
+                Alert.alert('No Purchases Found', 'No previous purchases were found for this account.');
+              }
+            }}
           />
         </GlassCard>
 

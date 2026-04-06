@@ -10,12 +10,13 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '../context/AuthContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 import { BLEProvider } from '../context/BLEContext';
 import { HRVTrackerProvider } from '../context/HRVTrackerContext';
 import { InterventionProvider } from '../context/InterventionContext';
 import { SubscriptionProvider } from '../context/SubscriptionContext';
 import { Colors } from '../constants/theme';
+import { initRevenueCat } from '../lib/revenuecat';
 
 // Conditionally import native-only modules
 let SplashScreen: any = null;
@@ -35,6 +36,14 @@ try {
 }
 
 const queryClient = new QueryClient();
+
+function RevenueCatInitializer() {
+  const { user } = useAuth();
+  useEffect(() => {
+    initRevenueCat(user?.email);
+  }, [user]);
+  return null;
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -58,6 +67,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.root}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <RevenueCatInitializer />
           <SubscriptionProvider>
           <BLEProvider>
           <HRVTrackerProvider>

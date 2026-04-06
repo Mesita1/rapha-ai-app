@@ -1,4 +1,4 @@
-export type SubscriptionTier = 'free' | 'pro_trial' | 'pro' | 'practitioner';
+export type SubscriptionTier = 'free' | 'pro_trial' | 'pro' | 'elite' | 'practitioner';
 export type DeviceType = 'polar_h10' | 'apple_watch' | 'garmin' | 'whoop' | 'oura' | 'muse' | 'other';
 export type DeviceStatus = 'connected' | 'disconnected';
 export type AutonomicState = 'parasympathetic' | 'transitional' | 'sympathetic' | 'dorsal_vagal';

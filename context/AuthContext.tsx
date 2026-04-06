@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Supabase succeeded — also save locally for offline access
           const userData: LocalUser = { email: email.trim().toLowerCase(), displayName: displayName.trim() };
           await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
-          // Auto-start 7-day Pro trial for new users
+          // Auto-start 14-day Pro trial for new users
           await AsyncStorage.setItem(TRIAL_START_KEY, new Date().toISOString());
           setUser(userData);
           return { error: null };
@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(userData));
       await AsyncStorage.setItem('rapha_pw', password);
-      // Auto-start 7-day Pro trial for new users
+      // Auto-start 14-day Pro trial for new users
       await AsyncStorage.setItem(TRIAL_START_KEY, new Date().toISOString());
       setUser(userData);
       return { error: null };

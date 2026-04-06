@@ -58,6 +58,7 @@ export default function UpgradeScreen() {
           const price = isAnnual ? pricingTier.annualPrice : pricingTier.monthlyPrice;
           const period = isAnnual ? '/year' : '/month';
           const isPopular = pricingTier.popular;
+          const isBestValue = (pricingTier as any).bestValue;
           const isFoundingPractitioner = pricingTier.foundingPrice && !isAnnual;
           const isCurrent = tier === pricingTier.tierKey || (tier === 'pro_trial' && pricingTier.tierKey === 'pro');
 
@@ -65,7 +66,7 @@ export default function UpgradeScreen() {
             if (isCurrent && tier === 'pro_trial') return 'Current Trial';
             if (isCurrent) return 'Current Plan';
             if (price === 0) return 'Get Started Free';
-            if (isPopular) return 'Start 7-Day Free Trial';
+            if (isPopular) return 'Start 14-Day Free Trial';
             if (pricingTier.name === 'Practitioner') return "Let's Talk";
             return `Get ${pricingTier.name}`;
           };
@@ -73,16 +74,24 @@ export default function UpgradeScreen() {
           return (
             <GlassCard
               key={pricingTier.name}
-              style={[styles.tierCard, isPopular && styles.tierCardPopular]}
-              glowColor={isPopular ? Colors.accent : undefined}
+              style={[styles.tierCard, (isPopular || isBestValue) && styles.tierCardPopular]}
+              glowColor={(isPopular || isBestValue) ? Colors.accent : undefined}
             >
               {isPopular && (
                 <View style={styles.popularBadge}>
                   <Text style={styles.popularBadgeText}>Most Popular</Text>
                 </View>
               )}
+              {isBestValue && (
+                <View style={[styles.popularBadge, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
+                  <Text style={[styles.popularBadgeText, { color: '#f59e0b' }]}>Best Value</Text>
+                </View>
+              )}
 
               <Text style={styles.tierName}>{pricingTier.name}</Text>
+              {pricingTier.tierKey === 'elite' && (
+                <Text style={styles.tierSubtitle}>For Serious Biohackers</Text>
+              )}
 
               <View style={styles.priceRow}>
                 {price === 0 ? (
@@ -141,7 +150,7 @@ export default function UpgradeScreen() {
         })}
 
         <Text style={styles.disclaimer}>
-          Pro plan includes a free 7-day trial. Cancel anytime.
+          Pro plan includes a free 14-day trial. Cancel anytime.
         </Text>
 
         {/* Enterprise Callout */}
@@ -258,6 +267,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
     fontSize: FontSize.xl,
     color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  tierSubtitle: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
     marginBottom: Spacing.xs,
   },
   priceRow: {

@@ -185,8 +185,8 @@ export const mockPricingTiers = [
   {
     name: 'Pro',
     tierKey: 'pro' as const,
-    monthlyPrice: 14.99,
-    annualPrice: 99.99,
+    monthlyPrice: 19.99,
+    annualPrice: 129.99,
     popular: true,
     features: [
       'Everything in Explorer',
@@ -204,12 +204,30 @@ export const mockPricingTiers = [
     ],
   },
   {
+    name: 'Elite',
+    tierKey: 'elite' as const,
+    monthlyPrice: 29.99,
+    annualPrice: 199.99,
+    bestValue: true,
+    features: [
+      'Everything in Pro',
+      'Raw R-R interval data export',
+      'Priority AI (faster, more detailed)',
+      'Custom music binaural beats (coming soon)',
+      'Muse brainwave integration (coming soon)',
+      'CGM glucose integration (coming soon)',
+      'DFA Alpha 1 live during training',
+      'Research contributor status',
+      'Early access to all new integrations',
+    ],
+  },
+  {
     name: 'Practitioner',
     tierKey: 'practitioner' as const,
     monthlyPrice: 49.99,
     annualPrice: 399.99,
     features: [
-      'Everything in Pro',
+      'Everything in Elite',
       'Patient Dashboard (50 patients)',
       'Clinical Reports (PDF, branded)',
       'Protocol assignment',

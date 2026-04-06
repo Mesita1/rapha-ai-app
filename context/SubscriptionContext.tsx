@@ -2,10 +2,11 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SubscriptionTier } from '../lib/types';
 import { hasDeviceUsedTrial, markTrialUsed } from '../lib/deviceId';
+import { getCurrentEntitlements } from '../lib/revenuecat';
 
 const TRIAL_START_KEY = 'rapha_trial_start';
 const SUBSCRIPTION_KEY = 'rapha_subscription_tier';
-const TRIAL_DURATION_DAYS = 7;
+const TRIAL_DURATION_DAYS = 14;
 
 interface SubscriptionContextType {
   tier: SubscriptionTier;
@@ -29,7 +30,7 @@ function getSubscriptionTier(
   storedTier: string | null,
   trialStart: string | null,
 ): { tier: SubscriptionTier; trialDaysRemaining: number | null } {
-  if (storedTier === 'pro' || storedTier === 'practitioner') {
+  if (storedTier === 'pro' || storedTier === 'elite' || storedTier === 'practitioner') {
     return { tier: storedTier as SubscriptionTier, trialDaysRemaining: null };
   }
 
@@ -55,6 +56,24 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     (async () => {
       try {
+        // Check RevenueCat entitlements first (real purchases)
+        const entitlements = await getCurrentEntitlements();
+        if (entitlements) {
+          if (entitlements.practitioner) {
+            setTier('practitioner');
+            return;
+          }
+          if (entitlements.elite) {
+            setTier('elite');
+            return;
+          }
+          if (entitlements.pro) {
+            setTier('pro');
+            return;
+          }
+        }
+
+        // Fall back to local trial/subscription status
         const [storedTier, trialStart] = await Promise.all([
           AsyncStorage.getItem(SUBSCRIPTION_KEY),
           AsyncStorage.getItem(TRIAL_START_KEY),
@@ -84,7 +103,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   };
 
   const isTrialActive = tier === 'pro_trial';
-  const hasProAccess = tier === 'pro_trial' || tier === 'pro' || tier === 'practitioner';
+  const hasProAccess = tier === 'pro_trial' || tier === 'pro' || tier === 'elite' || tier === 'practitioner';
 
   return (
     <SubscriptionContext.Provider value={{ tier, trialDaysRemaining, isTrialActive, hasProAccess, trialBlocked, startTrial }}>

@@ -88,6 +88,7 @@ export default function SettingsScreen() {
   const { isConnected, connectedDevice } = useBLE();
   const [darkMode, setDarkMode] = useState(true);
   const [communityInsights, setCommunityInsights] = useState(false);
+  const [showVerse, setShowVerse] = useState(true);
 
   const userEmail = user?.email || 'Not signed in';
   const deviceCount = isConnected && connectedDevice ? 1 : 0;
@@ -99,6 +100,8 @@ export default function SettingsScreen() {
       try {
         const saved = await AsyncStorage.getItem(COMMUNITY_INSIGHTS_KEY);
         if (saved === 'true') setCommunityInsights(true);
+        const versePref = await AsyncStorage.getItem('rapha_show_verse');
+        if (versePref === 'false') setShowVerse(false);
       } catch {}
     })();
   }, []);
@@ -107,6 +110,13 @@ export default function SettingsScreen() {
     setCommunityInsights(val);
     try {
       await AsyncStorage.setItem(COMMUNITY_INSIGHTS_KEY, val ? 'true' : 'false');
+    } catch {}
+  };
+
+  const handleShowVerseToggle = async (val: boolean) => {
+    setShowVerse(val);
+    try {
+      await AsyncStorage.setItem('rapha_show_verse', val ? 'true' : 'false');
     } catch {}
   };
 
@@ -150,7 +160,7 @@ export default function SettingsScreen() {
             icon="person-outline"
             label="Profile"
             subtitle={userEmail}
-            iconColor="#D4A574"
+            iconColor="#C9963A"
             onPress={() => router.push('/profile' as any)}
           />
           <View style={styles.separator} />
@@ -158,7 +168,7 @@ export default function SettingsScreen() {
             icon="watch-outline"
             label="My Devices"
             subtitle={deviceLabel}
-            iconColor="#D4A574"
+            iconColor="#C9963A"
             onPress={() => router.push('/(auth)/connect-device')}
           />
           <View style={styles.separator} />
@@ -188,9 +198,9 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="trophy-outline"
             label="Achievements"
-            iconColor="#D4A574"
+            iconColor="#C9963A"
             badge={`${achievements.filter(a => a.unlocked).length}/${achievements.length}`}
-            badgeColor="#D4A574"
+            badgeColor="#C9963A"
             onPress={() => router.push('/achievements' as any)}
           />
         </GlassCard>
@@ -224,19 +234,6 @@ export default function SettingsScreen() {
           />
           <View style={styles.separator} />
           <SettingsRow
-            icon="analytics-outline"
-            label="Glucose Monitor (CGM)"
-            subtitle="Dexcom, Libre, Levels"
-            iconColor="#00d68f"
-            onPress={() =>
-              Alert.alert(
-                'CGM Integration',
-                'CGM integration coming soon. Connect your Dexcom G7, FreeStyle Libre, or other continuous glucose monitor to see how blood sugar correlates with your HRV.'
-              )
-            }
-          />
-          <View style={styles.separator} />
-          <SettingsRow
             icon="watch-outline"
             label="Garmin Connect"
             subtitle="Coming soon"
@@ -253,7 +250,7 @@ export default function SettingsScreen() {
             icon="fitness-outline"
             label="WHOOP"
             subtitle="Coming soon"
-            iconColor="#D4A574"
+            iconColor="#C9963A"
             onPress={() =>
               Alert.alert(
                 'WHOOP',
@@ -285,7 +282,7 @@ export default function SettingsScreen() {
             isToggle
             toggleValue={darkMode}
             onToggle={setDarkMode}
-            iconColor="#D4A574"
+            iconColor="#C9963A"
           />
           <View style={styles.separator} />
           <SettingsRow
@@ -319,7 +316,16 @@ export default function SettingsScreen() {
             isToggle
             toggleValue={communityInsights}
             onToggle={handleCommunityInsightsToggle}
-            iconColor="#D4A574"
+            iconColor="#C9963A"
+          />
+          <View style={styles.separator} />
+          <SettingsRow
+            icon="book-outline"
+            label="Daily Scripture on Dashboard"
+            isToggle
+            toggleValue={showVerse}
+            onToggle={handleShowVerseToggle}
+            iconColor="#C9963A"
           />
         </GlassCard>
 
@@ -329,7 +335,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="download-outline"
             label="Export Data (CSV)"
-            iconColor="#D4A574"
+            iconColor="#C9963A"
             onPress={() =>
               Alert.alert(
                 'Export Data',
@@ -342,7 +348,7 @@ export default function SettingsScreen() {
             icon="share-outline"
             label="Share with Practitioner"
             subtitle="Generate a read-only link"
-            iconColor="#D4A574"
+            iconColor="#C9963A"
             onPress={() =>
               Alert.alert(
                 'Share with Practitioner',
@@ -576,7 +582,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs + 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.3)',
+    borderColor: 'rgba(201, 150, 58, 0.3)',
   },
   premiumBadgeText: {
     fontFamily: 'Inter_600SemiBold',

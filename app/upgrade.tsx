@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   tierCardPopular: {
-    borderColor: 'rgba(212, 165, 116, 0.3)',
+    borderColor: 'rgba(201, 150, 58, 0.3)',
   },
   popularBadge: {
     backgroundColor: Colors.accentLight,
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.3)',
+    borderColor: 'rgba(201, 150, 58, 0.3)',
   },
   popularBadgeText: {
     fontFamily: 'Inter_600SemiBold',
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     marginBottom: Spacing.md,
-    backgroundColor: 'rgba(212, 165, 116, 0.08)',
+    backgroundColor: 'rgba(201, 150, 58, 0.08)',
     padding: Spacing.sm,
     borderRadius: BorderRadius.sm,
   },
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.3)',
+    borderColor: 'rgba(201, 150, 58, 0.3)',
     borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm + 2,

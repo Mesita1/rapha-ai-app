@@ -456,8 +456,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.2)',
-    backgroundColor: 'rgba(212, 165, 116, 0.08)',
+    borderColor: 'rgba(201, 150, 58, 0.2)',
+    backgroundColor: 'rgba(201, 150, 58, 0.08)',
   },
   subChipSelected: {
     borderColor: Colors.accent,

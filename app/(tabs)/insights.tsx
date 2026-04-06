@@ -251,7 +251,7 @@ export default function InsightsScreen() {
             <View style={styles.stackBarRow}>
               <View style={styles.stackBarTrack}>
                 <View
-                  style={[styles.stackBarFill, { width: `${(topStack.individualSum / topStack.combinedDelta) * 100}%`, backgroundColor: 'rgba(212,165,116,0.4)' }]}
+                  style={[styles.stackBarFill, { width: `${(topStack.individualSum / topStack.combinedDelta) * 100}%`, backgroundColor: 'rgba(201,150,58,0.4)' }]}
                 />
               </View>
               <Text style={styles.stackBarLabel}>Individual: +{topStack.individualSum}ms</Text>
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
   exerciseAIRec: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    backgroundColor: 'rgba(212, 165, 116, 0.08)',
+    backgroundColor: 'rgba(201, 150, 58, 0.08)',
     borderRadius: BorderRadius.md,
     padding: Spacing.sm + 2,
   },
@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm + 2,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.2)',
+    borderColor: 'rgba(201, 150, 58, 0.2)',
   },
   scoreLabel: {
     fontFamily: 'Inter_500Medium',
@@ -864,7 +864,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.3)',
+    borderColor: 'rgba(201, 150, 58, 0.3)',
   },
   proBadgeText: {
     fontFamily: 'Inter_600SemiBold',
@@ -991,7 +991,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   suppTag: {
-    backgroundColor: 'rgba(212, 165, 116, 0.12)',
+    backgroundColor: 'rgba(201, 150, 58, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,

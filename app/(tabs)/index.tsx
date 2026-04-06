@@ -58,8 +58,8 @@ const TREND_ARROW_MAP: Record<string, { symbol: string; color: string }> = {
 
 function getSignalDisplay(quality: string): { label: string; color: string } {
   switch (quality) {
-    case 'excellent': return { label: 'Excellent', color: '#D4A574' };
-    case 'good': return { label: 'Good', color: '#D4A574' };
+    case 'excellent': return { label: 'Excellent', color: '#C9963A' };
+    case 'good': return { label: 'Good', color: '#C9963A' };
     case 'poor': return { label: 'Poor', color: '#f59e0b' };
     case 'bad': return { label: 'Weak', color: '#ef4444' };
     default: return { label: '--', color: '#8e8e93' };
@@ -115,6 +115,7 @@ export default function DashboardScreen() {
   const [moodCheckMood, setMoodCheckMood] = useState<'great' | 'good' | 'okay' | 'low' | 'struggling' | null>(null);
   const [moodCheckStress, setMoodCheckStress] = useState<number | null>(null);
   const [moodCheckEnergy, setMoodCheckEnergy] = useState<number | null>(null);
+  const [showVerse, setShowVerse] = useState(true);
   const verseOfTheDay = getVerseOfTheDay();
   const { interventions, addIntervention } = useInterventions();
   const { user: authUser } = useAuth();
@@ -192,6 +193,15 @@ export default function DashboardScreen() {
     return () => sub.remove();
   }, [refreshTriggers]);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const val = await AsyncStorage.getItem('rapha_show_verse');
+        if (val === 'false') setShowVerse(false);
+      } catch {}
+    })();
+  }, []);
+
   const handleDismissTrigger = useCallback(async (id: string) => {
     await dismissTrigger(id);
     setActiveTriggers(prev => prev.filter(t => t.id !== id));
@@ -227,7 +237,7 @@ export default function DashboardScreen() {
                 <Defs>
                   <SvgLinearGradient id="miniRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <Stop offset="0%" stopColor="#0ea87a" />
-                    <Stop offset="100%" stopColor="#D4A574" />
+                    <Stop offset="100%" stopColor="#C9963A" />
                   </SvgLinearGradient>
                 </Defs>
                 <Circle cx="12" cy="12" r="9" stroke="url(#miniRingGrad)" strokeWidth={2.5} fill="none" />
@@ -258,9 +268,9 @@ export default function DashboardScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: 'rgba(212, 165, 116, 0.1)',
+              backgroundColor: 'rgba(201, 150, 58, 0.1)',
               borderWidth: 1,
-              borderColor: 'rgba(212, 165, 116, 0.25)',
+              borderColor: 'rgba(201, 150, 58, 0.25)',
               borderRadius: BorderRadius.lg,
               paddingHorizontal: Spacing.md,
               paddingVertical: Spacing.sm + 2,
@@ -359,7 +369,7 @@ export default function DashboardScreen() {
         {isConnected ? (
           <View style={styles.reviewWrapper}>
             <LinearGradient
-              colors={['rgba(212,165,116,0.25)', 'rgba(212,165,116,0.25)', 'rgba(212,165,116,0.15)']}
+              colors={['rgba(201,150,58,0.25)', 'rgba(201,150,58,0.25)', 'rgba(201,150,58,0.15)']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.reviewGradientBorder}
@@ -378,7 +388,7 @@ export default function DashboardScreen() {
         ) : (
           <View style={styles.reviewWrapper}>
             <LinearGradient
-              colors={['rgba(212,165,116,0.25)', 'rgba(212,165,116,0.25)', 'rgba(212,165,116,0.15)']}
+              colors={['rgba(201,150,58,0.25)', 'rgba(201,150,58,0.25)', 'rgba(201,150,58,0.15)']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.reviewGradientBorder}
@@ -395,37 +405,6 @@ export default function DashboardScreen() {
             </LinearGradient>
           </View>
         )}
-
-        {/* Verse of the Day Card - always show */}
-        <View style={styles.verseCard}>
-          <View style={styles.verseLeftBorder} />
-          <View style={styles.verseContent}>
-            <View style={styles.verseHeader}>
-              <Ionicons name="book-outline" size={14} color="#d4a574" />
-              <Text style={styles.verseLabel}>Daily Inspiration</Text>
-            </View>
-            <Text style={styles.verseText}>"{verseOfTheDay.text}"</Text>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL(verseOfTheDay.youversionUrl)}>
-              <Text style={[styles.verseReference, { textDecorationLine: 'underline' }]}>{verseOfTheDay.reference} — {verseOfTheDay.translation}</Text>
-            </TouchableOpacity>
-            <View style={styles.verseActions}>
-              <TouchableOpacity
-                style={styles.verseMeditateButton}
-                activeOpacity={0.7}
-                onPress={() => router.push('/(tabs)/train')}
-              >
-                <Ionicons name="leaf-outline" size={14} color={Colors.accent} />
-                <Text style={styles.verseMeditateText}>Meditate</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => Linking.openURL(verseOfTheDay.youversionUrl)}
-              >
-                <Text style={styles.verseBibleLink}>Read in Bible App</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
 
         {/* Readiness Card */}
         {isConnected && (
@@ -888,21 +867,6 @@ export default function DashboardScreen() {
               </GlassCard>
             </TouchableOpacity>
 
-            {/* Glucose */}
-            <TouchableOpacity activeOpacity={0.7}>
-              <GlassCard style={styles.healthMetricCard}>
-                <View style={styles.healthMetricTop}>
-                  <Text style={[styles.healthMetricArrow, { color: '#f59e0b' }]}>{'\u2191'}</Text>
-                  <Text style={styles.healthMetricTag}>CGM</Text>
-                </View>
-                <Text style={styles.healthMetricValue}>
-                  {mockHealthMetrics.glucose.current}<Text style={styles.healthMetricUnit}> {mockHealthMetrics.glucose.unit}</Text>
-                </Text>
-                <Text style={styles.healthMetricLabel}>Glucose</Text>
-                <Text style={styles.healthMetricSource}>{mockHealthMetrics.glucose.source}</Text>
-              </GlassCard>
-            </TouchableOpacity>
-
             {/* Resting HR */}
             <TouchableOpacity activeOpacity={0.7}>
               <GlassCard style={styles.healthMetricCard}>
@@ -1199,7 +1163,7 @@ export default function DashboardScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: FontSize.md, color: Colors.text }}>Connect health services for deeper AI insights</Text>
-              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 2 }}>Apple Health, CGM, Garmin, WHOOP, Oura</Text>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 2 }}>Apple Health, Garmin, WHOOP, Oura</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={Colors.textDim} />
           </View>
@@ -1250,6 +1214,39 @@ export default function DashboardScreen() {
             </GlassCard>
           )}
         </View>
+
+        {/* Verse of the Day Card - at the bottom */}
+        {showVerse && (
+        <View style={styles.verseCard}>
+          <View style={styles.verseLeftBorder} />
+          <View style={styles.verseContent}>
+            <View style={styles.verseHeader}>
+              <Ionicons name="book-outline" size={14} color={Colors.accent} />
+              <Text style={styles.verseLabel}>Daily Inspiration</Text>
+            </View>
+            <Text style={styles.verseText}>"{verseOfTheDay.text}"</Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => Linking.openURL(verseOfTheDay.youversionUrl)}>
+              <Text style={[styles.verseReference, { textDecorationLine: 'underline' }]}>{verseOfTheDay.reference} — {verseOfTheDay.translation}</Text>
+            </TouchableOpacity>
+            <View style={styles.verseActions}>
+              <TouchableOpacity
+                style={styles.verseMeditateButton}
+                activeOpacity={0.7}
+                onPress={() => router.push('/(tabs)/train')}
+              >
+                <Ionicons name="leaf-outline" size={14} color={Colors.accent} />
+                <Text style={styles.verseMeditateText}>Meditate</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => Linking.openURL(verseOfTheDay.youversionUrl)}
+              >
+                <Text style={styles.verseBibleLink}>Read in Bible App</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+        )}
 
         {/* Bottom spacing for tab bar + FAB */}
         <View style={{ height: 120 }} />
@@ -1527,7 +1524,7 @@ const styles = StyleSheet.create({
   },
   verseLeftBorder: {
     width: 3,
-    backgroundColor: '#d4a574',
+    backgroundColor: '#C9963A',
   },
   verseContent: {
     flex: 1,
@@ -1542,7 +1539,7 @@ const styles = StyleSheet.create({
   verseLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.sm,
-    color: '#d4a574',
+    color: '#C9963A',
   },
   verseText: {
     fontFamily: 'Inter_400Regular',
@@ -1580,7 +1577,7 @@ const styles = StyleSheet.create({
   verseBibleLink: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.xs,
-    color: '#d4a574',
+    color: '#C9963A',
     textDecorationLine: 'underline',
   },
   // HRV Card
@@ -2067,7 +2064,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(212, 165, 116, 0.15)',
+    backgroundColor: 'rgba(201, 150, 58, 0.15)',
     borderWidth: 2,
     borderColor: Colors.accent,
     alignItems: 'center',
@@ -2099,7 +2096,7 @@ const styles = StyleSheet.create({
   recommendationCard: {
     marginBottom: Spacing.sm + 4,
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.2)',
+    borderColor: 'rgba(201, 150, 58, 0.2)',
   },
   recommendationHeader: {
     flexDirection: 'row',
@@ -2124,7 +2121,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(212, 165, 116, 0.12)',
+    backgroundColor: 'rgba(201, 150, 58, 0.12)',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
@@ -2221,7 +2218,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.4)',
+    borderColor: 'rgba(201, 150, 58, 0.4)',
   },
   fabOverlay: {
     position: 'absolute',

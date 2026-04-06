@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     marginTop: Spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.3)',
+    borderColor: 'rgba(201, 150, 58, 0.3)',
     borderRadius: BorderRadius.lg,
     borderStyle: 'dashed',
   },
@@ -294,12 +294,12 @@ const styles = StyleSheet.create({
   linkBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(212, 165, 116, 0.08)',
+    backgroundColor: 'rgba(201, 150, 58, 0.08)',
     borderRadius: BorderRadius.sm,
     padding: Spacing.md,
     marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.2)',
+    borderColor: 'rgba(201, 150, 58, 0.2)',
   },
   linkText: {
     fontFamily: 'Inter_500Medium',

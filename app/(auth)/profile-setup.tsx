@@ -289,11 +289,11 @@ const styles = StyleSheet.create({
   disclaimerSection: {
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
-    backgroundColor: 'rgba(212,165,116,0.06)',
+    backgroundColor: 'rgba(201,150,58,0.06)',
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(212,165,116,0.15)',
+    borderColor: 'rgba(201,150,58,0.15)',
   },
   checkboxRow: {
     flexDirection: 'row',

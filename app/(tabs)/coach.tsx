@@ -67,7 +67,7 @@ function renderTextWithVerseLinks(text: string) {
     parts.push(
       <Text
         key={`v-${match.index}`}
-        style={{ color: '#d4a574', textDecorationLine: 'underline' }}
+        style={{ color: '#C9963A', textDecorationLine: 'underline' }}
         onPress={() => Linking.openURL(url)}
       >
         {ref}
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius.sm,
   },
   userBubble: {
-    backgroundColor: 'rgba(212, 165, 116, 0.2)',
+    backgroundColor: 'rgba(201, 150, 58, 0.2)',
     borderLeftWidth: 3,
     borderLeftColor: Colors.accent,
     borderTopRightRadius: BorderRadius.sm,

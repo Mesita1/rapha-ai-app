@@ -25,11 +25,11 @@ export const mockSparklineData = [
 ];
 
 export const mockMetrics = [
-  { label: 'Stress', value: '--', unit: '', icon: 'flash-outline' as const, color: '#D4A574' },
-  { label: 'Recovery', value: '--', unit: '', icon: 'fitness-outline' as const, color: '#D4A574' },
+  { label: 'Stress', value: '--', unit: '', icon: 'flash-outline' as const, color: '#C9963A' },
+  { label: 'Recovery', value: '--', unit: '', icon: 'fitness-outline' as const, color: '#C9963A' },
   { label: 'Breathing', value: '--', unit: '', icon: 'cloud-outline' as const, color: '#8e8e93' },
   { label: 'LF/HF', value: '--', unit: '', icon: 'pulse-outline' as const, color: '#ffd93d' },
-  { label: 'Coher.', value: '--', unit: '', icon: 'water-outline' as const, color: '#D4A574' },
+  { label: 'Coher.', value: '--', unit: '', icon: 'water-outline' as const, color: '#C9963A' },
 ];
 
 export const mockTodaySummary = {

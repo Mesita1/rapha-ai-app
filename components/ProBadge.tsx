@@ -35,12 +35,12 @@ export default function ProBadge({ isTrial = false, hasAccess = true, tier = 'pr
 
 const styles = StyleSheet.create({
   badge: {
-    backgroundColor: 'rgba(212, 165, 116, 0.15)',
+    backgroundColor: 'rgba(201, 150, 58, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.3)',
+    borderColor: 'rgba(201, 150, 58, 0.3)',
   },
   badgeText: {
     fontFamily: 'Inter_600SemiBold',

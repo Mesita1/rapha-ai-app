@@ -34,7 +34,7 @@ const modes = [
     label: 'Calm',
     icon: 'leaf-outline' as const,
     desc: 'Parasympathetic activation. Alpha \u2192 Theta. Best for stress relief.',
-    gradient: ['#D4A574', '#B8896A'] as [string, string],
+    gradient: ['#C9963A', '#A67C2E'] as [string, string],
     targetZone: 'Theta (4-8 Hz)',
     startFreq: 10,
     endFreq: 6,
@@ -64,7 +64,7 @@ const modes = [
     label: 'Recovery',
     icon: 'heart-outline' as const,
     desc: 'Vagal tone boost. RSA entrainment at 0.1Hz.',
-    gradient: ['#D4A574', '#E8C5A0'] as [string, string],
+    gradient: ['#C9963A', '#D4AD5E'] as [string, string],
     targetZone: 'RSA (0.1 Hz)',
     startFreq: 8,
     endFreq: 7,
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.surfaceBorder,
   },
   modeCardSelected: {
-    borderColor: 'rgba(212, 165, 116, 0.5)',
+    borderColor: 'rgba(201, 150, 58, 0.5)',
   },
   modeGradient: {
     padding: Spacing.md,
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
   },
   durationPillSelected: {
     borderColor: Colors.accent,
-    backgroundColor: 'rgba(212, 165, 116, 0.15)',
+    backgroundColor: 'rgba(201, 150, 58, 0.15)',
   },
   durationText: {
     fontFamily: 'Inter_500Medium',
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.3)',
+    borderColor: 'rgba(201, 150, 58, 0.3)',
   },
   proBadgeText: {
     fontFamily: 'Inter_600SemiBold',
@@ -786,8 +786,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   musicModeCardSelected: {
-    borderColor: 'rgba(212, 165, 116, 0.5)',
-    backgroundColor: 'rgba(212, 165, 116, 0.06)',
+    borderColor: 'rgba(201, 150, 58, 0.5)',
+    backgroundColor: 'rgba(201, 150, 58, 0.06)',
   },
   musicModeHeader: {
     flexDirection: 'row',
@@ -868,7 +868,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
     backgroundColor: Colors.accentLight,
     borderWidth: 1,
-    borderColor: 'rgba(212, 165, 116, 0.2)',
+    borderColor: 'rgba(201, 150, 58, 0.2)',
   },
   quickLaunchText: {
     fontFamily: 'Inter_500Medium',
@@ -915,7 +915,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(212, 165, 116, 0.12)',
+    backgroundColor: 'rgba(201, 150, 58, 0.12)',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs + 2,
     borderRadius: BorderRadius.full,
@@ -1118,7 +1118,7 @@ const styles = StyleSheet.create({
   },
   feelingBtnSelected: {
     borderColor: Colors.accent,
-    backgroundColor: 'rgba(212, 165, 116, 0.15)',
+    backgroundColor: 'rgba(201, 150, 58, 0.15)',
   },
   feelingBtnText: {
     fontFamily: 'Inter_500Medium',

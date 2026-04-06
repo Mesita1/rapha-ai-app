@@ -20,7 +20,6 @@ const deviceTypes = [
   { id: 'garmin', name: 'Garmin', desc: 'Wrist · HealthKit / Health Connect', icon: 'fitness-outline' as const },
   { id: 'whoop', name: 'WHOOP', desc: 'Wrist · HealthKit', icon: 'pulse-outline' as const },
   { id: 'oura', name: 'Oura Ring', desc: 'Ring · HealthKit + API', icon: 'ellipse-outline' as const },
-  { id: 'muse', name: 'Muse', desc: 'Headband · BLE (Coming Soon)', icon: 'radio-outline' as const },
   { id: 'other', name: 'Other HRV Device', desc: 'Manual entry or CSV import', icon: 'add-circle-outline' as const },
 ];
 
@@ -79,14 +78,9 @@ export default function ConnectDeviceScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.deviceTypesScroll}>
           <View style={styles.deviceTypesRow}>
             {deviceTypes.map((device) => (
-              <View key={device.id} style={[styles.deviceTypeChip, device.id === 'muse' && styles.deviceTypeChipComingSoon]}>
-                <Ionicons name={device.icon} size={16} color={device.id === 'muse' ? Colors.textDim : Colors.textMuted} />
-                <Text style={[styles.deviceTypeChipText, device.id === 'muse' && { color: Colors.textDim }]}>{device.name}</Text>
-                {device.id === 'muse' && (
-                  <View style={styles.comingSoonBadge}>
-                    <Text style={styles.comingSoonBadgeText}>Soon</Text>
-                  </View>
-                )}
+              <View key={device.id} style={styles.deviceTypeChip}>
+                <Ionicons name={device.icon} size={16} color={Colors.textMuted} />
+                <Text style={styles.deviceTypeChipText}>{device.name}</Text>
               </View>
             ))}
           </View>

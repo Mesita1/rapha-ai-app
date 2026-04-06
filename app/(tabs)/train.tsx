@@ -47,48 +47,36 @@ const SESSION_TYPES = [
     title: 'Adaptive Breathing',
     subtitle: 'AI-guided breathing that adapts to your HRV in real time',
     icon: 'leaf-outline' as const,
-    gradientColors: ['rgba(212,165,116,0.3)', 'rgba(212,165,116,0.05)'] as [string, string],
-    borderColor: '#D4A574',
   },
   {
     key: 'bilateral' as SessionType,
     title: 'Bilateral Stimulation',
     subtitle: 'Alternating left-right activation for nervous system regulation',
     icon: 'hand-left-outline' as const,
-    gradientColors: ['rgba(212,165,116,0.3)', 'rgba(212,165,116,0.05)'] as [string, string],
-    borderColor: '#D4A574',
   },
   {
     key: 'humming' as SessionType,
     title: 'Humming / Vagal Toning',
     subtitle: 'Stimulate the vagus nerve through vocalization',
     icon: 'musical-note-outline' as const,
-    gradientColors: ['rgba(245,158,11,0.3)', 'rgba(245,158,11,0.05)'] as [string, string],
-    borderColor: '#f59e0b',
   },
   {
     key: 'binaural' as SessionType,
     title: 'Binaural Beats',
     subtitle: 'Calm, Focus, Sleep Prep, Recovery',
     icon: 'headset-outline' as const,
-    gradientColors: ['rgba(59,130,246,0.3)', 'rgba(59,130,246,0.05)'] as [string, string],
-    borderColor: '#3b82f6',
   },
   {
     key: 'custom' as SessionType,
     title: 'Custom / Other Device',
     subtitle: 'Track any device or therapy with HRV',
     icon: 'build-outline' as const,
-    gradientColors: ['rgba(142,142,147,0.3)', 'rgba(142,142,147,0.05)'] as [string, string],
-    borderColor: '#8e8e93',
   },
   {
     key: 'exercise' as SessionType,
     title: 'HRV Exercise',
     subtitle: 'Movement protocols proven to boost HRV',
     icon: 'bicycle-outline' as const,
-    gradientColors: ['rgba(212,165,116,0.3)', 'rgba(212,165,116,0.05)'] as [string, string],
-    borderColor: '#D4A574',
   },
 ];
 
@@ -143,7 +131,7 @@ function BreathingCircle({ phase, phaseDuration }: { phase: string; phaseDuratio
         ]}
       >
         <LinearGradient
-          colors={['rgba(212,165,116,0.4)', 'rgba(212,165,116,0.1)']}
+          colors={['rgba(201,150,58,0.4)', 'rgba(201,150,58,0.1)']}
           style={sessionStyles.breathCircleGradient}
         >
           <Text style={sessionStyles.breathPhaseText}>{phase}</Text>
@@ -1167,18 +1155,18 @@ export default function TrainScreen() {
           style={styles.scriptureFeaturedWrapper}
         >
           <LinearGradient
-            colors={['rgba(212,165,116,0.2)', 'rgba(212,165,116,0.05)']}
+            colors={['rgba(201,150,58,0.2)', 'rgba(201,150,58,0.05)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.scriptureFeaturedGradient}
           >
             <View style={styles.scriptureFeaturedHeader}>
-              <Ionicons name="book-outline" size={24} color="#d4a574" />
+              <Ionicons name="book-outline" size={24} color="#C9963A" />
               <View style={styles.scriptureFeaturedInfo}>
                 <Text style={styles.scriptureFeaturedTitle}>Scripture & Reflection</Text>
                 <Text style={styles.scriptureFeaturedSubtitle}>For the faithful and those exploring</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#d4a574" />
+              <Ionicons name="chevron-forward" size={20} color="#C9963A" />
             </View>
             <TouchableOpacity
               style={styles.scriptureFeaturedPreview}
@@ -1189,7 +1177,7 @@ export default function TrainScreen() {
                 <Text style={styles.scriptureFeaturedVerse} numberOfLines={1}>
                   {getVerseOfTheDay().reference} — {getVerseOfTheDay().text.substring(0, 40)}...
                 </Text>
-                <Ionicons name="book-outline" size={12} color="#d4a574" />
+                <Ionicons name="book-outline" size={12} color="#C9963A" />
               </View>
             </TouchableOpacity>
           </LinearGradient>
@@ -1215,17 +1203,14 @@ export default function TrainScreen() {
                 }
               }}
             >
-              <LinearGradient
-                colors={type.gradientColors}
-                style={[styles.sessionTypeGradient, { borderColor: type.borderColor + '40' }]}
-              >
-                <Ionicons name={type.icon} size={28} color={type.borderColor} />
+              <View style={styles.sessionTypeGradient}>
+                <Ionicons name={type.icon} size={28} color={Colors.accent} />
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Text style={styles.sessionTypeTitle}>{type.title}</Text>
                   {type.key !== 'breathing' && <ProBadge isTrial={isTrialActive} hasAccess={hasProAccess} />}
                 </View>
                 <Text style={styles.sessionTypeSubtitle} numberOfLines={2}>{type.subtitle}</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -1840,7 +1825,7 @@ export default function TrainScreen() {
             <GlassCard style={styles.scriptureModal}>
               {/* Header */}
               <View style={styles.modeHeader}>
-                <Ionicons name="book-outline" size={20} color="#d4a574" />
+                <Ionicons name="book-outline" size={20} color="#C9963A" />
                 <Text style={styles.modeTitle}>Scripture Meditation</Text>
                 <TouchableOpacity onPress={resetScriptureMeditation} style={styles.modeClose}>
                   <Ionicons name="close" size={20} color={Colors.textMuted} />
@@ -1851,16 +1836,16 @@ export default function TrainScreen() {
               {!scriptureSessionActive && !scriptureSessionComplete && !prayerSessionActive && !prayerSessionComplete && (
                 <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md }}>
                   <TouchableOpacity
-                    style={[{ flex: 1, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: scriptureMode === 'scripture' ? '#d4a574' : Colors.surfaceBorder, backgroundColor: scriptureMode === 'scripture' ? 'rgba(212,165,116,0.12)' : 'transparent', alignItems: 'center' }]}
+                    style={[{ flex: 1, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: scriptureMode === 'scripture' ? '#C9963A' : Colors.surfaceBorder, backgroundColor: scriptureMode === 'scripture' ? 'rgba(201,150,58,0.12)' : 'transparent', alignItems: 'center' }]}
                     onPress={() => setScriptureMode('scripture')}
                   >
-                    <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: scriptureMode === 'scripture' ? '#d4a574' : Colors.textMuted }}>Scripture</Text>
+                    <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: scriptureMode === 'scripture' ? '#C9963A' : Colors.textMuted }}>Scripture</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[{ flex: 1, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: scriptureMode === 'prayer' ? '#d4a574' : Colors.surfaceBorder, backgroundColor: scriptureMode === 'prayer' ? 'rgba(212,165,116,0.12)' : 'transparent', alignItems: 'center' }]}
+                    style={[{ flex: 1, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: scriptureMode === 'prayer' ? '#C9963A' : Colors.surfaceBorder, backgroundColor: scriptureMode === 'prayer' ? 'rgba(201,150,58,0.12)' : 'transparent', alignItems: 'center' }]}
                     onPress={() => setScriptureMode('prayer')}
                   >
-                    <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: scriptureMode === 'prayer' ? '#d4a574' : Colors.textMuted }}>Prayer</Text>
+                    <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: scriptureMode === 'prayer' ? '#C9963A' : Colors.textMuted }}>Prayer</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -1889,7 +1874,7 @@ export default function TrainScreen() {
                             if (verses.length > 0) setSelectedVerse(verses[0]);
                           }}
                         >
-                          <Ionicons name={cat.icon as any} size={12} color={scriptureCategory === cat.key ? '#d4a574' : Colors.textMuted} />
+                          <Ionicons name={cat.icon as any} size={12} color={scriptureCategory === cat.key ? '#C9963A' : Colors.textMuted} />
                           <Text style={[styles.scriptureCategoryText, scriptureCategory === cat.key && styles.scriptureCategoryTextActive]}>{cat.label}</Text>
                         </TouchableOpacity>
                       ))}
@@ -1908,7 +1893,7 @@ export default function TrainScreen() {
                           <View style={styles.verseListRefRow}>
                             <Text style={styles.verseListRef}>{verse.reference}</Text>
                             <TouchableOpacity onPress={() => Linking.openURL(verse.youversionUrl)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                              <Ionicons name="book-outline" size={14} color="#d4a574" />
+                              <Ionicons name="book-outline" size={14} color="#C9963A" />
                             </TouchableOpacity>
                           </View>
                           <Text style={styles.verseListText} numberOfLines={2}>{verse.text}</Text>
@@ -1925,7 +1910,7 @@ export default function TrainScreen() {
                         <Text style={[styles.selectedVerseRef, { textDecorationLine: 'underline' }]}>{selectedVerse.reference} — {selectedVerse.translation}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => Linking.openURL(selectedVerse.youversionUrl)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                        <Ionicons name="book-outline" size={14} color="#d4a574" />
+                        <Ionicons name="book-outline" size={14} color="#C9963A" />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1936,14 +1921,14 @@ export default function TrainScreen() {
                     {[180, 300, 600].map((d) => (
                       <TouchableOpacity
                         key={d}
-                        style={[styles.durationPill, scriptureDuration === d && { backgroundColor: '#d4a574' }]}
+                        style={[styles.durationPill, scriptureDuration === d && { backgroundColor: '#C9963A' }]}
                         onPress={() => setScriptureDuration(d)}
                       >
                         <Text style={[styles.durationPillText, scriptureDuration === d && { color: Colors.white }]}>{d / 60}m</Text>
                       </TouchableOpacity>
                     ))}
                     <TouchableOpacity
-                      style={[styles.durationPill, ![180, 300, 600].includes(scriptureDuration) && { backgroundColor: '#d4a574' }]}
+                      style={[styles.durationPill, ![180, 300, 600].includes(scriptureDuration) && { backgroundColor: '#C9963A' }]}
                       onPress={() => {
                         const mins = parseInt(customDurationMinutes);
                         if (mins >= 1 && mins <= 480) setScriptureDuration(mins * 60);
@@ -1965,7 +1950,7 @@ export default function TrainScreen() {
               {/* Prayer Mode Setup */}
               {scriptureMode === 'prayer' && !prayerSessionActive && !prayerSessionComplete && (
                 <>
-                  <GlassCard style={{ backgroundColor: 'rgba(212,165,116,0.06)', borderWidth: 0, marginBottom: Spacing.md }}>
+                  <GlassCard style={{ backgroundColor: 'rgba(201,150,58,0.06)', borderWidth: 0, marginBottom: Spacing.md }}>
                     <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: Colors.text, lineHeight: 22, textAlign: 'center' }}>
                       Talk to God like He's your loving heavenly Father. If you're new to prayer, just start talking — He's listening. There's no wrong way to do it.
                     </Text>
@@ -1976,7 +1961,7 @@ export default function TrainScreen() {
                     {[180, 300, 600, 900].map((d) => (
                       <TouchableOpacity
                         key={d}
-                        style={[styles.durationPill, prayerDuration === d && { backgroundColor: '#d4a574' }]}
+                        style={[styles.durationPill, prayerDuration === d && { backgroundColor: '#C9963A' }]}
                         onPress={() => setPrayerDuration(d)}
                       >
                         <Text style={[styles.durationPillText, prayerDuration === d && { color: Colors.white }]}>{d / 60}m</Text>
@@ -2002,7 +1987,7 @@ export default function TrainScreen() {
                   <View style={styles.scriptureBreathContainer}>
                     <Animated.View style={[styles.scriptureBreathCircle, { transform: [{ scale: prayerBreathAnimRef }] }]}>
                       <LinearGradient
-                        colors={['rgba(212,165,116,0.3)', 'rgba(212,165,116,0.08)']}
+                        colors={['rgba(201,150,58,0.3)', 'rgba(201,150,58,0.08)']}
                         style={styles.scriptureBreathGradient}
                       >
                         <Text style={styles.scriptureBreathText}>breathe</Text>
@@ -2081,7 +2066,7 @@ export default function TrainScreen() {
                   <View style={styles.scriptureBreathContainer}>
                     <Animated.View style={[styles.scriptureBreathCircle, { transform: [{ scale: breathAnimRef }] }]}>
                       <LinearGradient
-                        colors={['rgba(212,165,116,0.3)', 'rgba(212,165,116,0.08)']}
+                        colors={['rgba(201,150,58,0.3)', 'rgba(201,150,58,0.08)']}
                         style={styles.scriptureBreathGradient}
                       >
                         <Text style={styles.scriptureBreathText}>breathe</Text>
@@ -2200,13 +2185,13 @@ const sessionStyles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(212,165,116,0.2)',
+    backgroundColor: 'rgba(201,150,58,0.2)',
     borderWidth: 2,
-    borderColor: 'rgba(212,165,116,0.3)',
+    borderColor: 'rgba(201,150,58,0.3)',
   },
   bilateralDotActive: {
-    backgroundColor: 'rgba(212,165,116,0.6)',
-    borderColor: '#D4A574',
+    backgroundColor: 'rgba(201,150,58,0.6)',
+    borderColor: '#C9963A',
   },
   bilateralDivider: {
     width: 1,
@@ -2270,7 +2255,7 @@ const sessionStyles = StyleSheet.create({
     width: SCREEN_WIDTH - 100,
     height: 40,
     justifyContent: 'center',
-    backgroundColor: 'rgba(212,165,116,0.06)',
+    backgroundColor: 'rgba(201,150,58,0.06)',
     borderRadius: 20,
   },
   visualTrackDot: {
@@ -2384,6 +2369,8 @@ const styles = StyleSheet.create({
   sessionTypeGradient: {
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
+    borderColor: 'rgba(201,150,58,0.2)',
+    backgroundColor: '#12121a',
     padding: Spacing.md,
     minHeight: 140,
     justifyContent: 'flex-start',
@@ -2608,7 +2595,7 @@ const styles = StyleSheet.create({
   scriptureFeaturedGradient: {
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(212,165,116,0.3)',
+    borderColor: 'rgba(201,150,58,0.3)',
     padding: Spacing.md,
   },
   scriptureFeaturedHeader: {
@@ -2634,12 +2621,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(212,165,116,0.15)',
+    borderTopColor: 'rgba(201,150,58,0.15)',
   },
   scriptureFeaturedVerse: {
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.xs,
-    color: '#d4a574',
+    color: '#C9963A',
     fontStyle: 'italic',
   },
   // Scripture Meditation Overlay
@@ -2671,8 +2658,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.surfaceBorder,
   },
   scriptureCategoryPillActive: {
-    borderColor: '#d4a574',
-    backgroundColor: 'rgba(212,165,116,0.12)',
+    borderColor: '#C9963A',
+    backgroundColor: 'rgba(201,150,58,0.12)',
   },
   scriptureCategoryText: {
     fontFamily: 'Inter_500Medium',
@@ -2680,7 +2667,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   scriptureCategoryTextActive: {
-    color: '#d4a574',
+    color: '#C9963A',
   },
   verseListScroll: {
     maxHeight: 140,
@@ -2694,8 +2681,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   verseListItemActive: {
-    borderColor: '#d4a574',
-    backgroundColor: 'rgba(212,165,116,0.08)',
+    borderColor: '#C9963A',
+    backgroundColor: 'rgba(201,150,58,0.08)',
   },
   verseListRefRow: {
     flexDirection: 'row',
@@ -2706,7 +2693,7 @@ const styles = StyleSheet.create({
   verseListRef: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: FontSize.xs,
-    color: '#d4a574',
+    color: '#C9963A',
   },
   verseListText: {
     fontFamily: 'Inter_400Regular',
@@ -2715,11 +2702,11 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   selectedVerseContainer: {
-    backgroundColor: 'rgba(212,165,116,0.06)',
+    backgroundColor: 'rgba(201,150,58,0.06)',
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     borderLeftWidth: 3,
-    borderLeftColor: '#d4a574',
+    borderLeftColor: '#C9963A',
     marginBottom: Spacing.md,
   },
   selectedVerseText: {
@@ -2818,12 +2805,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs,
     alignSelf: 'center',
-    backgroundColor: 'rgba(212,165,116,0.12)',
+    backgroundColor: 'rgba(201,150,58,0.12)',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(212,165,116,0.3)',
+    borderColor: 'rgba(201,150,58,0.3)',
     marginTop: Spacing.sm,
   },
   customMarkEventText: {
@@ -2859,7 +2846,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.xl,
-    backgroundColor: '#d4a574',
+    backgroundColor: '#C9963A',
   },
   // Active Scripture Session
   scriptureActiveSession: {
@@ -2878,7 +2865,7 @@ const styles = StyleSheet.create({
   scriptureActiveRef: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.sm,
-    color: '#d4a574',
+    color: '#C9963A',
     marginBottom: Spacing.lg,
   },
   scriptureBreathContainer: {
@@ -2902,7 +2889,7 @@ const styles = StyleSheet.create({
   scriptureBreathText: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.sm,
-    color: '#d4a574',
+    color: '#C9963A',
   },
   scriptureActiveStats: {
     flexDirection: 'row',
@@ -2924,7 +2911,7 @@ const styles = StyleSheet.create({
   scripturePostVerse: {
     fontFamily: 'Inter_500Medium',
     fontSize: FontSize.sm,
-    color: '#d4a574',
+    color: '#C9963A',
     marginBottom: Spacing.lg,
   },
   scripturePostStats: {
@@ -2974,7 +2961,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs + 2,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(212,165,116,0.25)',
+    borderColor: 'rgba(201,150,58,0.25)',
     marginTop: Spacing.sm,
   },
   exerciseHrTargetText: {

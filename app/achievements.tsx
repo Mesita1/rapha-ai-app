@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   cardUnlocked: {
     opacity: 1,
-    borderColor: 'rgba(212, 165, 116, 0.25)',
+    borderColor: 'rgba(201, 150, 58, 0.25)',
     shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.15,

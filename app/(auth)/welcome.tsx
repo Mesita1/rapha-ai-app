@@ -21,7 +21,7 @@ function RadiantCircleLogo() {
         <Defs>
           <LinearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <Stop offset="0%" stopColor="#0ea87a" />
-            <Stop offset="100%" stopColor="#D4A574" />
+            <Stop offset="100%" stopColor="#C9963A" />
           </LinearGradient>
         </Defs>
         <Circle
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   healingTagline: {
     fontFamily: 'Inter_400Regular',
     fontSize: FontSize.sm,
-    color: '#D4A574',
+    color: '#C9963A',
     marginTop: Spacing.sm,
     textAlign: 'center',
     fontStyle: 'italic',

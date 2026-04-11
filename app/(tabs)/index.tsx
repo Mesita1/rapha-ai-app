@@ -123,6 +123,65 @@ export default function DashboardScreen() {
   const { isConnected, heartRate, rmssd, sdnn, pnn50, signalQuality, rmssdHistory, rrIntervals, connectedDevice, fullAnalysis } = useBLE();
   const { tier, trialDaysRemaining, isTrialActive, hasProAccess } = useSubscription();
 
+  // --- Stored RMSSD for readiness when disconnected ---
+  const [storedRmssd, setStoredRmssd] = useState<number | null>(null);
+  const [storedRmssd7DayAvg, setStoredRmssd7DayAvg] = useState<number | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem('rapha_rmssd_history_7d');
+        if (raw) {
+          const history: number[] = JSON.parse(raw);
+          if (history.length > 0) {
+            setStoredRmssd(history[history.length - 1]);
+            setStoredRmssd7DayAvg(history.reduce((a, b) => a + b, 0) / history.length);
+          }
+        }
+      } catch {}
+    })();
+  }, []);
+
+  // Persist RMSSD when connected
+  useEffect(() => {
+    if (isConnected && rmssd > 0) {
+      (async () => {
+        try {
+          const raw = await AsyncStorage.getItem('rapha_rmssd_history_7d');
+          const history: number[] = raw ? JSON.parse(raw) : [];
+          history.push(rmssd);
+          // Keep last 7 days worth (assume ~1 reading/day, keep last 14 to be safe)
+          const trimmed = history.slice(-14);
+          await AsyncStorage.setItem('rapha_rmssd_history_7d', JSON.stringify(trimmed));
+          setStoredRmssd(rmssd);
+          setStoredRmssd7DayAvg(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
+        } catch {}
+      })();
+    }
+  }, [isConnected, rmssd]);
+
+  // --- Readiness score calculation ---
+  const readinessRmssd = isConnected && rmssd > 0 ? rmssd : storedRmssd;
+  const readiness7DayAvg = storedRmssd7DayAvg;
+  const readinessScore = readinessRmssd != null
+    ? readinessRmssd > 50
+      ? Math.min(100, Math.round(readinessRmssd * 1.4))
+      : readinessRmssd > 30
+      ? Math.round(50 + readinessRmssd * 0.6)
+      : Math.max(0, Math.round(readinessRmssd * 1.3))
+    : null;
+  const readinessColor = readinessScore != null
+    ? readinessScore >= 70 ? '#22c55e' : readinessScore >= 40 ? '#D4A017' : '#ef4444'
+    : '#8e8e93';
+  const readinessGuidance = readinessScore != null
+    ? readinessScore >= 70
+      ? 'Your body appears well-recovered based on your HRV data. May be a good day for higher intensity activity.'
+      : readinessScore >= 40
+      ? 'Your HRV suggests moderate recovery. Consider lighter activity today.'
+      : 'Your HRV is below your typical range. Rest and gentle recovery may help.'
+    : '';
+  const hasReadinessData = readinessRmssd != null;
+
   // Derive autonomic state from real or mock data
   const liveRmssd = isConnected ? rmssd : null;
   const liveHR = isConnected ? heartRate : null;
@@ -365,6 +424,33 @@ export default function DashboardScreen() {
           </View>
         ))}
 
+        {/* Morning Readiness Card — prominent, first content */}
+        {hasReadinessData ? (
+          <GlassCard style={styles.readinessCardLarge}>
+            <View style={styles.readinessLargeHeader}>
+              <Ionicons name="sunny-outline" size={18} color={readinessColor} />
+              <Text style={[styles.readinessLargeLabel, { color: readinessColor }]}>Readiness</Text>
+              {!isConnected && <Text style={styles.readinessStoredBadge}>From previous session</Text>}
+            </View>
+            <View style={styles.readinessLargeBody}>
+              <View style={[styles.readinessLargeScoreCircle, { borderColor: readinessColor }]}>
+                <Text style={[styles.readinessLargeScoreText, { color: readinessColor }]}>{readinessScore}</Text>
+              </View>
+              <View style={styles.readinessLargeTextBlock}>
+                <Text style={styles.readinessLargeGuidance}>{readinessGuidance}</Text>
+                {interventions.length > 0 && (
+                  <Text style={styles.readinessLargeHighlight}>
+                    Yesterday's highlight: {interventions[0]?.name || 'None logged'}
+                  </Text>
+                )}
+              </View>
+            </View>
+            <Text style={styles.readinessLargeDisclaimer}>
+              Based on your personal HRV trends. For informational purposes only — not medical advice.
+            </Text>
+          </GlassCard>
+        ) : null}
+
         {/* Day-in-Review Card */}
         {isConnected ? (
           <View style={styles.reviewWrapper}>
@@ -406,23 +492,7 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Readiness Card */}
-        {isConnected && (
-        <GlassCard style={styles.readinessCard}>
-          <View style={styles.readinessRow}>
-            <View style={styles.readinessScoreContainer}>
-              <Text style={styles.readinessScore}>{rmssd > 50 ? Math.min(95, Math.round(rmssd * 1.4)) : rmssd > 30 ? Math.round(50 + rmssd) : Math.round(rmssd * 1.5)}</Text>
-            </View>
-            <View style={styles.readinessInfo}>
-              <Text style={styles.readinessLabel}>Readiness</Text>
-              <Text style={styles.readinessRec}>{rmssd > 50 ? 'Green light for high intensity' : rmssd > 30 ? 'Moderate — consider lighter activity' : 'Low — prioritize recovery today'}</Text>
-            </View>
-            <View style={styles.readinessIndicator}>
-              <Ionicons name="checkmark-circle" size={20} color={Colors.accent} />
-            </View>
-          </View>
-        </GlassCard>
-        )}
+        {/* Readiness Card — old position removed, now appears above Day-in-Review */}
 
         {/* Live HRV Card */}
         <GlassCard style={styles.hrvCard} glowColor={Colors.accent}>
@@ -1247,6 +1317,19 @@ export default function DashboardScreen() {
           </View>
         </View>
         )}
+
+        {/* Global Wellness Disclaimer */}
+        <Text style={{
+          fontFamily: 'Inter_400Regular',
+          fontSize: 10,
+          color: '#555',
+          textAlign: 'center',
+          paddingHorizontal: 24,
+          paddingBottom: 40,
+          lineHeight: 14,
+        }}>
+          Rapha AI provides wellness information based on your personal data. It is not a medical device and does not provide medical advice, diagnosis, or treatment. Always consult your healthcare provider before making health decisions. If you are experiencing a medical emergency, call 911.
+        </Text>
 
         {/* Bottom spacing for tab bar + FAB */}
         <View style={{ height: 120 }} />
@@ -2091,6 +2174,68 @@ const styles = StyleSheet.create({
   },
   readinessIndicator: {
     marginLeft: Spacing.sm,
+  },
+  // Large Readiness Card (prominent)
+  readinessCardLarge: {
+    marginBottom: Spacing.sm + 4,
+    padding: Spacing.md + 4,
+  },
+  readinessLargeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: Spacing.md,
+  },
+  readinessLargeLabel: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: FontSize.md,
+  },
+  readinessStoredBadge: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 10,
+    color: Colors.textDim,
+    marginLeft: 'auto',
+  },
+  readinessLargeBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md + 4,
+    marginBottom: Spacing.md,
+  },
+  readinessLargeScoreCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 3,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  readinessLargeScoreText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 28,
+  },
+  readinessLargeTextBlock: {
+    flex: 1,
+  },
+  readinessLargeGuidance: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  readinessLargeHighlight: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  readinessLargeDisclaimer: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 10,
+    color: Colors.textDim,
+    textAlign: 'center',
+    lineHeight: 14,
   },
   // Recommendation
   recommendationCard: {

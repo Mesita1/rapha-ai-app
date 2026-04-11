@@ -51,8 +51,8 @@ export async function checkTriggers(context: {
     if (!dismissed.includes(id)) {
       triggers.push({
         id, type: 'caffeine_warning', priority: 'medium', dismissible: true,
-        title: 'Late Caffeine Alert',
-        message: 'Caffeine after 2pm can reduce your sleep HRV by up to 18%. Consider L-Theanine to offset the impact.',
+        title: 'Late Caffeine Noticed',
+        message: 'Caffeine after 2pm may affect your sleep HRV. You may want to consider L-Theanine to help offset the impact. Wellness data only — not medical advice.',
         actionLabel: 'Log L-Theanine', actionRoute: '/log-intervention',
       });
     }
@@ -68,7 +68,7 @@ export async function checkTriggers(context: {
       triggers.push({
         id, type: 'post_workout', priority: 'medium', dismissible: true,
         title: 'Recovery Check',
-        message: 'Nice workout! Your body is recovering. A cold plunge or Zone 2 walk in the next hour could accelerate recovery by up to 40%.',
+        message: 'Nice workout! Your body is recovering. Some people find that a cold plunge or Zone 2 walk in the next hour may support recovery. Wellness data only — not medical advice.',
         actionLabel: 'Start Recovery Session', actionRoute: '/(tabs)/train',
       });
     }
@@ -84,7 +84,7 @@ export async function checkTriggers(context: {
         id, type: 'morning', priority: 'low', dismissible: true,
         title: 'Good Morning',
         message: context.isConnected && context.rmssd
-          ? `Your morning RMSSD is ${context.rmssd}ms. ${context.rmssd > 50 ? 'Great recovery — green light for high intensity today.' : context.rmssd > 30 ? 'Moderate recovery — consider lighter activity.' : 'Low recovery — prioritize rest and gentle training today.'}`
+          ? `Your morning RMSSD is ${context.rmssd}ms. ${context.rmssd > 50 ? 'Your body appears well-recovered based on your data. May be a good day for higher intensity activity.' : context.rmssd > 30 ? 'Moderate recovery based on your data. Consider lighter activity today.' : 'Your HRV is below your typical range. Rest and gentle recovery may help.'} Wellness data only — not medical advice.`
           : 'Connect your device to see your morning readiness score. How are you feeling?',
         actionLabel: 'Quick Mood Check',
       });
@@ -98,7 +98,7 @@ export async function checkTriggers(context: {
       triggers.push({
         id, type: 'evening', priority: 'low', dismissible: true,
         title: 'Wind Down',
-        message: 'Your body starts preparing for sleep now. A 10-minute Pre-Sleep session could improve tonight\'s sleep quality.',
+        message: 'Your body starts preparing for sleep around this time. A 10-minute Pre-Sleep session may support tonight\'s sleep quality. Wellness data only — not medical advice.',
         actionLabel: 'Start Pre-Sleep', actionRoute: '/(tabs)/train',
       });
     }
@@ -112,8 +112,8 @@ export async function checkTriggers(context: {
     if (!dismissed.includes(id)) {
       triggers.push({
         id, type: 'low_hrv', priority: 'high', dismissible: true,
-        title: 'Low HRV Detected',
-        message: `Your RMSSD is ${context.rmssd}ms — significantly below typical. Your nervous system is under stress. A breathing session could help right now.`,
+        title: 'Low HRV Noticed',
+        message: `Your RMSSD is ${context.rmssd}ms — below your typical range. Based on your data, your nervous system may be under increased demand. A breathing session may help. Wellness data only — not medical advice.`,
         actionLabel: 'Quick Calm', actionRoute: '/(tabs)/train',
       });
     }
@@ -125,8 +125,8 @@ export async function checkTriggers(context: {
     if (!dismissed.includes(id)) {
       triggers.push({
         id, type: 'stress', priority: 'high', dismissible: true,
-        title: 'Stress Response Active',
-        message: 'Your heart rate is elevated and HRV is low. Your sympathetic nervous system is dominant. Try 2 minutes of box breathing.',
+        title: 'Elevated Stress Response Noticed',
+        message: 'Your heart rate is elevated and HRV is low based on your data. Your sympathetic nervous system may be more active. Consider trying 2 minutes of box breathing. Wellness data only — not medical advice.',
         actionLabel: 'Start Breathing', actionRoute: '/(tabs)/train',
       });
     }
@@ -157,7 +157,7 @@ export async function checkTriggers(context: {
         triggers.push({
           id, type: 'nudge', priority: 'low', dismissible: true,
           title: 'Train Today?',
-          message: 'You haven\'t done a training session today. Even 3 minutes of breathing can make a measurable difference.',
+          message: 'You haven\'t done a training session today. Even 3 minutes of breathing may make a noticeable difference in how you feel.',
           actionLabel: 'Quick 3-Min Session', actionRoute: '/(tabs)/train',
         });
       }
@@ -176,6 +176,55 @@ export async function checkTriggers(context: {
           title: 'Unusually High HRV',
           message: 'Your RMSSD is unusually high. For some people with autonomic conditions, HRV spikes can accompany flare-ups — not just drops. How are you feeling?',
           actionLabel: 'Quick Mood Check',
+        });
+      }
+    }
+  }
+
+  // --- POTS / CHRONIC CONDITION PACING ALERTS ---
+  // Only for users who selected POTS, Dysautonomia, CFS/ME, or Long COVID
+  if (context.conditions?.some(c => ['POTS', 'Dysautonomia', 'CFS/ME', 'Long COVID'].includes(c))) {
+
+    // Sustained elevated HR (possible orthostatic stress)
+    if (context.isConnected && context.heartRate && context.heartRate > 100 && context.rmssd && context.rmssd < 35) {
+      const id = `pacing_elevated_hr_${Date.now().toString().slice(0, -5)}`; // throttle to ~every 30 min
+      if (!dismissed.includes(id)) {
+        triggers.push({
+          id, type: 'pacing_hr', priority: 'medium', dismissible: true,
+          title: 'Elevated Heart Rate Noticed',
+          message: 'Your heart rate is above 100 bpm and your HRV is below your typical range. How are you feeling? Consider checking in with yourself — sitting down or hydrating may help if you\'re feeling symptomatic.',
+        });
+      }
+    }
+
+    // HRV dropping significantly — below typical range
+    if (context.isConnected && context.rmssd && context.rmssd < 20) {
+      const id = `pacing_low_hrv_${Date.now().toString().slice(0, -5)}`;
+      if (!dismissed.includes(id)) {
+        triggers.push({
+          id, type: 'pacing_low_hrv', priority: 'medium', dismissible: true,
+          title: 'HRV Below Typical Range',
+          message: 'Your current HRV reading is lower than usual. This may indicate your nervous system is under increased demand. Consider resting if you\'re not feeling well. This is wellness data only — not a medical assessment.',
+        });
+      }
+    }
+
+    // Daily energy budgeting reminder (morning)
+    if (context.hourOfDay >= 7 && context.hourOfDay <= 9) {
+      const id = `pacing_morning_${today}`;
+      if (!dismissed.includes(id)) {
+        const readinessText = context.rmssd && context.rmssd > 0
+          ? context.rmssd > 50
+            ? 'Your morning HRV looks higher than usual — you may have more capacity today, but always listen to your body.'
+            : context.rmssd > 30
+            ? 'Your morning HRV is in your moderate range. Pacing your activities throughout the day may help you feel better this evening.'
+            : 'Your morning HRV is on the lower side. Being gentle with yourself today and prioritizing rest between activities may be helpful.'
+          : 'Connect your device to see your morning HRV reading.';
+
+        triggers.push({
+          id, type: 'pacing_morning', priority: 'low', dismissible: true,
+          title: 'Morning Check-In',
+          message: readinessText,
         });
       }
     }

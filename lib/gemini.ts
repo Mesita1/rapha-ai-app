@@ -1,6 +1,12 @@
 import type { ChatMessage, CurrentHRV, Intervention, InsightPattern } from './types';
 
-const GEMINI_API_KEY = 'AIzaSyBaFVnsXYvLmzjK6l_H8P9GzyGHa-spi88';
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+
+if (!GEMINI_API_KEY) {
+  console.error(
+    'EXPO_PUBLIC_GEMINI_API_KEY is not set. Copy .env.example to .env and add your Gemini API key.'
+  );
+}
 const GEMINI_ENDPOINT =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
